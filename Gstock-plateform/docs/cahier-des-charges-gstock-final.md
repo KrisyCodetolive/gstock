@@ -519,7 +519,7 @@ Pour faciliter la prise en main, l'écran de création de rôle peut proposer de
 | Remboursement de crédit | aucun |
 
 - La création d'un produit crée une ligne de stock à 0 dans chaque boutique ; la création d'une boutique crée une ligne à 0 pour chaque produit.
-- Stock négatif : voir §17 (P1).
+- **Le stock ne peut jamais devenir négatif** (décision P1, §17). Toute opération qui ferait passer `shop_stock.quantity` sous 0 est refusée par le serveur (`422`, message en français simple, ex. « Stock insuffisant : il reste 3 unités de Riz 5 kg ») : vente, sortie manuelle, annulation d'approvisionnement. Le contrôle est fait dans la transaction, avec verrouillage de la ligne `shop_stock`, pour être sûr en concurrence. Le POS empêche d'ajouter au panier une quantité supérieure au stock disponible.
 
 ### 7.3 Unités
 
@@ -890,7 +890,7 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 
 **Endpoints.** `GET /shops/{shop_id}/stock`, `GET /shops/{shop_id}/stock/alerts`, `GET /shops/{shop_id}/stock/movements?product_id=`, `POST /shops/{shop_id}/adjustments`, `POST /shops/{shop_id}/adjustments/{id}/cancel`.
 
-**Critères d'acceptation.** Après chaque opération, `shop_stock.quantity` est égal à la somme des mouvements. Toute opération de stock est transactionnelle.
+**Critères d'acceptation.** Après chaque opération, `shop_stock.quantity` est égal à la somme des mouvements et n'est jamais négatif. Toute opération de stock est transactionnelle.
 
 ### M08 — Ventes / Point de vente (POS)
 
@@ -1245,7 +1245,7 @@ La réussite se mesure à l'adoption réelle, pas au nombre de comptes créés. 
 
 | # | Question | Recommandation | Impact |
 |---|---|---|---|
-| P1 | Stock négatif autorisé ? | Autoriser avec alerte, pour ne jamais bloquer une vente en boutique ; paramétrable par boutique | M07, M08, hors ligne |
+| P1 | Stock négatif autorisé ? | **Décidé : non.** Toute opération qui rendrait le stock négatif est refusée (§7.2) | M07, M08, hors ligne |
 | P2 | Règle de conflit à la synchronisation hors ligne | Enregistrer l'opération, la marquer « à vérifier », notifier le gérant | M08, F9 |
 | P3 | Annulation d'une vente à crédit déjà partiellement remboursée | Transformer les remboursements en avoir client réaffectable | M09 |
 | P4 | Prix de vente différents selon la boutique | Phase 2 (`shop_product_prices`) | M06 |
