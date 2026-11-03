@@ -89,11 +89,11 @@ Lucide (`lucide-react`), trait 2 px (2,4 px dans les boutons d'action), taille 2
 - **Bouton secondaire (`variant="default"`)** : fond indigo, texte blanc, `pressable` (contour + ombre 3 px), hauteur 48 px.
 - **Bouton discret** : fond blanc, contour, sans ombre.
 - **Champ** : fond blanc, contour 2 px, `rounded-sm`, hauteur 48 px, libellé visible au-dessus (jamais seulement un texte indicatif).
-- **Puce de filtre** : contour, `--radius-sm`. Active : fond encre, texte fond.
+- **Puce de filtre** : contour, `rounded-sm`. Active : fond encre, texte fond.
 - **Carte produit** : blanche, `pressable-lg`, vignette pastel, nom 14 px/700, prix, stock. Stock faible en `--warn` gras ; rupture : carte atténuée, libellé « Rupture de stock » en `--destructive`, non ajoutable au panier.
 - **Pastille de quantité** : mangue, contour, en haut à droite de la carte.
 - **Barre panier** (POS) : bloc indigo, `pressable-lg` (contour + ombre 4 px), nombre d'articles, total en gros, bouton « Encaisser ».
-- **Badge d'état** : fond clair de l'état, texte de l'état, contour 2 px `currentColor`, `--radius-sm`.
+- **Badge d'état** : fond clair de l'état, texte de l'état, contour 2 px `currentColor`, `rounded-sm`.
 - **Carte crédit client** : nom et téléphone, badge d'état, « Reste à payer » en montant principal, barre de progression (payé en vert), « Déjà payé / sur », dernier paiement, bouton « Recevoir un paiement ».
 
 ## Mise en page
