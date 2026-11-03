@@ -62,7 +62,9 @@ Aucun outil de test frontend n'est encore configuré.
 
 ## Frontend : approche « d'abord le front » (ADR-004)
 
-Le frontend est développé en premier, sur des données simulées. Pour chaque module, on définit d'abord le contrat d'API (types TS + endpoints), puis on écrit des handlers MSW qui appliquent les mêmes règles que le serveur (totaux, stock, soldes). `VITE_USE_MOCKS=true` active MSW. La structure prévue est `src/{app,components,features/<module>,lib,offline,mocks,types,locales/fr}`, et chaque dossier de `features/` contient ses pages, ses composants, son `api.ts` et ses schémas (§11.2). L'ordre de livraison suit les phases F1 → F9 (§11.4).
+Le frontend est développé en premier, sur des données simulées. Pour chaque module, on définit d'abord le contrat d'API (types TS + endpoints), puis on écrit des handlers MSW qui appliquent les mêmes règles que le serveur (totaux, stock, soldes). `VITE_USE_MOCKS=true` active MSW. La structure prévue est `src/{app,components,features/<module>,lib,offline,mocks,types,locales/fr}`, et chaque dossier de `features/` contient ses pages, ses composants, ses hooks et ses schémas (§11.2). L'ordre de livraison suit les phases F1 → F9 (§11.4).
+
+**Couche réseau centralisée (§11.2).** Tous les appels HTTP sont dans `src/lib/api/` : `client.ts` est le seul fichier qui appelle `fetch` (URL de base, jeton, erreurs typées), et chaque module a son fichier (`products.ts`, `sales.ts`…) qui expose des fonctions typées. Les pages, composants, hooks et stores n'appellent jamais `fetch` et n'écrivent jamais d'URL d'API : ils importent ces fonctions. `lib/api/` ne contient aucun code React.
 
 Côté UX (§3), le mobile est prioritaire : accès immédiat à « Vendre », grands boutons, tableaux affichés en listes de cartes sur mobile. Chaque carte est cliquable et mène quelque part. Chaque écran gère les états chargement, succès, erreur et vide. Le sélecteur de boutique n'apparaît que si l'utilisateur a accès à plusieurs boutiques. Le skill `ui-ux-pro-max` (`.claude/skills/`) est disponible pour le travail de design.
 

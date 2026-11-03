@@ -290,7 +290,7 @@ Le backend et le frontend sont deux applications séparées. Le frontend ne calc
 | Données simulées | MSW + jeux de données JSON |
 | Hors ligne | vite-plugin-pwa + IndexedDB |
 
-**Conséquences.** Les écrans font de vrais appels `fetch` ; passer au backend réel consiste à désactiver MSW. Le contrat d'API est la spécification du backend. Les mocks appliquent les mêmes règles que le serveur (totaux, stock, soldes de crédit).
+**Conséquences.** L'application fait de vrais appels `fetch`, tous centralisés dans `src/lib/api/` (§11.2) ; passer au backend réel consiste à désactiver MSW. Le contrat d'API est la spécification du backend. Les mocks appliquent les mêmes règles que le serveur (totaux, stock, soldes de crédit).
 
 ### ADR-005 — Mode hors ligne en PWA
 
@@ -1060,7 +1060,13 @@ gstock-web/
 │   │   ├── expenses/
 │   │   ├── dashboard/
 │   │   └── audit/
-│   ├── lib/              # client API, formatage FCFA et dates, permissions, boutique courante
+│   ├── lib/
+│   │   ├── api/          # TOUS les appels réseau (voir ci-dessous)
+│   │   │   ├── client.ts # seul endroit où fetch est appelé
+│   │   │   ├── products.ts
+│   │   │   ├── sales.ts
+│   │   │   └── …         # un fichier par module, mêmes noms que features/
+│   │   └── …             # formatage FCFA et dates, permissions, boutique courante
 │   ├── offline/          # cache IndexedDB, file de synchronisation
 │   ├── mocks/            # MSW : handlers et données JSON par module
 │   ├── types/            # contrat d'API (types TypeScript)
@@ -1068,7 +1074,14 @@ gstock-web/
 └── package.json
 ```
 
-Chaque dossier de `features/` contient ses pages, ses composants, ses appels API (`api.ts`) et ses schémas de validation.
+Chaque dossier de `features/` contient ses pages, ses composants, ses hooks (TanStack Query) et ses schémas de validation. Il ne contient **aucun appel réseau**.
+
+**Couche réseau centralisée (`src/lib/api/`).** Tous les appels HTTP vers l'API sont regroupés dans ce seul dossier, pour savoir immédiatement où intervenir si l'URL, l'authentification, la bibliothèque HTTP ou le format d'erreur changent.
+
+- `client.ts` est le **seul fichier** qui appelle `fetch` (ou une autre bibliothèque HTTP). Il gère l'URL de base `/api/v1`, le jeton d'authentification, la sérialisation JSON et la conversion des erreurs (401, 403, 409, 422) en erreurs typées.
+- Un fichier par module (`products.ts`, `sales.ts`, `credits.ts`…) expose des fonctions typées avec les types de `src/types/`, par exemple `getProducts(params)`, `createSale(shopId, payload)`, `cancelSale(shopId, saleId, reason)`. Ces fonctions ne contiennent que l'URL de l'endpoint et passent par `client.ts`.
+- Les pages, composants, hooks et stores n'appellent **jamais** `fetch` ni n'écrivent d'URL d'API : ils importent les fonctions de `lib/api/`. Cette règle est vérifiée par le lint.
+- Le code de `lib/api/` reste purement réseau : aucun composant ni hook React.
 
 ### 11.3 Données simulées
 
