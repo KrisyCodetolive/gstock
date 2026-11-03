@@ -4,6 +4,8 @@ import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { HomePage } from '@/features/dashboard/pages/HomePage'
 import { ShopFormPage } from '@/features/shops/pages/ShopFormPage'
 import { ShopsListPage } from '@/features/shops/pages/ShopsListPage'
+import { RoleFormPage } from '@/features/roles/pages/RoleFormPage'
+import { RolesListPage } from '@/features/roles/pages/RolesListPage'
 import { PaymentSettingsPage } from '@/features/settings/pages/PaymentSettingsPage'
 import { SettingsHubPage } from '@/features/settings/pages/SettingsHubPage'
 import { TenantSettingsPage } from '@/features/settings/pages/TenantSettingsPage'
@@ -40,6 +42,9 @@ const settings: RouteObject[] = [
   section('shops', <ShopsListPage />),
   section('shops', <ShopFormPage />, '/nouvelle'),
   section('shops', <ShopFormPage />, '/:id'),
+  section('roles', <RolesListPage />),
+  section('roles', <RoleFormPage />, '/nouveau'),
+  section('roles', <RoleFormPage />, '/:id'),
 ]
 
 export const router = createBrowserRouter([
