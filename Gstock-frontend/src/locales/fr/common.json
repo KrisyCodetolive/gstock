@@ -47,7 +47,9 @@
     "required_password": "Saisissez votre mot de passe.",
     "demo_title": "Comptes de démonstration",
     "demo_text": "Touchez un profil pour vous connecter avec lui. Mot de passe : {{password}}",
-    "demo_inactive": "Compte désactivé"
+    "demo_inactive": "Compte désactivé",
+    "demo_reset": "Remettre les données de démonstration à zéro",
+    "demo_reset_done": "Données de démonstration remises à zéro."
   },
   "home": {
     "hello": "Bonjour {{name}}",

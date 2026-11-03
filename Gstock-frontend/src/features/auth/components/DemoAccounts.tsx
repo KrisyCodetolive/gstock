@@ -1,7 +1,10 @@
 // Comptes de démonstration, affichés uniquement avec les données simulées.
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, RotateCcw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { StatusBadge } from '@/components/StatusBadge'
+import { Button } from '@/components/ui/button'
+import { resetDb } from '@/mocks/db'
 import { roleLabel } from '@/lib/roles'
 import { shops } from '@/mocks/data/tenant'
 import { DEMO_PASSWORD, roles, users } from '@/mocks/data/users'
@@ -46,6 +49,19 @@ export function DemoAccounts({ onPick, disabled }: { onPick: (account: LoginForm
           )
         })}
       </ul>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="justify-self-start"
+        onClick={() => {
+          resetDb()
+          toast.success(t('auth.demo_reset_done'))
+        }}
+      >
+        <RotateCcw aria-hidden="true" />
+        {t('auth.demo_reset')}
+      </Button>
     </section>
   )
 }
