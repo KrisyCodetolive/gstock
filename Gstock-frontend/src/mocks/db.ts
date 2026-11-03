@@ -9,7 +9,7 @@ import * as people from './data/users'
 type Row<T> = Omit<T, 'products_count' | 'users_count'>
 
 export interface MockDb {
-  settings: TenantSettings
+  settings: Omit<TenantSettings, 'plan'>
   planLimits: PlanLimits
   paymentSettings: tenant.StoredPaymentSettings
   shops: Row<Shop>[]

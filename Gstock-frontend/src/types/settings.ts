@@ -13,9 +13,11 @@ export interface TenantSettings {
   receipt_footer: string | null
   /** Variantes, taxes, unités multiples, marques (§3.1). */
   advanced_mode: boolean
+  /** Plan d'abonnement, en lecture seule ici. */
+  plan: PlanLimits
 }
 
-export type TenantSettingsPayload = Omit<TenantSettings, 'logo_url' | 'currency'>
+export type TenantSettingsPayload = Omit<TenantSettings, 'logo_url' | 'currency' | 'plan'>
 
 /** GET|PUT /settings/payment : les clés ne sont jamais renvoyées en clair. */
 export interface PaymentSettings {
@@ -64,6 +66,7 @@ export type ShopPayload = Omit<Shop, 'id' | 'users_count'>
 
 /** Limites du plan affichées dans les paramètres. */
 export interface PlanLimits {
+  name: string
   max_shops: number
   max_users: number
 }

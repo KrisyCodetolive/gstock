@@ -1,7 +1,9 @@
 // Espace de démonstration (cahier §11.3) : un commerçant, deux boutiques.
 import type { PaymentSettings, PlanLimits, Shop, TenantSettings } from '@/types/settings'
 
-export const tenantSettings: TenantSettings = {
+export const planLimits: PlanLimits = { name: 'Commerce', max_shops: 3, max_users: 10 }
+
+export const tenantSettings: Omit<TenantSettings, 'plan'> = {
   name: 'Alimentation Koné',
   logo_url: null,
   phone: '0700000001',
@@ -12,8 +14,6 @@ export const tenantSettings: TenantSettings = {
   receipt_footer: 'Merci pour votre confiance. À bientôt !',
   advanced_mode: false,
 }
-
-export const planLimits: PlanLimits = { max_shops: 3, max_users: 10 }
 
 type ShopSeed = Omit<Shop, 'users_count'>
 
