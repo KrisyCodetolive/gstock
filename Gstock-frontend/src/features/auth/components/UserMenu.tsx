@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { roleLabel } from '@/lib/roles'
 import { useLogout, useSession } from '../hooks'
 import { UserAvatar } from './UserAvatar'
 
@@ -28,7 +29,7 @@ export function UserMenu({ align = 'end' }: { align?: 'start' | 'end' }) {
           <span className="text-base font-bold">
             {user.firstname} {user.lastname}
           </span>
-          <span className="text-sm font-medium text-muted-foreground">{t('user.role', { role: role.name })}</span>
+          <span className="text-sm font-medium text-muted-foreground">{t('user.role', { role: roleLabel(role) })}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem

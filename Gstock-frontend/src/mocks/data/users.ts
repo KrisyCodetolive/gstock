@@ -4,7 +4,8 @@
 import { ALL_PERMISSIONS, type Permission, type Role, type User } from '@/types/auth'
 
 export interface MockRole extends Role {
-  permissions: readonly Permission[]
+  description: string | null
+  permissions: Permission[]
 }
 
 export interface MockUser extends User {
@@ -12,17 +13,19 @@ export interface MockUser extends User {
   role_id: number
   shop_ids: number[]
   is_active: boolean
+  last_login_at: string | null
 }
 
 /** Mot de passe commun aux comptes de démonstration. */
 export const DEMO_PASSWORD = 'demo1234'
 
 export const roles: MockRole[] = [
-  { id: 1, name: 'Owner', is_owner: true, permissions: ALL_PERMISSIONS },
+  { id: 1, name: 'Owner', is_owner: true, description: "Créateur de l'espace : toutes les permissions.", permissions: [...ALL_PERMISSIONS] },
   {
     id: 2,
     name: 'Gérant',
     is_owner: false,
+    description: 'Gère les boutiques au quotidien.',
     permissions: [
       'products.view', 'products.create', 'products.update', 'products.disable',
       'categories.manage', 'units.manage',
@@ -41,6 +44,7 @@ export const roles: MockRole[] = [
     id: 3,
     name: 'Vendeur',
     is_owner: false,
+    description: 'Vend et met à crédit.',
     permissions: [
       'products.view', 'customers.view', 'customers.create',
       'dashboard.view', 'sales.create', 'sales.view',
@@ -51,6 +55,7 @@ export const roles: MockRole[] = [
     id: 4,
     name: 'Caissier',
     is_owner: false,
+    description: 'Encaisse les ventes et les remboursements.',
     permissions: [
       'products.view', 'customers.view',
       'dashboard.view', 'sales.create', 'sales.view',
@@ -62,6 +67,7 @@ export const roles: MockRole[] = [
     id: 5,
     name: 'Gestionnaire de stock',
     is_owner: false,
+    description: 'Reçoit la marchandise et tient le stock.',
     permissions: [
       'products.view', 'products.create', 'products.update',
       'categories.manage', 'units.manage',
@@ -76,26 +82,26 @@ export const roles: MockRole[] = [
 export const users: MockUser[] = [
   {
     id: 1, firstname: 'Aminata', lastname: 'Koné', email: 'aminata@demo.gstock.app', phone: '0700000001',
-    avatar_url: null, password: DEMO_PASSWORD, role_id: 1, shop_ids: [1, 2], is_active: true,
+    avatar_url: null, password: DEMO_PASSWORD, role_id: 1, shop_ids: [1, 2], is_active: true, last_login_at: null,
   },
   {
     id: 2, firstname: 'Ibrahim', lastname: 'Traoré', email: 'ibrahim@demo.gstock.app', phone: '0700000002',
-    avatar_url: null, password: DEMO_PASSWORD, role_id: 2, shop_ids: [1, 2], is_active: true,
+    avatar_url: null, password: DEMO_PASSWORD, role_id: 2, shop_ids: [1, 2], is_active: true, last_login_at: null,
   },
   {
     id: 3, firstname: 'Fatou', lastname: 'Bamba', email: 'fatou@demo.gstock.app', phone: '0700000003',
-    avatar_url: null, password: DEMO_PASSWORD, role_id: 3, shop_ids: [1], is_active: true,
+    avatar_url: null, password: DEMO_PASSWORD, role_id: 3, shop_ids: [1], is_active: true, last_login_at: null,
   },
   {
     id: 4, firstname: 'Koffi', lastname: "N'Guessan", email: 'koffi@demo.gstock.app', phone: '0700000004',
-    avatar_url: null, password: DEMO_PASSWORD, role_id: 4, shop_ids: [2], is_active: true,
+    avatar_url: null, password: DEMO_PASSWORD, role_id: 4, shop_ids: [2], is_active: true, last_login_at: null,
   },
   {
     id: 5, firstname: 'Moussa', lastname: 'Diallo', email: 'moussa@demo.gstock.app', phone: '0700000005',
-    avatar_url: null, password: DEMO_PASSWORD, role_id: 5, shop_ids: [1, 2], is_active: true,
+    avatar_url: null, password: DEMO_PASSWORD, role_id: 5, shop_ids: [1, 2], is_active: true, last_login_at: null,
   },
   {
     id: 6, firstname: 'Paul', lastname: 'Yao', email: 'paul@demo.gstock.app', phone: '0700000006',
-    avatar_url: null, password: DEMO_PASSWORD, role_id: 3, shop_ids: [1], is_active: false,
+    avatar_url: null, password: DEMO_PASSWORD, role_id: 3, shop_ids: [1], is_active: false, last_login_at: null,
   },
 ]

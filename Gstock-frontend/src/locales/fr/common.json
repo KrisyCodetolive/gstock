@@ -82,5 +82,33 @@
   },
   "showcase": {
     "title": "Vitrine des composants"
+  },
+  "common": {
+    "optional": "(facultatif)",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "open": "Ouvrir",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "close": "Fermer",
+    "active": "Actif",
+    "inactive": "Désactivé",
+    "yes": "Oui",
+    "no": "Non",
+    "saved": "Modifications enregistrées.",
+    "generic_error": "Une erreur est survenue. Réessayez dans un instant."
+  },
+  "list": {
+    "clear_search": "Effacer la recherche",
+    "pagination": "Pagination",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "page_of": "Page {{page}} sur {{last}} · {{total}} au total",
+    "no_result_title": "Aucun résultat",
+    "no_result_text": "Essayez avec un autre mot."
+  },
+  "roles_display": {
+    "owner": "Propriétaire"
   }
 }

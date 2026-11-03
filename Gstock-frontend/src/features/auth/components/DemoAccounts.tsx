@@ -2,6 +2,7 @@
 import { ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { StatusBadge } from '@/components/StatusBadge'
+import { roleLabel } from '@/lib/roles'
 import { shops } from '@/mocks/data/tenant'
 import { DEMO_PASSWORD, roles, users } from '@/mocks/data/users'
 import type { LoginForm } from '../schemas'
@@ -36,7 +37,7 @@ export function DemoAccounts({ onPick, disabled }: { onPick: (account: LoginForm
                     {!user.is_active && <StatusBadge tone="danger">{t('auth.demo_inactive')}</StatusBadge>}
                   </span>
                   <span className="truncate text-sm text-muted-foreground">
-                    {role?.name} · {userShops.map((s) => s.name.replace('Boutique ', '')).join(', ')}
+                    {role && roleLabel(role)} · {userShops.map((s) => s.name.replace('Boutique ', '')).join(', ')}
                   </span>
                 </span>
                 <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
