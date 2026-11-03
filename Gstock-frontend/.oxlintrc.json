@@ -1,8 +1,73 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "oxc"],
+  "plugins": [
+    "react",
+    "oxc",
+    "typescript"
+  ],
   "rules": {
     "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
+    "react/only-export-components": [
+      "warn",
+      {
+        "allowConstantExport": true
+      }
+    ],
+    "no-restricted-globals": [
+      "error",
+      {
+        "name": "fetch",
+        "message": "Les appels réseau passent uniquement par src/lib/api/ (cahier §11.2)."
+      },
+      {
+        "name": "XMLHttpRequest",
+        "message": "Les appels réseau passent uniquement par src/lib/api/ (cahier §11.2)."
+      }
+    ],
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "axios",
+            "message": "Les appels réseau passent uniquement par src/lib/api/ (cahier §11.2)."
+          }
+        ]
+      }
+    ],
+    "no-restricted-properties": [
+      "error",
+      {
+        "object": "window",
+        "property": "fetch",
+        "message": "Les appels réseau passent uniquement par src/lib/api/ (cahier §11.2)."
+      },
+      {
+        "object": "globalThis",
+        "property": "fetch",
+        "message": "Les appels réseau passent uniquement par src/lib/api/ (cahier §11.2)."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/lib/api/client.ts",
+        "src/mocks/**"
+      ],
+      "rules": {
+        "no-restricted-globals": "off",
+        "no-restricted-imports": "off",
+        "no-restricted-properties": "off"
+      }
+    },
+    {
+      "files": [
+        "src/components/ui/**"
+      ],
+      "rules": {
+        "react/only-export-components": "off"
+      }
+    }
+  ]
 }
