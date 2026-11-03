@@ -22,7 +22,7 @@ export function Sidebar() {
       </Link>
       <div className="grid gap-1 px-1">
         <span className="text-xs font-bold tracking-wide text-muted-foreground uppercase">{tenant.name}</span>
-        <ShopSwitcher className="w-full justify-start" />
+        <ShopSwitcher variant="menu" className="w-full" />
       </div>
 
       {sell && (
