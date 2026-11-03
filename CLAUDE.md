@@ -10,9 +10,7 @@ GStock : SaaS multi-tenant de gestion de stock, de point de vente (POS) et de cr
 
 ## État actuel
 
-Les deux applications sont encore des **squelettes fraîchement générés** et ne contiennent aucun code métier. Plusieurs écarts avec le cahier des charges restent à combler :
-
-- `Gstock-frontend/` : React 19 + Vite 8 en **JavaScript**. Le cahier prévoit TypeScript, React Router, TanStack Query, Tailwind + shadcn/ui, React Hook Form + Zod, Zustand, MSW, react-i18next et vite-plugin-pwa (ADR-004), mais rien de tout cela n'est encore installé.
+- `Gstock-frontend/` : **phase F1 (socle) livrée** sur la branche `front-socle`. On y trouve TypeScript, React Router, TanStack Query, Tailwind v4 + shadcn/ui (base Radix, rhabillé « Marché »), React Hook Form + Zod, Zustand, MSW et react-i18next. Le socle comprend la connexion simulée avec 5 profils, les permissions, le sélecteur de boutique et les mises en page mobile et desktop. Les rubriques métier affichent « Bientôt disponible » jusqu'à leur phase. vite-plugin-pwa (F9) n'est pas encore installé.
 - `Gstock-plateform/` : Laravel 12 (PHP ≥ 8.2) avec la configuration par défaut (SQLite, `routes/web.php` uniquement). Le cahier prévoit PostgreSQL, stancl/tenancy, Sanctum, Filament et GeniusPay, mais rien de tout cela n'est encore installé. Il n'y a pas encore de `routes/api.php`.
 
 ## Commandes
@@ -33,13 +31,17 @@ Les tests tournent sur SQLite `:memory:` (`phpunit.xml`), avec les suites `Unit`
 ### Frontend (`Gstock-frontend/`)
 
 ```bash
-npm run dev       # serveur Vite
-npm run build
-npm run lint      # oxlint (.oxlintrc.json : plugins react + oxc)
+npm run dev        # serveur Vite, données simulées actives (.env.development : VITE_USE_MOCKS=true)
+npm run build      # tsc (vérification des types) puis vite build
+npm run typecheck  # tsc seul
+npm run lint       # oxlint : interdit fetch/axios hors de src/lib/api/client.ts et src/mocks/
 npm run preview
 ```
 
-Aucun outil de test frontend n'est encore configuré.
+- Comptes de démonstration (mot de passe `demo1234`) : ils sont listés sur l'écran de connexion quand les mocks sont actifs, et définis dans `src/mocks/data/users.ts`.
+- La vitrine des composants est accessible en développement sur `/vitrine`.
+- Composants shadcn : `npx shadcn add <composant>`. Il faut ensuite les rhabiller selon `MASTER.md` et remplacer l'import `cn` par `@/lib/utils`. Attention : la commande propose d'écraser `button.tsx`, qui est personnalisé. Il faut refuser.
+- Aucun outil de test frontend n'est encore configuré.
 
 ## Architecture cible (à respecter)
 
@@ -67,6 +69,8 @@ Le frontend est développé en premier, sur des données simulées. Pour chaque 
 **Couche réseau centralisée (§11.2).** Tous les appels HTTP sont dans `src/lib/api/` : `client.ts` est le seul fichier qui appelle `fetch` (URL de base, jeton, erreurs typées), et chaque module a son fichier (`products.ts`, `sales.ts`…) qui expose des fonctions typées. Les pages, composants, hooks et stores n'appellent jamais `fetch` et n'écrivent jamais d'URL d'API : ils importent ces fonctions. `lib/api/` ne contient aucun code React.
 
 Côté UX (§3), le mobile est prioritaire : accès immédiat à « Vendre », grands boutons, tableaux affichés en listes de cartes sur mobile. Chaque carte est cliquable et mène quelque part. Chaque écran gère les états chargement, succès, erreur et vide. Le sélecteur de boutique n'apparaît que si l'utilisateur a accès à plusieurs boutiques. Le skill `ui-ux-pro-max` (`.claude/skills/`) est disponible pour le travail de design.
+
+**Design system (direction « Marché »).** La source de vérité visuelle est `Gstock-frontend/design-system/gstock/MASTER.md` : couleurs, typographie Outfit, contours épais et ombres décalées, composants de référence et interdits. Lisez-le avant de créer ou de modifier un écran ou un composant, et vérifiez si un fichier `pages/<page>.md` le complète pour la page concernée. La maquette `reference.html` (direction B) sert d'exemple. Les composants shadcn sont rhabillés avec ces variables : on ne garde jamais leur thème par défaut.
 
 ## Méthode de travail
 

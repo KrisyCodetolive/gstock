@@ -1,0 +1,86 @@
+{
+  "app": {
+    "name": "GStock"
+  },
+  "nav": {
+    "home": "Accueil",
+    "sell": "Vendre",
+    "sales": "Mes ventes",
+    "credits": "Mes crédits clients",
+    "credits_short": "Crédits",
+    "customers": "Mes clients",
+    "products": "Mes produits",
+    "stock": "Mon stock",
+    "stock_short": "Stock",
+    "purchases": "Approvisionnements",
+    "suppliers": "Fournisseurs",
+    "expenses": "Dépenses",
+    "audit": "Journal d'activité",
+    "settings": "Paramètres",
+    "more": "Plus",
+    "main": "Navigation principale",
+    "more_title": "Toutes les rubriques"
+  },
+  "shop": {
+    "switch": "Changer de boutique",
+    "current": "Boutique actuelle",
+    "choose_title": "Choisir une boutique",
+    "none_title": "Aucune boutique ne vous est attribuée",
+    "none_text": "Demandez au propriétaire de l'espace de vous affecter à une boutique, puis reconnectez-vous."
+  },
+  "user": {
+    "menu": "Mon compte",
+    "logout": "Se déconnecter",
+    "role": "Rôle : {{role}}"
+  },
+  "auth": {
+    "title": "Connexion",
+    "subtitle": "Bon retour ! Connectez-vous pour ouvrir votre boutique.",
+    "login_label": "E-mail ou téléphone",
+    "login_placeholder": "ex. 07 00 00 00 01",
+    "password_label": "Mot de passe",
+    "show_password": "Afficher le mot de passe",
+    "hide_password": "Masquer le mot de passe",
+    "submit": "Se connecter",
+    "submitting": "Connexion…",
+    "required_login": "Saisissez votre e-mail ou votre numéro de téléphone.",
+    "required_password": "Saisissez votre mot de passe.",
+    "demo_title": "Comptes de démonstration",
+    "demo_text": "Touchez un profil pour vous connecter avec lui. Mot de passe : {{password}}",
+    "demo_inactive": "Compte désactivé"
+  },
+  "home": {
+    "hello": "Bonjour {{name}}",
+    "intro": "Que voulez-vous faire ?",
+    "quick_actions": "Actions rapides",
+    "sell_text": "Enregistrer une vente payée ou à crédit",
+    "credits_text": "Voir qui doit de l'argent et recevoir un paiement",
+    "stock_text": "Voir ce qui reste en boutique",
+    "products_text": "Ajouter ou modifier vos produits",
+    "customers_text": "Retrouver un client et son historique",
+    "sales_text": "Revoir les ventes du jour",
+    "purchases_text": "Enregistrer une arrivée de marchandise",
+    "expenses_text": "Noter une sortie d'argent",
+    "settings_text": "Boutiques, utilisateurs et rôles",
+    "audit_text": "Qui a fait quoi, et quand"
+  },
+  "coming": {
+    "title": "Bientôt disponible",
+    "text": "Cette rubrique arrive dans une prochaine étape ({{phase}}).",
+    "back": "Retour à l'accueil"
+  },
+  "states": {
+    "loading": "Chargement…",
+    "error_title": "Quelque chose n'a pas marché",
+    "retry": "Réessayer",
+    "empty_title": "Rien pour l'instant",
+    "forbidden_title": "Vous n'avez pas accès à cette page",
+    "forbidden_text": "Votre rôle ne permet pas d'ouvrir cette rubrique. Demandez au propriétaire si vous en avez besoin.",
+    "not_found_title": "Page introuvable",
+    "not_found_text": "Cette adresse ne mène à aucune page de GStock.",
+    "back_home": "Retour à l'accueil"
+  },
+  "showcase": {
+    "title": "Vitrine des composants"
+  }
+}
