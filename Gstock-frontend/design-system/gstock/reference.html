@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GStock directions visuelles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&family=Outfit:wght@400;500;600;700;800&family=Fira+Sans:wght@400;500;600;700&family=Fira+Code:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* Page cadre : neutre, une seule ambiance claire, pour ne pas biaiser la comparaison.
+   Mise en page : 3 colonnes côte à côte (une par direction), empilées sur mobile. */
+:root {
+  --page-bg: #E9EAE6;
+  --page-ink: #1A1C1E;
+  --page-muted: #5B6066;
+  --page-line: #CFD1CC;
+  --page-card: #F7F7F5;
+  --font-page: "Nunito Sans", system-ui, sans-serif;
+  --font-page-display: "Rubik", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--page-bg); color: var(--page-ink); font-family: var(--font-page); line-height: 1.5; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 32px 20px 56px; }
+header.intro { max-width: 68ch; display: grid; gap: 8px; margin-bottom: 28px; }
+header.intro h1 { font-family: var(--font-page-display); font-size: 28px; line-height: 1.2; margin: 0; text-wrap: balance; }
+header.intro p { margin: 0; color: var(--page-muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 28px; align-items: start; }
+.col { display: grid; gap: 14px; }
+.col-head { display: grid; gap: 6px; }
+.col-head .tag { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--page-muted); }
+.col-head h2 { font-family: var(--font-page-display); font-size: 22px; margin: 0; }
+.col-head p { margin: 0; font-size: 15px; color: var(--page-muted); max-width: 46ch; }
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.sw { display: flex; align-items: center; gap: 6px; font-size: 12px; background: var(--page-card); border: 1px solid var(--page-line); border-radius: 999px; padding: 3px 9px 3px 3px; }
+.sw i { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(0,0,0,.15); display: block; }
+.fonts { font-size: 13px; color: var(--page-muted); }
+.fonts b { color: var(--page-ink); }
+.sources { font-size: 13px; color: var(--page-muted); border-top: 1px solid var(--page-line); padding-top: 10px; }
+
+/* ---------- Composants partagés, habillés par les variables de chaque direction ---------- */
+.phone {
+  width: 100%; max-width: 360px; justify-self: center;
+  border-radius: 34px; padding: 10px; background: #111; box-shadow: 0 18px 40px rgba(0,0,0,.18);
+}
+.screen {
+  border-radius: 26px; overflow: hidden; background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); display: grid; grid-template-rows: auto 1fr auto auto; min-height: 640px;
+  position: relative;
+}
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 8px; gap: 8px; }
+.shop { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 15px; background: var(--chip-bg); color: var(--ink); border: var(--chip-border); border-radius: var(--r-sm); padding: 6px 10px; }
+.avatar { width: 34px; height: 34px; border-radius: var(--r-avatar); display: grid; place-items: center; font-weight: 700; font-size: 13px; background: var(--primary); color: var(--on-primary); }
+.body { padding: 4px 16px 12px; display: grid; gap: 12px; align-content: start; }
+.title { font-family: var(--font-display); font-size: 26px; font-weight: 700; margin: 0; letter-spacing: var(--title-track); }
+.search { display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 12px; background: var(--field-bg); border: var(--field-border); border-radius: var(--r-md); color: var(--muted); font-size: 15px; }
+.chips { display: flex; gap: 6px; overflow: hidden; }
+.chip { white-space: nowrap; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: var(--r-pill); background: var(--chip-bg); border: var(--chip-border); color: var(--ink); }
+.chip.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.products { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.prod { position: relative; background: var(--card); border: var(--card-border); border-radius: var(--r-md); padding: 10px; display: grid; gap: 4px; box-shadow: var(--card-shadow); min-height: 118px; align-content: start; }
+.prod .ph { height: 40px; border-radius: var(--r-sm); background: var(--thumb); display: grid; place-items: center; color: var(--thumb-ink); margin-bottom: 2px; }
+.prod .name { font-size: 14px; font-weight: 700; line-height: 1.25; }
+.prod .price { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-weight: 700; font-size: 16px; }
+.prod .price small { font-size: 11px; font-weight: 600; color: var(--muted); margin-left: 2px; }
+.prod .stock { font-size: 12px; color: var(--muted); }
+.prod .stock.low { color: var(--warn-ink); font-weight: 700; }
+.prod.out { opacity: .55; }
+.prod.out .stock { color: var(--danger); font-weight: 700; }
+.qty { position: absolute; top: 8px; right: 8px; min-width: 26px; height: 26px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 800; font-size: 13px; display: grid; place-items: center; padding: 0 6px; border: var(--qty-border); }
+.cart { margin: 0 12px 10px; background: var(--cart-bg); color: var(--cart-ink); border-radius: var(--r-lg); padding: 10px 10px 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; box-shadow: var(--cart-shadow); border: var(--cart-border); }
+.cart .lbl { font-size: 12px; opacity: .85; }
+.cart .total { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 700; line-height: 1.1; }
+.cart .total small { font-size: 12px; font-weight: 600; opacity: .8; margin-left: 3px; }
+.cta { height: 50px; padding: 0 18px; border-radius: var(--r-md); background: var(--accent); color: var(--on-accent); font-weight: 800; font-size: 16px; display: flex; align-items: center; gap: 6px; border: var(--qty-border); font-family: var(--font-body); }
+.nav { display: grid; grid-template-columns: repeat(5, 1fr); align-items: end; padding: 6px 6px 12px; background: var(--nav-bg); border-top: var(--nav-border); }
+.nav a { display: grid; justify-items: center; gap: 2px; font-size: 11px; font-weight: 600; color: var(--muted); text-decoration: none; padding: 4px 0; }
+.nav a.on { color: var(--primary-ink); }
+.nav a.sell span.ic { width: 52px; height: 52px; border-radius: var(--r-sell); background: var(--primary); color: var(--on-primary); display: grid; place-items: center; margin-top: -22px; box-shadow: var(--sell-shadow); border: var(--qty-border); }
+.nav a.sell { color: var(--primary-ink); font-weight: 800; }
+svg { display: block; }
+
+/* Carte crédit client */
+.credit { width: 100%; max-width: 360px; justify-self: center; background: var(--card); color: var(--ink); font-family: var(--font-body); border: var(--card-border); border-radius: var(--r-lg); box-shadow: var(--card-shadow); padding: 16px; display: grid; gap: 12px; position: relative; overflow: hidden; }
+.credit .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.credit .who { display: flex; align-items: center; gap: 10px; }
+.credit .who b { font-size: 16px; display: block; }
+.credit .who span { font-size: 13px; color: var(--muted); }
+.badge { font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: var(--r-pill); background: var(--danger-bg); color: var(--danger); border: var(--badge-border); white-space: nowrap; }
+.due .lbl { font-size: 13px; color: var(--muted); font-weight: 600; }
+.due .amt { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 32px; font-weight: 700; line-height: 1.1; color: var(--ink); }
+.due .amt small { font-size: 14px; font-weight: 600; color: var(--muted); margin-left: 4px; }
+.bar { height: 8px; border-radius: 99px; background: var(--muted-bg); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 40%; background: var(--paid); border-radius: 99px; }
+.meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); }
+.meta b { color: var(--ink); font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.btn2 { height: 48px; border-radius: var(--r-md); background: var(--primary); color: var(--on-primary); font-weight: 800; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; border: var(--qty-border); }
+
+/* ---------- Direction A : Comptoir ---------- */
+.dA {
+  --bg: #F3F4F1; --ink: #14181B; --muted: #5A6168; --muted-bg: #E2E5E0;
+  --card: #FFFFFF; --card-border: 1px solid #DDE1DB; --card-shadow: 0 1px 0 rgba(20,24,27,.06), 0 4px 12px rgba(20,24,27,.05);
+  --primary: #0D6B4B; --on-primary: #FFFFFF; --primary-ink: #0D6B4B;
+  --accent: #F5B400; --on-accent: #14181B;
+  --paid: #0D6B4B; --warn-ink: #9A5B00; --danger: #B42318; --danger-bg: #FDECEA;
+  --thumb: #EAF2EE; --thumb-ink: #0D6B4B;
+  --field-bg: #FFFFFF; --field-border: 1px solid #D3D8D1;
+  --chip-bg: #FFFFFF; --chip-border: 1px solid #D3D8D1;
+  --cart-bg: #14181B; --cart-ink: #FFFFFF; --cart-shadow: 0 8px 20px rgba(20,24,27,.25); --cart-border: 0;
+  --nav-bg: #FFFFFF; --nav-border: 1px solid #DDE1DB;
+  --qty-border: 0; --badge-border: 0; --sell-shadow: 0 6px 14px rgba(13,107,75,.35);
+  --r-sm: 10px; --r-md: 14px; --r-lg: 18px; --r-pill: 999px; --r-avatar: 50%; --r-sell: 50%;
+  --font-display: "Rubik", system-ui, sans-serif; --font-body: "Nunito Sans", system-ui, sans-serif; --font-num: "Rubik", system-ui, sans-serif;
+  --title-track: -.01em;
+}
+
+/* ---------- Direction B : Marché ---------- */
+.dB {
+  --bg: #FFF8EC; --ink: #16133A; --muted: #575375; --muted-bg: #EDE6F7;
+  --card: #FFFFFF; --card-border: 2px solid #16133A; --card-shadow: 4px 4px 0 #16133A;
+  --primary: #2B2A8C; --on-primary: #FFFFFF; --primary-ink: #2B2A8C;
+  --accent: #FF7A1A; --on-accent: #16133A;
+  --paid: #1F9D55; --warn-ink: #A34700; --danger: #C0122B; --danger-bg: #FFE1E4;
+  --thumb: #FFE3C7; --thumb-ink: #16133A;
+  --field-bg: #FFFFFF; --field-border: 2px solid #16133A;
+  --chip-bg: #FFFFFF; --chip-border: 2px solid #16133A;
+  --cart-bg: #2B2A8C; --cart-ink: #FFFFFF; --cart-shadow: 4px 4px 0 #16133A; --cart-border: 2px solid #16133A;
+  --nav-bg: #FFFFFF; --nav-border: 2px solid #16133A;
+  --qty-border: 2px solid #16133A; --badge-border: 2px solid currentColor; --sell-shadow: 3px 3px 0 #16133A;
+  --r-sm: 8px; --r-md: 10px; --r-lg: 12px; --r-pill: 8px; --r-avatar: 10px; --r-sell: 14px;
+  --font-display: "Outfit", system-ui, sans-serif; --font-body: "Outfit", system-ui, sans-serif; --font-num: "Outfit", system-ui, sans-serif;
+  --title-track: -.02em;
+}
+.dB .title { font-weight: 800; text-transform: uppercase; font-size: 28px; }
+.dB .prod:nth-child(1) .ph { background: #FFE3C7; }
+.dB .prod:nth-child(2) .ph { background: #FFF1A8; }
+.dB .prod:nth-child(3) .ph { background: #D7F0E0; }
+.dB .prod:nth-child(4) .ph { background: #E6E1FA; }
+
+/* ---------- Direction C : Carnet ---------- */
+.dC {
+  --bg: #F7F8FB; --ink: #18213D; --muted: #586080; --muted-bg: #E3E7F2;
+  --card: #FFFFFF; --card-border: 1px solid #D5DAE8; --card-shadow: none;
+  --primary: #1E3FA0; --on-primary: #FFFFFF; --primary-ink: #1E3FA0;
+  --accent: #1E3FA0; --on-accent: #FFFFFF;
+  --paid: #1E3FA0; --warn-ink: #9A4A00; --danger: #C3132E; --danger-bg: transparent;
+  --thumb: #EEF1F8; --thumb-ink: #1E3FA0;
+  --field-bg: #FFFFFF; --field-border: 1px solid #C9D0E3;
+  --chip-bg: transparent; --chip-border: 1px solid #C9D0E3;
+  --cart-bg: #FFFFFF; --cart-ink: #18213D; --cart-shadow: 0 -1px 0 #D5DAE8; --cart-border: 0;
+  --nav-bg: #FFFFFF; --nav-border: 1px solid #D5DAE8;
+  --qty-border: 0; --badge-border: 2px solid #C3132E; --sell-shadow: none;
+  --r-sm: 4px; --r-md: 6px; --r-lg: 6px; --r-pill: 4px; --r-avatar: 6px; --r-sell: 8px;
+  --font-display: "Fira Sans", system-ui, sans-serif; --font-body: "Fira Sans", system-ui, sans-serif; --font-num: "Fira Code", ui-monospace, monospace;
+  --title-track: 0;
+}
+.dC .screen { background-image: repeating-linear-gradient(to bottom, transparent 0 31px, #E6EAF4 31px 32px); }
+.dC .title { font-weight: 600; border-bottom: 2px solid var(--ink); padding-bottom: 4px; }
+.dC .prod { border-left: 3px solid #1E3FA0; }
+.dC .prod.out { border-left-color: #C3132E; }
+/* ticket de caisse : bord dentelé en haut du panier */
+.dC .cart { position: relative; margin: 0 12px 10px; border-radius: 0 0 6px 6px; box-shadow: 0 2px 6px rgba(24,33,61,.12); }
+.dC .cart::before { content: ""; position: absolute; left: 0; right: 0; top: -8px; height: 8px;
+  background: radial-gradient(circle at 6px 0, transparent 6px, #FFFFFF 6.5px) 0 0 / 12px 8px repeat-x; }
+.dC .badge { transform: rotate(-4deg); text-transform: uppercase; letter-spacing: .05em; }
+.dC .credit { border-left: 4px solid #C3132E; }
+.dC .due .amt { color: #C3132E; }
+
+@media (max-width: 420px) { .wrap { padding: 24px 16px 40px; } }
+@media (prefers-reduced-motion: no-preference) { .cta, .btn2 { transition: filter .15s; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="intro">
+    <h1>GStock : trois directions visuelles</h1>
+    <p>Le même écran « Vendre » et la même carte de crédit client, habillés de trois façons. Les données sont celles d'une boutique de démonstration à Cocody. Choisis une direction, ou dis ce que tu veux prendre dans chacune.</p>
+  </header>
+  <div class="grid" id="grid"></div>
+</div>
+
+<template id="tpl">
+  <div class="phone"><div class="screen">
+    <div class="topbar">
+      <div class="shop">Boutique Cocody <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
+      <div class="avatar">AK</div>
+    </div>
+    <div class="body">
+      <h3 class="title">Vendre</h3>
+      <div class="search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Chercher un produit</div>
+      <div class="chips"><span class="chip on">Tout</span><span class="chip">Riz et céréales</span><span class="chip">Huiles</span><span class="chip">Boissons</span></div>
+      <div class="products">
+        <div class="prod"><span class="qty">2</span><div class="ph"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 4h12l1 4v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8z"/><path d="M5 8h14"/></svg></div><div class="name">Riz parfumé 5 kg</div><div class="price">4 500<small>FCFA</small></div><div class="stock">24 sacs en stock</div></div>
+        <div class="prod"><span class="qty">1</span><div class="ph"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M10 2h4v3l2 3v13a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V8l2-3z"/></svg></div><div class="name">Huile Dinor 1 L</div><div class="price">1 350<small>FCFA</small></div><div class="stock low">Plus que 3 bouteilles</div></div>
+        <div class="prod"><div class="ph"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="7" width="16" height="13" rx="1"/><path d="M4 11h16M9 7V4h6v3"/></svg></div><div class="name">Sucre en morceaux 1 kg</div><div class="price">900<small>FCFA</small></div><div class="stock">40 paquets en stock</div></div>
+        <div class="prod out"><div class="ph"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="8" width="18" height="10" rx="3"/></svg></div><div class="name">Savon de Marseille</div><div class="price">300<small>FCFA</small></div><div class="stock">Rupture de stock</div></div>
+      </div>
+    </div>
+    <div class="cart">
+      <div><div class="lbl">3 articles</div><div class="total">10 350<small>FCFA</small></div></div>
+      <div class="cta">Encaisser <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+    </div>
+    <nav class="nav">
+      <a href="#"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11 12 4l9 7v9H3z"/></svg></span>Accueil</a>
+      <a href="#"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg></span>Stock</a>
+      <a href="#" class="sell on"><span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.5 12h11.5l2-8H6.2"/></svg></span>Vendre</a>
+      <a href="#"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M16 15h2"/></svg></span>Crédits</a>
+      <a href="#"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span>Plus</a>
+    </nav>
+  </div></div>
+  <div class="credit">
+    <div class="row">
+      <div class="who"><div class="avatar">AK</div><div><b>Awa Koné</b><span>07 48 21 90 33</span></div></div>
+      <span class="badge">En retard de 3 jours</span>
+    </div>
+    <div class="due"><div class="lbl">Reste à payer</div><div class="amt">18 000<small>FCFA</small></div></div>
+    <div class="bar"><i></i></div>
+    <div class="meta"><span>Déjà payé <b>12 000 FCFA</b></span><span>sur <b>30 000 FCFA</b></span></div>
+    <div class="meta"><span>Dernier paiement : 5 000 FCFA le 28 oct.</span></div>
+    <div class="btn2">Recevoir un paiement</div>
+  </div>
+</template>
+
+<script>
+const dirs = [
+  { cls: "dA", tag: "Direction A", name: "Comptoir",
+    text: "Clair, très contrasté, pensé pour être lu en plein soleil. Un vert profond pour inspirer confiance, un jaune vif réservé à l'action « Encaisser ». Le panier est un bandeau sombre qu'on ne peut pas manquer.",
+    sw: [["#0D6B4B","Vert"],["#F5B400","Jaune action"],["#14181B","Encre"],["#F3F4F1","Fond"],["#B42318","Retard"]],
+    fonts: "<b>Rubik</b> pour les titres et les montants, <b>Nunito Sans</b> pour le texte",
+    src: "Base du skill : palette et polices « retail » (vert foncé pour le contraste), style Minimalism & Swiss + Inclusive Design." },
+  { cls: "dB", tag: "Direction B", name: "Marché",
+    text: "Des blocs de couleur francs, des contours épais et des ombres décalées, comme les enseignes peintes des boutiques. Très reconnaissable, énergique, chaque élément touchable se voit tout de suite.",
+    sw: [["#2B2A8C","Indigo"],["#FF7A1A","Mangue"],["#16133A","Encre"],["#FFF8EC","Fond"],["#1F9D55","Payé"]],
+    fonts: "<b>Outfit</b> partout, en gras pour les titres",
+    src: "Base du skill : produit e-commerce « Vibrant & Block-based », police Bauhaus Geometric, variance 8." },
+  { cls: "dC", tag: "Direction C", name: "Carnet",
+    text: "Inspiré du cahier de crédit et du ticket de caisse que les commerçants connaissent déjà. Fond ligné, montants en chiffres de caisse, tampon rouge pour les retards, panier en forme de ticket.",
+    sw: [["#1E3FA0","Bleu stylo"],["#C3132E","Tampon rouge"],["#18213D","Encre"],["#F7F8FB","Papier"]],
+    fonts: "<b>Fira Sans</b> pour le texte, <b>Fira Code</b> pour les montants",
+    src: "Base du skill : style E-Ink / Paper, police « Dashboard Data » pour des chiffres bien alignés." }
+];
+const grid = document.getElementById("grid");
+const tpl = document.getElementById("tpl");
+for (const d of dirs) {
+  const col = document.createElement("section");
+  col.className = "col " + d.cls;
+  col.innerHTML = `<div class="col-head"><span class="tag">${d.tag}</span><h2>${d.name}</h2><p>${d.text}</p></div>
+    <div class="swatches">${d.sw.map(([c,n]) => `<span class="sw"><i style="background:${c}"></i>${n}</span>`).join("")}</div>
+    <div class="fonts">${d.fonts}</div>`;
+  col.appendChild(tpl.content.cloneNode(true));
+  const s = document.createElement("div"); s.className = "sources"; s.textContent = d.src; col.appendChild(s);
+  grid.appendChild(col);
+}
+document.querySelectorAll(".nav a").forEach(a => a.addEventListener("click", e => e.preventDefault()));
+</script>
+</body>
+</html>

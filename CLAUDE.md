@@ -68,6 +68,8 @@ Le frontend est développé en premier, sur des données simulées. Pour chaque 
 
 Côté UX (§3), le mobile est prioritaire : accès immédiat à « Vendre », grands boutons, tableaux affichés en listes de cartes sur mobile. Chaque carte est cliquable et mène quelque part. Chaque écran gère les états chargement, succès, erreur et vide. Le sélecteur de boutique n'apparaît que si l'utilisateur a accès à plusieurs boutiques. Le skill `ui-ux-pro-max` (`.claude/skills/`) est disponible pour le travail de design.
 
+**Design system (direction « Marché »).** La source de vérité visuelle est `Gstock-frontend/design-system/gstock/MASTER.md` : couleurs, typographie Outfit, contours épais et ombres décalées, composants de référence et interdits. Lisez-le avant de créer ou de modifier un écran ou un composant, et vérifiez si un fichier `pages/<page>.md` le complète pour la page concernée. La maquette `reference.html` (direction B) sert d'exemple. Les composants shadcn sont rhabillés avec ces variables : on ne garde jamais leur thème par défaut.
+
 ## Méthode de travail
 
 Avant toute modification importante :
