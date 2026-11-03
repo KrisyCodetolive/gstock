@@ -1,7 +1,8 @@
 import { authHandlers } from './auth'
+import { referentialsHandlers } from './referentials'
 import { rolesHandlers } from './roles'
 import { settingsHandlers } from './settings'
 import { shopsHandlers } from './shops'
 import { usersHandlers } from './users'
 
-export const handlers = [...authHandlers, ...settingsHandlers, ...shopsHandlers, ...rolesHandlers, ...usersHandlers]
+export const handlers = [...authHandlers, ...settingsHandlers, ...shopsHandlers, ...rolesHandlers, ...usersHandlers, ...referentialsHandlers]

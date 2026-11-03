@@ -8,6 +8,10 @@ import { RoleFormPage } from '@/features/roles/pages/RoleFormPage'
 import { RolesListPage } from '@/features/roles/pages/RolesListPage'
 import { UserFormPage } from '@/features/users/pages/UserFormPage'
 import { UsersListPage } from '@/features/users/pages/UsersListPage'
+import { CategoriesPage } from '@/features/referentials/pages/CategoriesPage'
+import { PaymentMethodsPage } from '@/features/referentials/pages/PaymentMethodsPage'
+import { BrandsPage, ExpenseCategoriesPage } from '@/features/referentials/pages/SimpleReferentialPages'
+import { UnitsPage } from '@/features/referentials/pages/UnitsPage'
 import { PaymentSettingsPage } from '@/features/settings/pages/PaymentSettingsPage'
 import { SettingsHubPage } from '@/features/settings/pages/SettingsHubPage'
 import { TenantSettingsPage } from '@/features/settings/pages/TenantSettingsPage'
@@ -50,6 +54,11 @@ const settings: RouteObject[] = [
   section('users', <UsersListPage />),
   section('users', <UserFormPage />, '/nouveau'),
   section('users', <UserFormPage />, '/:id'),
+  section('categories', <CategoriesPage />),
+  section('units', <UnitsPage />),
+  section('payment-methods', <PaymentMethodsPage />),
+  section('expense-categories', <ExpenseCategoriesPage />),
+  section('brands', <BrandsPage />),
 ]
 
 export const router = createBrowserRouter([

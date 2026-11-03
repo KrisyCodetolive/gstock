@@ -1,0 +1,104 @@
+{
+  "referentials": {
+    "active": "Actif",
+    "inactive": "Désactivé",
+    "active_label": "Utilisable",
+    "active_hint": "Désactivé, l'élément n'est plus proposé mais reste dans l'historique. On ne supprime pas un élément déjà utilisé.",
+    "added": "Élément ajouté.",
+    "name": "Nom",
+    "columns": {
+      "name": "Nom",
+      "details": "Détails",
+      "status": "État"
+    },
+    "categories": {
+      "title": "Catégories de produits",
+      "subtitle": "Pour ranger vos produits et les retrouver vite à la caisse",
+      "add": "Ajouter une catégorie",
+      "edit": "Modifier la catégorie",
+      "search": "Chercher une catégorie",
+      "empty_title": "Aucune catégorie",
+      "empty_text": "Créez des catégories comme « Boissons » ou « Huiles ».",
+      "name_placeholder": "ex. Boissons",
+      "color": "Couleur de la vignette",
+      "colors": {
+        "peach": "Pêche",
+        "yellow": "Jaune",
+        "mint": "Menthe",
+        "lavender": "Lavande"
+      },
+      "required_name": "Donnez un nom à la catégorie."
+    },
+    "units": {
+      "title": "Unités",
+      "subtitle": "Comment vous comptez vos produits : à l'unité, au carton, au kilo…",
+      "add": "Ajouter une unité",
+      "edit": "Modifier l'unité",
+      "search": "Chercher une unité",
+      "empty_title": "Aucune unité",
+      "empty_text": "Ajoutez au moins l'unité de base « Unité ».",
+      "name_placeholder": "ex. Carton",
+      "short_name": "Abréviation",
+      "short_name_placeholder": "ex. ctn",
+      "base": "Unité de base",
+      "derived": "Multiple ou fraction d'une autre unité",
+      "derived_hint": "Par exemple : 1 carton contient 12 unités.",
+      "base_unit": "Par rapport à",
+      "base_unit_placeholder": "Choisir une unité",
+      "relation": "Relation",
+      "relation_multiply": "Contient plusieurs",
+      "relation_divide": "Est une fraction de",
+      "value": "Combien ?",
+      "preview_multiply": "1 {{unit}} = {{value}} {{base}}",
+      "preview_divide": "{{value}} {{unit}} = 1 {{base}}",
+      "required_name": "Donnez un nom à l'unité.",
+      "required_short_name": "Donnez une abréviation, par exemple « ctn ».",
+      "required_base": "Choisissez une unité de base.",
+      "invalid_value": "Saisissez un nombre supérieur à 0."
+    },
+    "payment_methods": {
+      "title": "Modes de paiement",
+      "subtitle": "Les façons dont vos clients vous paient",
+      "add": "Ajouter un mode de paiement",
+      "edit": "Modifier le mode de paiement",
+      "search": "Chercher un mode de paiement",
+      "empty_title": "Aucun mode de paiement",
+      "empty_text": "Ajoutez au moins « Espèces ».",
+      "name_placeholder": "ex. Wave",
+      "type": "Type",
+      "types": {
+        "cash": "Espèces",
+        "mobile_money": "Mobile Money",
+        "card": "Carte bancaire",
+        "other": "Autre"
+      },
+      "geniuspay": "Encaisser avec GeniusPay",
+      "geniuspay_hint": "Le paiement n'est validé qu'une fois confirmé par GeniusPay. Impossible hors connexion.",
+      "geniuspay_badge": "GeniusPay",
+      "required_name": "Donnez un nom au mode de paiement."
+    },
+    "expense_categories": {
+      "title": "Catégories de dépenses",
+      "subtitle": "Pour savoir où part l'argent",
+      "add": "Ajouter une catégorie",
+      "edit": "Modifier la catégorie",
+      "search": "Chercher une catégorie",
+      "empty_title": "Aucune catégorie de dépenses",
+      "empty_text": "Créez des catégories comme « Transport » ou « Loyer ».",
+      "name_placeholder": "ex. Transport",
+      "required_name": "Donnez un nom à la catégorie de dépenses."
+    },
+    "brands": {
+      "title": "Marques",
+      "subtitle": "Option avancée : la marque de vos produits",
+      "add": "Ajouter une marque",
+      "edit": "Modifier la marque",
+      "search": "Chercher une marque",
+      "empty_title": "Aucune marque",
+      "empty_text": "Ajoutez les marques que vous vendez.",
+      "name_placeholder": "ex. Dinor",
+      "required_name": "Donnez un nom à la marque.",
+      "advanced_off": "Les marques font partie du mode avancé. Activez-le dans « Mon espace » pour les utiliser."
+    }
+  }
+}

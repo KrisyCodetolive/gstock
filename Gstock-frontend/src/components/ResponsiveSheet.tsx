@@ -26,7 +26,7 @@ export function ResponsiveSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side={desktop ? 'right' : 'bottom'}
-        className={desktop ? 'w-full gap-0 sm:max-w-lg' : 'max-h-[92dvh] gap-0'}
+        className={desktop ? 'gap-0 data-[side=right]:w-full data-[side=right]:sm:max-w-lg' : 'max-h-[92dvh] gap-0'}
       >
         <SheetHeader className="border-b-2 border-muted pr-14">
           <SheetTitle>{title}</SheetTitle>
