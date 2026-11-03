@@ -22,3 +22,9 @@ export function applyApiErrors<T extends FieldValues>(
   }
   return placed ? null : error.message
 }
+
+/** Message à montrer dans une notification : la première erreur de champ, sinon le message général. */
+export function apiErrorMessage(error: unknown): string {
+  if (!(error instanceof ApiError)) return i18n.t('common.generic_error')
+  return Object.values(error.errors)[0]?.[0] ?? error.message
+}

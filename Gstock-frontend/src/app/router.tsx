@@ -2,6 +2,8 @@ import { createBrowserRouter, type RouteObject } from 'react-router'
 import { RequireAuth } from '@/features/auth/components/RequireAuth'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { HomePage } from '@/features/dashboard/pages/HomePage'
+import { ShopFormPage } from '@/features/shops/pages/ShopFormPage'
+import { ShopsListPage } from '@/features/shops/pages/ShopsListPage'
 import { PaymentSettingsPage } from '@/features/settings/pages/PaymentSettingsPage'
 import { SettingsHubPage } from '@/features/settings/pages/SettingsHubPage'
 import { TenantSettingsPage } from '@/features/settings/pages/TenantSettingsPage'
@@ -35,6 +37,9 @@ const settings: RouteObject[] = [
   guarded('/parametres', ANY_SETTINGS_PERMISSION, <SettingsHubPage />),
   section('tenant', <TenantSettingsPage />),
   section('payment', <PaymentSettingsPage />),
+  section('shops', <ShopsListPage />),
+  section('shops', <ShopFormPage />, '/nouvelle'),
+  section('shops', <ShopFormPage />, '/:id'),
 ]
 
 export const router = createBrowserRouter([

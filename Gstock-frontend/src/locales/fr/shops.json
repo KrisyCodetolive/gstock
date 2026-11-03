@@ -1,0 +1,60 @@
+{
+  "shops": {
+    "title": "Boutiques",
+    "add": "Ajouter une boutique",
+    "search": "Chercher une boutique",
+    "empty_title": "Aucune boutique",
+    "empty_text": "Ajoutez votre première boutique pour commencer à vendre.",
+    "open": "Ouverte",
+    "closed": "Fermée",
+    "columns": {
+      "name": "Boutique",
+      "place": "Quartier",
+      "phone": "Téléphone",
+      "users": "Accès",
+      "status": "État"
+    },
+    "new_title": "Nouvelle boutique",
+    "back": "Boutiques",
+    "form": {
+      "identity": "La boutique",
+      "name": "Nom de la boutique",
+      "name_placeholder": "ex. Boutique Marcory",
+      "city": "Ville",
+      "district": "Quartier",
+      "address": "Adresse",
+      "address_hint": "Un repère suffit : « Face à la pharmacie ».",
+      "phone": "Téléphone de la boutique",
+      "receipt": "Reçu",
+      "receipt_note": "Message propre à cette boutique",
+      "receipt_note_hint": "Affiché sous le message de l'espace, par exemple les horaires d'ouverture.",
+      "show_customer": "Afficher le nom du client",
+      "show_phone": "Afficher le téléphone de la boutique",
+      "auto_print": "Imprimer le reçu automatiquement",
+      "auto_print_hint": "Après chaque vente, si une imprimante est branchée.",
+      "required_name": "Donnez un nom à la boutique.",
+      "required_city": "Indiquez la ville de la boutique.",
+      "created": "Boutique ajoutée. Son stock commence à 0 pour tous les produits."
+    },
+    "status": {
+      "title": "Ouverture",
+      "open_text": "La boutique est ouverte : elle apparaît dans le sélecteur de boutique.",
+      "closed_text": "La boutique est fermée : elle n'apparaît plus dans le sélecteur. Son historique est conservé.",
+      "close": "Fermer la boutique",
+      "reopen": "Rouvrir la boutique",
+      "close_title": "Fermer « {{name}} » ?",
+      "close_text": "Plus personne ne pourra y vendre ni y faire de mouvement de stock. Rien n'est supprimé : vous pourrez la rouvrir à tout moment.",
+      "closed_done": "Boutique fermée.",
+      "reopened_done": "Boutique rouverte."
+    },
+    "access": {
+      "title": "Qui a accès à cette boutique ?",
+      "empty": "Personne d'autre que le propriétaire pour l'instant.",
+      "manage": "Gérer les utilisateurs"
+    },
+    "usage_one": "{{count}} boutique ouverte sur {{max}} possibles avec votre abonnement",
+    "usage_other": "{{count}} boutiques ouvertes sur {{max}} possibles avec votre abonnement",
+    "users_count_one": "{{count}} personne",
+    "users_count_other": "{{count}} personnes"
+  }
+}
