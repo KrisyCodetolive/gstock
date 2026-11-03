@@ -60,7 +60,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'products', path: '/produits', label: 'nav.products', description: 'home.products_text',
-    icon: Package, permissions: ['products.view'], phase: 'F3', tint: 'yellow',
+    icon: Package, permissions: ['products.view'], tint: 'yellow',
   },
   {
     id: 'purchases', path: '/approvisionnements', label: 'nav.purchases', description: 'home.purchases_text',
