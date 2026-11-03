@@ -47,7 +47,9 @@
     "required_password": "Saisissez votre mot de passe.",
     "demo_title": "Comptes de démonstration",
     "demo_text": "Touchez un profil pour vous connecter avec lui. Mot de passe : {{password}}",
-    "demo_inactive": "Compte désactivé"
+    "demo_inactive": "Compte désactivé",
+    "demo_reset": "Remettre les données de démonstration à zéro",
+    "demo_reset_done": "Données de démonstration remises à zéro."
   },
   "home": {
     "hello": "Bonjour {{name}}",
@@ -82,5 +84,33 @@
   },
   "showcase": {
     "title": "Vitrine des composants"
+  },
+  "common": {
+    "optional": "(facultatif)",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "open": "Ouvrir",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "close": "Fermer",
+    "active": "Actif",
+    "inactive": "Désactivé",
+    "yes": "Oui",
+    "no": "Non",
+    "saved": "Modifications enregistrées.",
+    "generic_error": "Une erreur est survenue. Réessayez dans un instant."
+  },
+  "list": {
+    "clear_search": "Effacer la recherche",
+    "pagination": "Pagination",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "page_of": "Page {{page}} sur {{last}} · {{total}} au total",
+    "no_result_title": "Aucun résultat",
+    "no_result_text": "Essayez avec un autre mot."
+  },
+  "roles_display": {
+    "owner": "Propriétaire"
   }
 }

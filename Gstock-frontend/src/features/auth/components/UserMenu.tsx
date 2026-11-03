@@ -1,6 +1,5 @@
 import { LogOut } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,6 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { roleLabel } from '@/lib/roles'
 import { useLogout, useSession } from '../hooks'
 import { UserAvatar } from './UserAvatar'
 
@@ -16,7 +16,6 @@ export function UserMenu({ align = 'end' }: { align?: 'start' | 'end' }) {
   const { t } = useTranslation()
   const { user, role } = useSession()
   const logout = useLogout()
-  const navigate = useNavigate()
 
   return (
     <DropdownMenu>
@@ -28,12 +27,12 @@ export function UserMenu({ align = 'end' }: { align?: 'start' | 'end' }) {
           <span className="text-base font-bold">
             {user.firstname} {user.lastname}
           </span>
-          <span className="text-sm font-medium text-muted-foreground">{t('user.role', { role: role.name })}</span>
+          <span className="text-sm font-medium text-muted-foreground">{t('user.role', { role: roleLabel(role) })}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"
-          onSelect={() => logout.mutate(undefined, { onSettled: () => navigate('/connexion', { replace: true }) })}
+          onSelect={() => logout.mutate()}
         >
           <LogOut aria-hidden="true" />
           {t('user.logout')}

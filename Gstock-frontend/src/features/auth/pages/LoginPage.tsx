@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CircleAlert, Eye, EyeOff, LogIn } from 'lucide-react'
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useLocation, useNavigate } from 'react-router'
@@ -9,9 +9,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError } from '@/lib/api/client'
-import { DemoAccounts } from '../components/DemoAccounts'
 import { useLogin, useMe } from '../hooks'
 import { loginSchema, type LoginForm } from '../schemas'
+
+// Comptes de démonstration : chargés seulement avec les données simulées,
+// pour que le build de production ne contienne aucune donnée de démonstration.
+const DemoAccounts =
+  import.meta.env.VITE_USE_MOCKS === 'true'
+    ? lazy(() => import('../components/DemoAccounts').then((m) => ({ default: m.DemoAccounts })))
+    : null
 
 export function LoginPage() {
   const { t } = useTranslation()
@@ -26,8 +32,10 @@ export function LoginPage() {
     defaultValues: { login: '', password: '' },
   })
 
-  const from = (location.state as { from?: string } | null)?.from ?? '/'
-  if (me.data) return <Navigate to={from} replace />
+  const state = location.state as { from?: string; loggedOut?: boolean } | null
+  const from = state?.from ?? '/'
+  // Pendant une déconnexion volontaire, la session est encore là un instant : on reste ici.
+  if (me.data && !state?.loggedOut) return <Navigate to={from} replace />
 
   const submit = form.handleSubmit((values) =>
     login.mutate(values, {
@@ -118,14 +126,16 @@ export function LoginPage() {
           </Button>
         </form>
 
-        {import.meta.env.VITE_USE_MOCKS === 'true' && (
-          <DemoAccounts
-            disabled={login.isPending}
-            onPick={(account) => {
-              form.reset(account)
-              void submit()
-            }}
-          />
+        {DemoAccounts && (
+          <Suspense>
+            <DemoAccounts
+              disabled={login.isPending}
+              onPick={(account) => {
+                form.reset(account)
+                void submit()
+              }}
+            />
+          </Suspense>
         )}
       </div>
     </div>

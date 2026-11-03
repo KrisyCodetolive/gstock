@@ -16,6 +16,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import type { ParseKeys } from 'i18next'
+import { ANY_SETTINGS_PERMISSION } from '@/features/settings/sections'
 import type { Permission } from '@/types/auth'
 
 export interface NavItem {
@@ -79,7 +80,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'settings', path: '/parametres', label: 'nav.settings', description: 'home.settings_text',
-    icon: Settings, permissions: ['settings.manage', 'shops.manage', 'users.manage', 'roles.manage'], phase: 'F2',
+    icon: Settings, permissions: ANY_SETTINGS_PERMISSION,
   },
 ]
 

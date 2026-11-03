@@ -1,0 +1,77 @@
+{
+  "roles": {
+    "title": "Rôles",
+    "subtitle": "Un rôle dit ce qu'une personne a le droit de faire. Chaque utilisateur a un seul rôle.",
+    "add": "Créer un rôle",
+    "search": "Chercher un rôle",
+    "back": "Rôles",
+    "empty_title": "Aucun rôle créé",
+    "empty_text": "Créez un rôle avant d'ajouter un collaborateur.",
+    "permissions_count_one": "{{count}} permission",
+    "permissions_count_other": "{{count}} permissions",
+    "users_count_one": "{{count}} utilisateur",
+    "users_count_other": "{{count}} utilisateurs",
+    "owner_badge": "Toutes les permissions",
+    "owner_text": "Le rôle du propriétaire a toutes les permissions, dans toutes les boutiques. Il ne peut être ni modifié ni supprimé.",
+    "columns": {
+      "name": "Rôle",
+      "description": "Description",
+      "permissions": "Permissions",
+      "users": "Utilisateurs"
+    },
+    "new_title": "Nouveau rôle",
+    "form": {
+      "identity": "Le rôle",
+      "name": "Nom du rôle",
+      "name_placeholder": "ex. Caissière du soir",
+      "description": "Description",
+      "description_placeholder": "À quoi sert ce rôle ?",
+      "required_name": "Donnez un nom au rôle.",
+      "required_permissions": "Cochez au moins une permission.",
+      "examples": "Partir d'un exemple",
+      "examples_hint": "Coche les permissions habituelles. Vous pouvez ensuite ajuster. Rien n'est enregistré tant que vous ne validez pas.",
+      "example_applied": "Exemple « {{name}} » appliqué. Vérifiez puis enregistrez.",
+      "permissions": "Ce que ce rôle peut faire",
+      "selected_one": "{{count}} permission cochée",
+      "selected_other": "{{count}} permissions cochées",
+      "check_all": "Tout cocher",
+      "uncheck_all": "Tout décocher",
+      "level_tenant": "Pour tout l'espace",
+      "level_shop": "Dans ses boutiques",
+      "created": "Rôle créé.",
+      "applies_now_one": "Les changements s'appliquent tout de suite à l'utilisateur de ce rôle.",
+      "applies_now_other": "Les changements s'appliquent tout de suite aux {{count}} utilisateurs de ce rôle."
+    },
+    "delete": {
+      "title": "Supprimer ce rôle",
+      "button": "Supprimer le rôle",
+      "confirm_title": "Supprimer le rôle « {{name}} » ?",
+      "confirm_text": "Le rôle disparaîtra de la liste. Cette action est définitive.",
+      "blocked_one": "Ce rôle est attribué à {{count}} utilisateur. Donnez-lui un autre rôle pour pouvoir supprimer celui-ci.",
+      "blocked_other": "Ce rôle est attribué à {{count}} utilisateurs. Donnez-leur un autre rôle pour pouvoir supprimer celui-ci.",
+      "free": "Aucun utilisateur n'a ce rôle : vous pouvez le supprimer.",
+      "done": "Rôle supprimé."
+    },
+    "examples": {
+      "seller": "Vendeur",
+      "cashier": "Caissier",
+      "stock_keeper": "Gestionnaire de stock",
+      "manager": "Gérant"
+    },
+    "groups": {
+      "subscription": "Abonnement",
+      "shops": "Boutiques",
+      "users": "Utilisateurs et rôles",
+      "settings": "Paramètres",
+      "catalog": "Produits",
+      "customers": "Clients",
+      "suppliers": "Fournisseurs",
+      "general": "Général",
+      "sales": "Ventes",
+      "credits": "Crédits clients",
+      "stock": "Stock",
+      "purchases": "Approvisionnements",
+      "expenses": "Dépenses"
+    }
+  }
+}

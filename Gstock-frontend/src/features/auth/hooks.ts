@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router'
 import { getMe, login, logout } from '@/lib/api/auth'
 import { ApiError } from '@/lib/api/client'
 import type { LoginPayload, Me, Permission } from '@/types/auth'
@@ -36,13 +37,21 @@ export function useLogin() {
   })
 }
 
+/**
+ * Déconnexion volontaire : on va sur l'écran de connexion sans mémoriser la page,
+ * pour que la personne suivante arrive sur l'accueil.
+ */
 export function useLogout() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   return useMutation({
     mutationFn: logout,
     onSettled: () => {
-      queryClient.clear()
+      // D'abord quitter les pages protégées (flushSync : navigation appliquée tout de suite,
+      // pas en transition), sinon leur garde mémoriserait la page en cours.
+      void navigate('/connexion', { replace: true, state: { loggedOut: true }, flushSync: true })
       queryClient.setQueryData(meQueryKey, null)
+      queryClient.removeQueries({ predicate: (q) => q.queryKey[0] !== meQueryKey[0] })
     },
   })
 }

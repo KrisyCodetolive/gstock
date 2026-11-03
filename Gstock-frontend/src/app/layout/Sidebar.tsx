@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { UserMenu } from '@/features/auth/components/UserMenu'
 import { useSession } from '@/features/auth/hooks'
 import { ShopSwitcher } from '@/features/shops/components/ShopSwitcher'
+import { roleLabel } from '@/lib/roles'
 import { useAllowedNav } from './useAllowedNav'
 
 /** Navigation latérale desktop (≥ 1024 px), même ordre que sur mobile. */
@@ -59,7 +60,7 @@ export function Sidebar() {
           <span className="truncate font-bold">
             {user.firstname} {user.lastname}
           </span>
-          <span className="truncate text-sm text-muted-foreground">{role.name}</span>
+          <span className="truncate text-sm text-muted-foreground">{roleLabel(role)}</span>
         </div>
       </div>
     </aside>

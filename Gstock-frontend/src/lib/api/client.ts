@@ -119,6 +119,8 @@ export const http = {
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, { body }),
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, { body }),
   patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, { body }),
+  /** Réservé aux référentiels et aux rôles : jamais sur une opération financière (ADR-012). */
+  delete: <T>(path: string) => request<T>('DELETE', path),
 }
 
 /** Dépose le cookie CSRF de Sanctum, à appeler avant la connexion. */
