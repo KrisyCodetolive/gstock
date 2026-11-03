@@ -48,7 +48,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'stock', path: '/stock', label: 'nav.stock', shortLabel: 'nav.stock_short',
-    description: 'home.stock_text', icon: Boxes, permissions: ['stock.view'], phase: 'F3', tint: 'mint',
+    description: 'home.stock_text', icon: Boxes, permissions: ['stock.view'], tint: 'mint',
   },
   {
     id: 'sales', path: '/ventes', label: 'nav.sales', description: 'home.sales_text',

@@ -7,7 +7,8 @@ import { db, nextId, nextReference, persist } from '../db'
 import { API, findOr404, handle, isOwner, MockHttpError, paginate, requirePermission, Validator } from '../http'
 import { alertOf, applyStockChanges, canSeeAll, money, qty, requireShopAccess, stockRow, stockState, userName } from '../stock'
 
-const stockable = () => db.products.filter((p) => p.type !== 'service')
+/** Produits stockables, par ordre alphabétique (ordre des listes de stock). */
+const stockable = () => db.products.filter((p) => p.type !== 'service').sort((a, b) => a.name.localeCompare(b.name, 'fr'))
 
 function productRef(p: MockProduct) {
   const category = db.categories.find((c) => c.id === p.category_id)

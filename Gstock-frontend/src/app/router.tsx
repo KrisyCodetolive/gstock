@@ -14,6 +14,10 @@ import { BrandsPage, ExpenseCategoriesPage } from '@/features/referentials/pages
 import { UnitsPage } from '@/features/referentials/pages/UnitsPage'
 import { ProductFormPage } from '@/features/products/pages/ProductFormPage'
 import { ProductsListPage } from '@/features/products/pages/ProductsListPage'
+import { AdjustmentDetailPage } from '@/features/stock/pages/AdjustmentDetailPage'
+import { AdjustmentFormPage } from '@/features/stock/pages/AdjustmentFormPage'
+import { MovementsPage } from '@/features/stock/pages/MovementsPage'
+import { StockPage } from '@/features/stock/pages/StockPage'
 import { PaymentSettingsPage } from '@/features/settings/pages/PaymentSettingsPage'
 import { SettingsHubPage } from '@/features/settings/pages/SettingsHubPage'
 import { TenantSettingsPage } from '@/features/settings/pages/TenantSettingsPage'
@@ -47,6 +51,12 @@ const catalog: RouteObject[] = [
   guarded('/produits', ['products.view'], <ProductsListPage />),
   guarded('/produits/nouveau', ['products.create'], <ProductFormPage />),
   guarded('/produits/:id', ['products.view'], <ProductFormPage />),
+  guarded('/stock', ['stock.view'], <StockPage />),
+  guarded('/stock/entree', ['stock.entry'], <AdjustmentFormPage key="entry" kind="entry" />),
+  guarded('/stock/sortie', ['stock.exit'], <AdjustmentFormPage key="exit" kind="exit" />),
+  guarded('/stock/inventaire', ['stock.adjust'], <AdjustmentFormPage key="inventory" kind="inventory" />),
+  guarded('/stock/mouvements', ['stock.view'], <MovementsPage />),
+  guarded('/stock/operations/:id', ['stock.view'], <AdjustmentDetailPage />),
 ]
 
 const settings: RouteObject[] = [
