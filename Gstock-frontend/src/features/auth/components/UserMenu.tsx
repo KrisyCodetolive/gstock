@@ -1,6 +1,5 @@
 import { LogOut } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +16,6 @@ export function UserMenu({ align = 'end' }: { align?: 'start' | 'end' }) {
   const { t } = useTranslation()
   const { user, role } = useSession()
   const logout = useLogout()
-  const navigate = useNavigate()
 
   return (
     <DropdownMenu>
@@ -34,7 +32,7 @@ export function UserMenu({ align = 'end' }: { align?: 'start' | 'end' }) {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"
-          onSelect={() => logout.mutate(undefined, { onSettled: () => navigate('/connexion', { replace: true }) })}
+          onSelect={() => logout.mutate()}
         >
           <LogOut aria-hidden="true" />
           {t('user.logout')}

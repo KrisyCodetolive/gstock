@@ -26,8 +26,10 @@ export function LoginPage() {
     defaultValues: { login: '', password: '' },
   })
 
-  const from = (location.state as { from?: string } | null)?.from ?? '/'
-  if (me.data) return <Navigate to={from} replace />
+  const state = location.state as { from?: string; loggedOut?: boolean } | null
+  const from = state?.from ?? '/'
+  // Pendant une déconnexion volontaire, la session est encore là un instant : on reste ici.
+  if (me.data && !state?.loggedOut) return <Navigate to={from} replace />
 
   const submit = form.handleSubmit((values) =>
     login.mutate(values, {
