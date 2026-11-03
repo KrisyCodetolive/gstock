@@ -83,5 +83,5 @@ Avant toute modification importante :
 - Créer un commit après chaque action majeure.
 - Les commits doivent être atomiques, cohérents et explicites.
 - Ne pas mélanger plusieurs fonctionnalités indépendantes dans un même commit.
-- Noms de branches courts : un ou deux mots, en minuscules, séparés par un tiret (ex. `f1`, `f2-espace`, `fix-stock`). Pas de noms longs ni descriptifs.
+- Noms de branches courts mais compréhensibles par quelqu'un qui découvre le projet : deux ou trois mots, en minuscules, séparés par des tirets, qui disent de quoi il s'agit (ex. `front-socle`, `front-produits`, `api-ventes`, `fix-stock`). Pas de codes internes seuls (`f1`, `m08`) ni de noms longs.
 - Ne jamais ajouter Claude comme co-auteur : pas de ligne `Co-Authored-By` ni de mention « Generated with Claude Code » dans les commits et les pull requests.
