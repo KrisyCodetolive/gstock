@@ -1,0 +1,154 @@
+/* Design system « Marché » : voir design-system/gstock/MASTER.md.
+   Les composants n'utilisent que ces variables, jamais de couleur en dur. */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/outfit";
+
+@theme inline {
+  --font-sans: "Outfit Variable", system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-bg: var(--destructive-bg);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Couleurs propres à GStock */
+  --color-action: var(--action);
+  --color-action-foreground: var(--action-foreground);
+  --color-paid: var(--paid);
+  --color-paid-ink: var(--paid-ink);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-tint-peach: var(--tint-peach);
+  --color-tint-yellow: var(--tint-yellow);
+  --color-tint-mint: var(--tint-mint);
+  --color-tint-lavender: var(--tint-lavender);
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+
+  --shadow-hard: 4px 4px 0 var(--foreground);
+  --shadow-hard-sm: 3px 3px 0 var(--foreground);
+}
+
+:root {
+  color-scheme: light;
+
+  --background: #fff8ec;
+  --foreground: #16133a;
+  --card: #ffffff;
+  --card-foreground: #16133a;
+  --popover: #ffffff;
+  --popover-foreground: #16133a;
+
+  /* Indigo : navigation, « Vendre », boutons principaux */
+  --primary: #2b2a8c;
+  --primary-foreground: #ffffff;
+
+  /* Neutres lavande : fonds, survols de menus (« accent » au sens shadcn) */
+  --secondary: #ede6f7;
+  --secondary-foreground: #16133a;
+  --muted: #ede6f7;
+  --muted-foreground: #575375;
+  --accent: #ede6f7;
+  --accent-foreground: #16133a;
+
+  /* Mangue : l'action principale de l'écran uniquement */
+  --action: #ff7a1a;
+  --action-foreground: #16133a;
+
+  /* États */
+  --paid: #1f9d55;
+  --paid-ink: #157a41;
+  --warn: #a34700;
+  --warn-bg: #fff1a8;
+  --destructive: #c0122b;
+  --destructive-bg: #ffe1e4;
+
+  /* Vignettes */
+  --tint-peach: #ffe3c7;
+  --tint-yellow: #fff1a8;
+  --tint-mint: #d7f0e0;
+  --tint-lavender: #e6e1fa;
+
+  --border: #16133a;
+  --input: #16133a;
+  --ring: #2b2a8c;
+  --radius: 10px;
+}
+
+/* Signature tactile : contour + ombre décalée, l'élément s'enfonce à l'appui. */
+@utility pressable {
+  border: 2px solid var(--foreground);
+  box-shadow: var(--shadow-hard-sm);
+  transition: transform 80ms ease-out, box-shadow 80ms ease-out;
+  &:active:not(:disabled):not([aria-disabled="true"]) {
+    transform: translate(3px, 3px);
+    box-shadow: none;
+  }
+}
+
+@utility pressable-lg {
+  border: 2px solid var(--foreground);
+  box-shadow: var(--shadow-hard);
+  transition: transform 80ms ease-out, box-shadow 80ms ease-out;
+  &:active:not(:disabled):not([aria-disabled="true"]) {
+    transform: translate(4px, 4px);
+    box-shadow: none;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    line-height: 1.5;
+  }
+  :focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
