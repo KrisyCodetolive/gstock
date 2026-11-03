@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { apiErrorMessage, applyApiErrors } from '@/lib/form-errors'
 import type { Shop } from '@/types/settings'
+import { ShopAccess } from '../components/ShopAccess'
 import { useSaveShop, useShop } from '../hooks'
 import { formToPayload, SHOP_FIELDS, shopSchema, shopToForm, type ShopForm } from '../schemas'
 
@@ -165,6 +166,7 @@ function ShopFormBody({ shop }: { shop?: Shop }) {
 
       {shop && (
         <>
+          <ShopAccess shopId={shop.id} />
           <FormSection title={t('shops.status.title')} description={shop.is_active ? t('shops.status.open_text') : t('shops.status.closed_text')}>
             {shop.is_active ? (
               <Button variant="destructive" className="justify-self-start" onClick={() => setConfirmClose(true)}>

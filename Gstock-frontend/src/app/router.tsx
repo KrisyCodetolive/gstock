@@ -6,6 +6,8 @@ import { ShopFormPage } from '@/features/shops/pages/ShopFormPage'
 import { ShopsListPage } from '@/features/shops/pages/ShopsListPage'
 import { RoleFormPage } from '@/features/roles/pages/RoleFormPage'
 import { RolesListPage } from '@/features/roles/pages/RolesListPage'
+import { UserFormPage } from '@/features/users/pages/UserFormPage'
+import { UsersListPage } from '@/features/users/pages/UsersListPage'
 import { PaymentSettingsPage } from '@/features/settings/pages/PaymentSettingsPage'
 import { SettingsHubPage } from '@/features/settings/pages/SettingsHubPage'
 import { TenantSettingsPage } from '@/features/settings/pages/TenantSettingsPage'
@@ -45,6 +47,9 @@ const settings: RouteObject[] = [
   section('roles', <RolesListPage />),
   section('roles', <RoleFormPage />, '/nouveau'),
   section('roles', <RoleFormPage />, '/:id'),
+  section('users', <UsersListPage />),
+  section('users', <UserFormPage />, '/nouveau'),
+  section('users', <UserFormPage />, '/:id'),
 ]
 
 export const router = createBrowserRouter([

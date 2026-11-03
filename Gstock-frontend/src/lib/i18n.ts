@@ -6,9 +6,10 @@ import common from '@/locales/fr/common.json'
 import roles from '@/locales/fr/roles.json'
 import settings from '@/locales/fr/settings.json'
 import shops from '@/locales/fr/shops.json'
+import users from '@/locales/fr/users.json'
 
 export const defaultNS = 'common'
-export const resources = { fr: { common: { ...common, ...settings, ...shops, ...roles } } } as const
+export const resources = { fr: { common: { ...common, ...settings, ...shops, ...roles, ...users } } } as const
 
 void i18n.use(initReactI18next).init({
   lng: 'fr',
