@@ -92,7 +92,7 @@ export function CustomerPicker({
                   <button
                     type="button"
                     onClick={() => {
-                      onPick({ id: c.id, name: c.name, phone: c.phone, balance: c.balance })
+                      onPick({ id: c.id, name: c.name, phone: c.phone, balance: c.balance, creditNote: c.credit_note_balance })
                       close()
                     }}
                     className="pressable flex min-h-14 w-full items-center justify-between gap-3 rounded-md bg-card px-3 py-2 text-left"

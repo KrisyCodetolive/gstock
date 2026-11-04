@@ -174,7 +174,9 @@
       "geniuspay_confirmed": "Paiement GeniusPay confirmé.",
       "new_sale": "Nouvelle vente",
       "see_sale": "Voir la vente",
-      "no_shop": "Choisissez d'abord une boutique."
+      "no_shop": "Choisissez d'abord une boutique.",
+      "use_credit_note": "Utiliser l'avoir ({{amount}} FCFA)",
+      "customer_credit_note": "Avoir : {{amount}} FCFA"
     }
   }
 }

@@ -20,6 +20,8 @@ export interface CartCustomer {
   name: string
   phone: string | null
   balance: string
+  /** Avoir du client (décision P3), utilisable pour payer. */
+  creditNote?: string
 }
 
 export interface Cart {
