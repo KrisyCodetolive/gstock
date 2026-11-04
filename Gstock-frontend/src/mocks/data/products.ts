@@ -3,6 +3,7 @@
 // initial », pour que quantité = somme des mouvements (§7.2).
 import type { ProductType } from '@/types/catalog'
 import { daysAgo } from './dates'
+import { demoProductImage } from './product-images'
 
 export interface MockVariant {
   id: number
@@ -187,7 +188,7 @@ export const products: MockProduct[] = ROWS.map(([name, category, unit, cost, pr
   price,
   tax_rate: null,
   stock_alert: alert,
-  image_url: null,
+  image_url: demoProductImage(name, category),
   is_active: true,
 }))
 
@@ -227,7 +228,7 @@ products.push({
     price: 900,
     tax_rate: null,
     stock_alert: 4,
-    image_url: null,
+    image_url: demoProductImage('Jus de fruits 1 L', 3),
     is_active: true,
     variants: [
       { id: 1, name: 'Ananas', code: `${code}-1`, barcode: ean13('618110090001'), cost: 700, price: 1000, is_active: true },

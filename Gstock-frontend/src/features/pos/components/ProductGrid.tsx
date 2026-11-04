@@ -49,7 +49,7 @@ export function ProductGrid({
                 color={p.category?.color}
                 imageUrl={p.image_url}
                 type={p.type}
-                className={cn('w-full rounded-sm', p.image_url ? 'aspect-[3/2] h-auto' : 'h-10')}
+                className={cn('w-full rounded-sm', p.image_url ? 'aspect-[3/2] h-auto object-contain' : 'h-10')}
               />
               <span className="line-clamp-2 text-sm leading-tight font-bold">{p.name}</span>
               <Money value={p.price} />

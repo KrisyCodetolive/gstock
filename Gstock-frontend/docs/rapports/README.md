@@ -59,7 +59,7 @@ npm run dev          # http://localhost:5173, données simulées actives
   | Moussa Diallo | Gestionnaire de stock | Cocody, Yopougon | stock sans caisse |
   | Paul Yao | Vendeur, **désactivé** | Cocody | refus de connexion |
 
-- **Remettre la démo à zéro** : bouton en bas de l'écran de connexion. Il efface tout le `localStorage` simulé : plateforme (`gstock.mock.platform.v1`), une base par espace (`gstock.mock.db.v8.<slug>`), sessions.
+- **Remettre la démo à zéro** : bouton en bas de l'écran de connexion. Il efface tout le `localStorage` simulé : plateforme (`gstock.mock.platform.v1`), une base par espace (`gstock.mock.db.v9.<slug>`), sessions.
 - **Créer un espace** : « Créer mon espace » sur l'écran de connexion (`/inscription`). L'écran de connexion permet ensuite de passer d'un espace à l'autre (démo seulement). Dans « Mon abonnement », des outils de simulation font avancer le temps (fin d'essai, impayé, suspension).
 - **Tester le hors ligne** : en dev, couper le réseau (outils du navigateur) suffit pour vendre sans réseau. Pour le rechargement sans réseau, il faut le service worker : `VITE_USE_MOCKS=true npx vite build --outDir dist-mock && npx vite preview --outDir dist-mock`.
 - **Vitrine des composants** : `/vitrine` (développement uniquement).
