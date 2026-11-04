@@ -27,10 +27,10 @@ export function usePublicReceipt(token: string) {
 export function useCancelSale(shopId: Id | undefined, id: Id) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (reason: string) => cancelSale(shopId!, id, reason),
+    mutationFn: (payload: Parameters<typeof cancelSale>[2]) => cancelSale(shopId!, id, payload),
     onSuccess: () => {
       // Stock restitué, crédit annulé : tout ce qui en dépend est rafraîchi.
-      for (const k of ['sales', 'stock', 'products', 'customers', 'pos']) void queryClient.invalidateQueries({ queryKey: [k] })
+      for (const k of ['sales', 'stock', 'products', 'customers', 'pos', 'credits']) void queryClient.invalidateQueries({ queryKey: [k] })
     },
   })
 }

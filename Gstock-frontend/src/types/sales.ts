@@ -2,6 +2,7 @@
 // recalculés par le serveur ; ceux du navigateur sont ignorés (§7.4).
 import type { Id, IsoDate, Money } from './api'
 import type { ProductCategoryRef, ProductType, ProductUnitRef, StockState } from './catalog'
+import type { RepaymentReceipt } from './credits'
 import type { PaymentMethodType } from './referentials'
 
 export type DiscountMethod = 'percent' | 'fixed'
@@ -160,3 +161,6 @@ export interface ShareLink {
   /** Message pré-rempli pour WhatsApp. */
   message: string
 }
+
+/** GET /public/receipts/{token} : reçu d'une vente ou d'un remboursement. */
+export type PublicReceipt = ({ kind: 'sale' } & Receipt) | ({ kind: 'repayment' } & RepaymentReceipt)
