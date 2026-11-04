@@ -3,6 +3,9 @@
 namespace Database\Seeders;
 
 use App\Domain\Catalog\Models\Product;
+use App\Domain\Credits\CreditService;
+use App\Domain\Credits\Models\CustomerCredit;
+use App\Domain\Credits\RepaymentService;
 use App\Domain\Customers\Models\Customer;
 use App\Domain\Identity\Models\User;
 use App\Domain\Platform\Models\Tenant;
@@ -114,6 +117,32 @@ class DemoSalesSeeder extends Seeder
                         }
                     }
                 }
+            }
+
+            // Anciennes dettes (CR-N), saisies à la mise en place (§7.6).
+            $credits = app(CreditService::class);
+            foreach ([[4, 0, 7500], [10, 1, 12000], [16, 1, 4500]] as [$rank, $shopIndex, $amount]) {
+                $credits->openingBalance($shops[$shopIndex], $users['aminata@demo.gstock.app'], [
+                    'customer_id' => $customers[$rank], 'amount' => (string) $amount, 'occurred_at' => now()->subDays(33)->toIso8601String(),
+                ]);
+            }
+
+            // Paiements partiels quelques jours après le crédit (§11.3), par le gérant, en espèces ou Mobile Money.
+            $repayments = app(RepaymentService::class);
+            foreach (CustomerCredit::query()->orderBy('occurred_at')->get() as $credit) {
+                if ($rand() > 0.55) {
+                    continue;
+                }
+                $at = $credit->occurred_at->copy()->addDays(2 + mt_rand(0, 7));
+                $part = round(((float) $credit->remaining_amount * (0.3 + $rand() * 0.7)) / 50) * 50;
+                if ($at->isFuture() || $part <= 0) {
+                    continue;
+                }
+                $repayments->record($shops->firstWhere('id', $credit->shop_id), $manager, [
+                    'customer_id' => $credit->customer_id, 'amount' => (string) $part, 'payment_method_id' => $rand() < 0.75 ? 1 : 2,
+                    'received_at' => $at->toIso8601String(),
+                    'allocations' => [['credit_id' => $credit->id, 'amount' => (string) $part]],
+                ]);
             }
         });
     }

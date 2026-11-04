@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Catalog\Models\Category;
 use App\Domain\Catalog\Models\Product;
+use App\Domain\Credits\CreditLedger;
 use App\Domain\Customers\Models\Customer;
 use App\Domain\Identity\Models\User;
 use App\Domain\Platform\CurrentTenant;
@@ -34,7 +35,9 @@ class SaleController extends Controller
         $products = Product::query()->with(['category', 'variants', 'unit'])->where('is_active', true)->orderBy('name')->get();
         $presenter = new CatalogPresenter($products, $shop->id);
         $geniuspay = (bool) TenantPaymentSetting::query()->value('is_active');
-        $balances = SalesPresenter::balances(Customer::query()->pluck('id')->all(), [$shop->id]);
+        $customerIds = Customer::query()->pluck('id')->all();
+        $balances = SalesPresenter::balances($customerIds, [$shop->id]);
+        $notes = app(CreditLedger::class)->creditNoteBalances($customerIds, [$shop->id]);
 
         return response()->json(['data' => [
             'products' => $products->flatMap(fn (Product $p) => array_map(fn ($a) => [
@@ -51,7 +54,8 @@ class SaleController extends Controller
             'geniuspay_enabled' => $geniuspay,
             'customers' => Customer::query()->where('is_active', true)->orderBy('name')->get()->map(fn ($c) => [
                 'id' => $c->id, 'name' => $c->name, 'phone' => $c->phone,
-                'balance' => D::format((string) ($balances[$c->id] ?? '0'), D::MONEY), 'credit_note' => '0.00',
+                'balance' => D::format((string) ($balances[$c->id] ?? '0'), D::MONEY),
+                'credit_note' => D::format((string) ($notes[$c->id] ?? '0'), D::MONEY),
             ]),
             'generated_at' => now()->toIso8601String(),
         ]]);
@@ -121,7 +125,10 @@ class SaleController extends Controller
     {
         $sale = Sale::query()->where('shop_id', $shop->id)->findOrFail($id);
 
-        return response()->json(['data' => SalesPresenter::sale($this->sales->cancel($sale, $request->user(), $request->input('reason'))->fresh())]);
+        // Décision P3 : `refund_mode` (credit_note ou refund) si le crédit de la vente a déjà reçu des paiements.
+        $settlement = $request->only(['refund_mode', 'refund_payment_method_id']);
+
+        return response()->json(['data' => SalesPresenter::sale($this->sales->cancel($sale, $request->user(), $request->input('reason'), $settlement)->fresh())]);
     }
 
     public function receipt(Request $request, Shop $shop, int $id): JsonResponse

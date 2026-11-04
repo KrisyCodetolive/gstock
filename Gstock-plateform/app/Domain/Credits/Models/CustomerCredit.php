@@ -8,6 +8,7 @@ use App\Domain\Shops\Models\Shop;
 use App\Support\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Crédit client (§7.5, §7.6) : créé automatiquement par une vente avec un reste,
@@ -27,7 +28,19 @@ class CustomerCredit extends Model
         'is_opening_balance' => 'boolean',
         'occurred_at' => 'datetime',
         'cancelled_at' => 'datetime',
+        'cancel_settlement_amount' => 'decimal:2',
     ];
+
+    /** Affectations des paiements (confirmés ou non : filtrer sur le statut du paiement). */
+    public function allocations(): HasMany
+    {
+        return $this->hasMany(CreditRepaymentAllocation::class)->orderBy('id');
+    }
+
+    public function adjustments(): HasMany
+    {
+        return $this->hasMany(CreditAdjustment::class)->orderBy('id');
+    }
 
     public function customer(): BelongsTo
     {

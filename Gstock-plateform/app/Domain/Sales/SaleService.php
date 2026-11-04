@@ -3,6 +3,9 @@
 namespace App\Domain\Sales;
 
 use App\Domain\Audit\Audit;
+use App\Domain\Credits\CreditLedger;
+use App\Domain\Credits\CreditService;
+use App\Domain\Credits\InstallmentSchedule;
 use App\Domain\Credits\Models\CustomerCredit;
 use App\Domain\Customers\Models\Customer;
 use App\Domain\Identity\Models\User;
@@ -23,7 +26,12 @@ use Illuminate\Support\Facades\DB;
  */
 final class SaleService
 {
-    public function __construct(private SaleCalculator $calculator, private StockLedger $ledger) {}
+    public function __construct(
+        private SaleCalculator $calculator,
+        private StockLedger $ledger,
+        private CreditLedger $credits,
+        private CreditService $creditService,
+    ) {}
 
     /** @param  ?CarbonInterface  $at  date de la vente (données de démonstration) ; par défaut maintenant */
     public function record(Shop $shop, User $user, array $input, bool $offline = false, ?CarbonInterface $at = null): Sale
@@ -55,12 +63,14 @@ final class SaleService
             if (! $customer) {
                 throw new ApiException(422, 'Choisissez le client pour utiliser son avoir.', ['customer_id' => ['Choisissez le client pour utiliser son avoir.']]);
             }
-            // Les avoirs (décision P3) arrivent avec le module Crédits : aucun avoir disponible pour l'instant.
-            $message = "L'avoir du client n'est que de 0 FCFA.";
-            throw new ApiException(422, $message, ['payments' => [$message]]);
+            $note = $this->credits->creditNoteBalance($customer->id, $shop->id);
+            if (D::cmp($fromNote, $note) > 0) {
+                $message = sprintf("L'avoir du client n'est que de %s FCFA.", InstallmentSchedule::fr($note));
+                throw new ApiException(422, $message, ['payments' => [$message]]);
+            }
         }
 
-        return DB::transaction(function () use ($shop, $user, $input, $c, $customer, $offline, $at) {
+        return DB::transaction(function () use ($shop, $user, $input, $c, $customer, $offline, $at, $fromNote) {
             $reference = DocumentSequence::reference('V');
             $occurredAt = $at ?? ($offline && filled($input['occurred_at'] ?? null) ? $input['occurred_at'] : now());
             $sale = Sale::create([
@@ -132,6 +142,11 @@ final class SaleService
                 ]);
             }
 
+            // Payé avec l'avoir : l'avoir du client diminue (P3).
+            if (D::cmp($fromNote, '0') > 0) {
+                $this->credits->addCreditNote($shop->id, $customer->id, D::neg($fromNote, D::MONEY), 'sale', $sale->id);
+            }
+
             // Montant à crédit > 0 : crédit client automatique, même référence que la vente (§7.5).
             if (D::cmp($c->creditAmount, '0') > 0) {
                 CustomerCredit::create([
@@ -164,26 +179,26 @@ final class SaleService
 
     /**
      * Annulation (ADR-012) : motif obligatoire, stock restitué, paiements et crédit
-     * annulés. Si le crédit a déjà reçu des paiements, le choix « avoir ou argent
-     * rendu » (P3) arrivera avec le module Crédits.
+     * annulés, avoir utilisé rendu au client. Si le crédit a déjà reçu des paiements,
+     * le commerçant choisit de les garder en avoir ou de les rendre (P3).
+     *
+     * @param  array{refund_mode?: string, refund_payment_method_id?: int}  $settlement
      */
-    public function cancel(Sale $sale, User $user, ?string $reason): Sale
+    public function cancel(Sale $sale, User $user, ?string $reason, array $settlement = []): Sale
     {
         $reason = trim((string) $reason);
         if ($reason === '') {
             throw ApiException::invalid('reason', 'Indiquez pourquoi vous annulez cette vente.');
         }
 
-        return DB::transaction(function () use ($sale, $user, $reason) {
+        return DB::transaction(function () use ($sale, $user, $reason, $settlement) {
             $sale = Sale::query()->lockForUpdate()->findOrFail($sale->id);
             if ($sale->status === 'cancelled') {
                 throw ApiException::conflict('Cette vente a déjà été annulée.');
             }
             $sale->load(['items.product.variants', 'items.product.unit', 'payments']);
             $credit = CustomerCredit::query()->where('sale_id', $sale->id)->where('status', '!=', 'cancelled')->lockForUpdate()->first();
-            if ($credit && D::cmp((string) $credit->remaining_amount, (string) $credit->amount) < 0) {
-                throw ApiException::conflict('Ce crédit a déjà reçu un paiement : annulez d’abord le paiement.');
-            }
+            $repaid = $credit ? $this->creditService->checkSettlement($credit, $settlement) : '0.00';
 
             $this->ledger->apply($sale->items->map(fn ($i) => new StockChange(
                 $sale->shop_id, $i->product, $i->product_variant_id, (string) $i->base_quantity, $i->unit_cost === null ? null : (string) $i->unit_cost,
@@ -193,12 +208,20 @@ final class SaleService
             ]);
             $sale->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancelled_by' => $user->id, 'cancel_reason' => $reason]);
             $sale->payments()->update(['status' => 'cancelled']);
-            $credit?->update(['status' => 'cancelled', 'remaining_amount' => 0, 'cancelled_at' => now(), 'cancelled_by' => $user->id, 'cancel_reason' => $reason]);
+            // L'avoir utilisé pour payer cette vente revient au client.
+            $fromNote = $sale->payments->whereNull('payment_method_id')->reduce(fn ($s, $p) => D::add($s, (string) $p->amount, D::MONEY), '0.00');
+            if ($sale->customer_id && D::cmp($fromNote, '0') > 0) {
+                $this->credits->addCreditNote($sale->shop_id, $sale->customer_id, $fromNote, 'sale_cancel', $sale->id);
+            }
+            if ($credit) {
+                $this->creditService->applySettlement($credit, $user, $settlement, $reason, $repaid);
+            }
 
             Audit::record($user, 'sale.cancelled', [
                 'shop_id' => $sale->shop_id, 'subject' => $sale, 'label' => $sale->reference, 'reason' => $reason,
                 'old' => ['statut' => 'Validée', 'total' => (float) $sale->total],
-                'new' => ['statut' => 'Annulée'],
+                'new' => ['statut' => 'Annulée', ...(D::cmp($repaid, '0') > 0
+                    ? ['argent_deja_recu' => $settlement['refund_mode'] === 'credit_note' ? 'Gardé en avoir' : 'Rendu au client'] : [])],
             ]);
 
             return $sale;
