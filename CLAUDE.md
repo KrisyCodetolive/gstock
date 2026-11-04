@@ -41,7 +41,7 @@ npm run preview
 ```
 
 - Comptes de démonstration (mot de passe `demo1234`) : ils sont listés sur l'écran de connexion quand les mocks sont actifs, et définis dans `src/mocks/data/users.ts`.
-- Données simulées : `src/mocks/db.ts` part des jeux de `src/mocks/data/` et garde les modifications dans le `localStorage` (`gstock.mock.db.v4`). Si la forme des données change, incrémentez la clé. L'écran de connexion propose de remettre les données à zéro. Les handlers (`src/mocks/handlers/`) appliquent les règles du serveur (permissions, validation 422 en français, unicité, limites du plan) à l'aide de `src/mocks/http.ts`.
+- Données simulées : `src/mocks/db.ts` part des jeux de `src/mocks/data/` et garde les modifications dans le `localStorage` (`gstock.mock.db.v5`). Si la forme des données change, incrémentez la clé. L'écran de connexion propose de remettre les données à zéro. Les handlers (`src/mocks/handlers/`) appliquent les règles du serveur (permissions, validation 422 en français, unicité, limites du plan) à l'aide de `src/mocks/http.ts`.
 - Textes : un fichier JSON par partie dans `src/locales/fr/`, réunis dans `src/lib/i18n.ts`. Les clés sont typées et les pluriels utilisent `_one` / `_other`.
 - La vitrine des composants est accessible en développement sur `/vitrine`.
 - Composants shadcn : `npx shadcn add <composant>`. Il faut ensuite les rhabiller selon `MASTER.md` et remplacer l'import `cn` par `@/lib/utils`. Attention : la commande propose d'écraser `button.tsx`, qui est personnalisé. Il faut refuser.

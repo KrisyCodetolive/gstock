@@ -4,6 +4,7 @@ import type { Brand, Category, ExpenseCategory, PaymentMethod, Unit } from '@/ty
 import type { PlanLimits, Shop, TenantSettings } from '@/types/settings'
 import * as clients from './data/customers'
 import * as catalog from './data/products'
+import * as buying from './data/purchases'
 import * as referentials from './data/referentials'
 import * as tenant from './data/tenant'
 import * as people from './data/users'
@@ -34,6 +35,9 @@ export interface MockDb {
   creditNotes: clients.MockCreditNoteEntry[]
   customerRefunds: clients.MockCustomerRefund[]
   sales: MockSale[]
+  suppliers: buying.MockSupplier[]
+  purchases: buying.MockPurchase[]
+  expenses: buying.MockExpense[]
   /** document_sequences : prochain numéro par préfixe (§7.9). */
   sequences: Record<string, number>
   /** Vrai quand l'historique de démonstration (ventes, crédits) a été généré. */
@@ -41,7 +45,7 @@ export interface MockDb {
 }
 
 /** À incrémenter quand les jeux de démonstration changent de forme. */
-const KEY = 'gstock.mock.db.v4'
+const KEY = 'gstock.mock.db.v5'
 
 function seed(): MockDb {
   return structuredClone({
@@ -67,7 +71,10 @@ function seed(): MockDb {
     creditNotes: [],
     customerRefunds: [],
     sales: [],
-    sequences: { MS: 1, V: 1, CR: 1, RB: 1 },
+    suppliers: buying.suppliers,
+    purchases: [],
+    expenses: [],
+    sequences: { MS: 1, V: 1, CR: 1, RB: 1, AP: 1, DP: 1 },
     seeded: false,
   })
 }

@@ -2,6 +2,7 @@ import { authHandlers } from './auth'
 import { creditsHandlers } from './credits'
 import { customersHandlers } from './customers'
 import { productsHandlers } from './products'
+import { purchasesHandlers } from './purchases'
 import { referentialsHandlers } from './referentials'
 import { rolesHandlers } from './roles'
 import { salesHandlers } from './sales'
@@ -10,4 +11,4 @@ import { shopsHandlers } from './shops'
 import { stockHandlers } from './stock'
 import { usersHandlers } from './users'
 
-export const handlers = [...authHandlers, ...settingsHandlers, ...shopsHandlers, ...rolesHandlers, ...usersHandlers, ...referentialsHandlers, ...productsHandlers, ...stockHandlers, ...customersHandlers, ...salesHandlers, ...creditsHandlers]
+export const handlers = [...authHandlers, ...settingsHandlers, ...shopsHandlers, ...rolesHandlers, ...usersHandlers, ...referentialsHandlers, ...productsHandlers, ...stockHandlers, ...customersHandlers, ...salesHandlers, ...creditsHandlers, ...purchasesHandlers]

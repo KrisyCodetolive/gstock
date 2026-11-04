@@ -52,7 +52,7 @@ npm run dev          # http://localhost:5173, données simulées actives
   | Moussa Diallo | Gestionnaire de stock | Cocody, Yopougon | stock sans caisse |
   | Paul Yao | Vendeur, **désactivé** | Cocody | refus de connexion |
 
-- **Remettre la démo à zéro** : bouton en bas de l'écran de connexion (les modifications sont gardées dans le `localStorage`, clé `gstock.mock.db.v4`).
+- **Remettre la démo à zéro** : bouton en bas de l'écran de connexion (les modifications sont gardées dans le `localStorage`, clé `gstock.mock.db.v5`).
 - **Vitrine des composants** : `/vitrine` (développement uniquement).
 - **Vérifications** : `npm run typecheck`, `npm run lint`, `npm run build`. Les trois passent sans erreur à la fin de F4.
 
