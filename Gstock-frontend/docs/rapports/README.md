@@ -1,16 +1,16 @@
 # GStock — État du projet
 
-> Mis à jour le 4 novembre 2026, à la fin de la phase F6.
+> Mis à jour le 4 novembre 2026, à la fin de la phase F7.
 > Ce dossier est l'inventaire de ce qui a été **fait**. Il s'adresse à la personne (ou à l'agent) qui reprend le projet : ce fichier donne la vue d'ensemble et ce qui est commun à toutes les phases ; **chaque phase terminée a son rapport** (tableau ci-dessous) : ce qui a été livré, où se trouve le code, les règles appliquées, les vérifications faites et les limites.
 
 ## En bref
 
 | | État |
 |---|---|
-| **Frontend** (`Gstock-frontend/`) | Phases **F1 à F6 terminées** sur 9 (§11.4 du cahier). Application navigable, entièrement sur données simulées (MSW). |
+| **Frontend** (`Gstock-frontend/`) | Phases **F1 à F7 terminées** sur 9 (§11.4 du cahier). Application navigable, entièrement sur données simulées (MSW). |
 | **Backend** (`Gstock-plateform/`) | **Pas commencé.** Squelette Laravel 12 d'origine (SQLite, `routes/web.php`). Aucune ligne de code métier. |
 | **Contrat d'API** | Défini côté frontend : types dans `src/types/`, endpoints dans `src/lib/api/`, comportement serveur reproduit dans `src/mocks/`. **C'est la spécification que le backend devra respecter** (ADR-004). Voir « Le contrat d'API pour le backend ». |
-| **Phases restantes** | F7 à F9, décrites au §11.4 du cahier. Aucune n'est commencée. |
+| **Phases restantes** | F8 et F9, décrites au §11.4 du cahier. Aucune n'est commencée. |
 
 ## Rapports des phases terminées
 
@@ -22,10 +22,11 @@
 | F4 — Clients, caisse, ventes, reçus | [F4-clients-ventes.md](F4-clients-ventes.md) | `front-ventes` |
 | F5 — Crédits clients | [F5-credits.md](F5-credits.md) | `front-credits` |
 | F6 — Approvisionnements, fournisseurs, dépenses | [F6-approvisionnements-depenses.md](F6-approvisionnements-depenses.md) | `front-achats` |
+| F7 — Tableau de bord et journal d'activité | [F7-tableau-de-bord-audit.md](F7-tableau-de-bord-audit.md) | `front-tableau-de-bord` |
 
 Le **backend** (`Gstock-plateform/`) n'a pas de rapport : rien n'y a encore été fait.
 
-**À la fin de chaque phase** : ajouter son rapport (`F7-….md`, etc.) sur le modèle des précédents, et mettre à jour ce sommaire et l'état dans `CLAUDE.md`.
+**À la fin de chaque phase** : ajouter son rapport (`F8-….md`, etc.) sur le modèle des précédents, et mettre à jour ce sommaire et l'état dans `CLAUDE.md`.
 
 Sources de vérité, à lire avant toute modification :
 
@@ -96,7 +97,8 @@ Le backend devra reproduire ce que font les handlers de `src/mocks/handlers/` (u
   - champs `summary` dans les listes de stock et de ventes ; `plan` dans `GET /settings` ; `tenant.advanced_mode` dans `GET /me`.
   - F5 : `GET /shops/{id}/credits`, `GET /shops/{id}/repayments` et `/{id}`, `POST /shops/{id}/repayments/{id}/share-link`, `refund_mode` et `refund_payment_method_id` sur les annulations (P3), paiement par avoir (`payment_method_id: null`, `credit_note: true`), `credit_note_balance` sur le client. Détail dans [F5-credits.md](F5-credits.md).
   - F6 : `POST /shops/{id}/purchases/quote`, `paid_amount` / `payment_method_id` / `update_costs` à la création d'un approvisionnement, `summary` des listes d'approvisionnements et de dépenses, totaux et filtre `has_due` des fournisseurs. Détail dans [F6-approvisionnements-depenses.md](F6-approvisionnements-depenses.md).
-- **Où trouver les règles serveur déjà écrites** : `src/mocks/http.ts` (garde de session, permissions, validation, pagination), `src/mocks/stock.ts` (stock), `src/mocks/sales.ts` (ventes), `src/mocks/credits.ts` (crédits, remboursements, échéances, avoirs), `src/mocks/purchases.ts` (approvisionnements, dépenses). Elles sont commentées avec les paragraphes du cahier.
+  - F7 : détail de la réponse du tableau de bord (`money_in.by_method`, `money_out`, `result.complete`, `recent`…), `GET /dashboard` réservé au propriétaire, filtres du journal (`filter[domain]`…). Détail dans [F7-tableau-de-bord-audit.md](F7-tableau-de-bord-audit.md).
+- **Où trouver les règles serveur déjà écrites** : `src/mocks/http.ts` (garde de session, permissions, validation, pagination), `src/mocks/stock.ts` (stock), `src/mocks/sales.ts` (ventes), `src/mocks/credits.ts` (crédits, remboursements, échéances, avoirs), `src/mocks/purchases.ts` (approvisionnements, dépenses), `src/mocks/handlers/dashboard.ts` (tableau de bord §7.8), `src/mocks/audit.ts` (journal). Elles sont commentées avec les paragraphes du cahier.
 
 ## Comment le frontend est organisé
 
@@ -129,6 +131,7 @@ Recettes pour une nouvelle rubrique (c'est ainsi que F2 à F4 ont été faites) 
 - **`RouterProvider` doit venir de `react-router/dom`**, pas de `react-router` : sinon l'option `flushSync` de `navigate()` est ignorée (cela cassait la déconnexion).
 - **`npx shadcn add`** propose d'écraser `src/components/ui/button.tsx`, qui est personnalisé : refuser. Il importe aussi `cn` depuis le paquet `cn` : remplacer par `@/lib/utils`. Ensuite, rhabiller le composant selon `MASTER.md`.
 - **Panneaux (`Sheet`)** : les classes de largeur de shadcn sont préfixées `data-[side=right]:` ; une classe simple ne les écrase pas (utiliser le même préfixe, voir `ResponsiveSheet.tsx`). Ne pas centrer un panneau avec `translate` : l'animation l'écrase.
+- **Dates de démo** : toujours relatives au jour de génération (`src/mocks/data/dates.ts`) ; ne jamais écrire de date fixe dans les jeux de démonstration.
 - **Données de démo** : tout passe par les moteurs (`recordSale`, `applyStockChanges`) pour rester cohérent ; ne pas écrire directement dans `db.shopStock`.
 - **Lint** : `react/only-export-components` impose un seul type d'export par fichier de composants (mettre schémas et constantes dans `schemas.ts`).
 - **Versions récentes** : TypeScript 7, React Router 8, MSW 3, Tailwind 4, Zod 4, i18next 26. Vérifier les API dans `node_modules` plutôt que de se fier à des exemples anciens (MSW 3 : `onUnhandledFrame` au lieu de `onUnhandledRequest`).
