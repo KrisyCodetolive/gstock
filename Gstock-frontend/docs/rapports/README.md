@@ -1,16 +1,16 @@
 # GStock — État du projet
 
-> Mis à jour le 4 novembre 2026, à la fin de la phase F5.
+> Mis à jour le 4 novembre 2026, à la fin de la phase F6.
 > Ce dossier est l'inventaire de ce qui a été **fait**. Il s'adresse à la personne (ou à l'agent) qui reprend le projet : ce fichier donne la vue d'ensemble et ce qui est commun à toutes les phases ; **chaque phase terminée a son rapport** (tableau ci-dessous) : ce qui a été livré, où se trouve le code, les règles appliquées, les vérifications faites et les limites.
 
 ## En bref
 
 | | État |
 |---|---|
-| **Frontend** (`Gstock-frontend/`) | Phases **F1 à F5 terminées** sur 9 (§11.4 du cahier). Application navigable, entièrement sur données simulées (MSW). |
+| **Frontend** (`Gstock-frontend/`) | Phases **F1 à F6 terminées** sur 9 (§11.4 du cahier). Application navigable, entièrement sur données simulées (MSW). |
 | **Backend** (`Gstock-plateform/`) | **Pas commencé.** Squelette Laravel 12 d'origine (SQLite, `routes/web.php`). Aucune ligne de code métier. |
 | **Contrat d'API** | Défini côté frontend : types dans `src/types/`, endpoints dans `src/lib/api/`, comportement serveur reproduit dans `src/mocks/`. **C'est la spécification que le backend devra respecter** (ADR-004). Voir « Le contrat d'API pour le backend ». |
-| **Phases restantes** | F6 à F9, décrites au §11.4 du cahier. Aucune n'est commencée. |
+| **Phases restantes** | F7 à F9, décrites au §11.4 du cahier. Aucune n'est commencée. |
 
 ## Rapports des phases terminées
 
@@ -21,10 +21,11 @@
 | F3 — Produits et stock | [F3-produits-stock.md](F3-produits-stock.md) | `front-produits` |
 | F4 — Clients, caisse, ventes, reçus | [F4-clients-ventes.md](F4-clients-ventes.md) | `front-ventes` |
 | F5 — Crédits clients | [F5-credits.md](F5-credits.md) | `front-credits` |
+| F6 — Approvisionnements, fournisseurs, dépenses | [F6-approvisionnements-depenses.md](F6-approvisionnements-depenses.md) | `front-achats` |
 
 Le **backend** (`Gstock-plateform/`) n'a pas de rapport : rien n'y a encore été fait.
 
-**À la fin de chaque phase** : ajouter son rapport (`F6-….md`, etc.) sur le modèle des précédents, et mettre à jour ce sommaire et l'état dans `CLAUDE.md`.
+**À la fin de chaque phase** : ajouter son rapport (`F7-….md`, etc.) sur le modèle des précédents, et mettre à jour ce sommaire et l'état dans `CLAUDE.md`.
 
 Sources de vérité, à lire avant toute modification :
 
@@ -94,7 +95,8 @@ Le backend devra reproduire ce que font les handlers de `src/mocks/handlers/` (u
   - paramètres `?shop_id=` sur `/products`, `?services=` sur la recherche produits ;
   - champs `summary` dans les listes de stock et de ventes ; `plan` dans `GET /settings` ; `tenant.advanced_mode` dans `GET /me`.
   - F5 : `GET /shops/{id}/credits`, `GET /shops/{id}/repayments` et `/{id}`, `POST /shops/{id}/repayments/{id}/share-link`, `refund_mode` et `refund_payment_method_id` sur les annulations (P3), paiement par avoir (`payment_method_id: null`, `credit_note: true`), `credit_note_balance` sur le client. Détail dans [F5-credits.md](F5-credits.md).
-- **Où trouver les règles serveur déjà écrites** : `src/mocks/http.ts` (garde de session, permissions, validation, pagination), `src/mocks/stock.ts` (stock), `src/mocks/sales.ts` (ventes), `src/mocks/credits.ts` (crédits, remboursements, échéances, avoirs). Elles sont commentées avec les paragraphes du cahier.
+  - F6 : `POST /shops/{id}/purchases/quote`, `paid_amount` / `payment_method_id` / `update_costs` à la création d'un approvisionnement, `summary` des listes d'approvisionnements et de dépenses, totaux et filtre `has_due` des fournisseurs. Détail dans [F6-approvisionnements-depenses.md](F6-approvisionnements-depenses.md).
+- **Où trouver les règles serveur déjà écrites** : `src/mocks/http.ts` (garde de session, permissions, validation, pagination), `src/mocks/stock.ts` (stock), `src/mocks/sales.ts` (ventes), `src/mocks/credits.ts` (crédits, remboursements, échéances, avoirs), `src/mocks/purchases.ts` (approvisionnements, dépenses). Elles sont commentées avec les paragraphes du cahier.
 
 ## Comment le frontend est organisé
 
