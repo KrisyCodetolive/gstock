@@ -10,7 +10,7 @@
 | `2074eef` | **Socle** : PostgreSQL 16 en Docker, API `/api/v1`, multi-tenant stancl/tenancy en base unique (espace = sous-domaine), Sanctum (cookie), permissions fixes, rôles, utilisateurs, boutiques, paramètres, clés GeniusPay chiffrées, journal d'audit, données de démonstration. |
 | `bbc15a0` | **Tests** (PHPUnit, sur PostgreSQL) : isolation des espaces, connexion et profil, mot de passe oublié, permissions, rôles et utilisateurs, boutiques, paramètres, lecture seule. |
 | `bc264e2` | **Frontend** : mode `npm run dev:api`, l'application parle au vrai backend (proxy `/api`, `/sanctum`, `/storage`). |
-| `7fd458d` | **Image Docker** (FrankenPHP, migrations au démarrage, `/health`) et **intégration continue** GitHub Actions. |
+| `7fd458d` | **Image Docker** (FrankenPHP, migrations au démarrage, `/health`). Le workflow d'intégration continue écrit dans ce commit a été retiré ensuite (voir les limites). |
 
 ## Démarrer
 
@@ -66,7 +66,7 @@ Tous sous `/api/v1`, sur le sous-domaine de l'espace. Mêmes formes, règles et 
 | `app/Support/ListQuery.php` | Listes : `page`, `per_page` (100 au plus), `search` sans accents (`unaccent`), `sort=-champ`, `filter[x]`, réponse `{data, meta}`. |
 | `database/migrations/2026_11_04_*` | Tables de la plateforme, identité (et les 42 permissions), boutiques, audit. |
 | `database/seeders/DemoTenantSeeder.php` | Espace de démonstration identique à celui des données simulées. |
-| `compose.yaml`, `Dockerfile`, `docker/entrypoint.sh`, `../.github/workflows/ci.yml` | Base de développement, image de production, intégration continue. |
+| `compose.yaml`, `Dockerfile`, `docker/entrypoint.sh` | Base de développement, image de production. |
 
 ## Règles du cahier appliquées
 
@@ -106,4 +106,4 @@ Tous sous `/api/v1`, sur le sous-domaine de l'espace. Mêmes formes, règles et 
 - **Logo de l'espace** : pas d'envoi pour l'instant (`logo_url` vaut toujours null).
 - **Documentation OpenAPI** (§9, §12.6) : pas encore générée.
 - Les e-mails partent par la file de tâches : en développement, `composer dev` lance le worker ; sans lui, rien n'est envoyé. Le mailer par défaut est `log`.
-- La CI GitHub Actions est écrite mais n'a pas encore tourné sur GitHub.
+- **Intégration continue** (§12.6) : mise de côté pour l'instant, à la demande du propriétaire du projet. Le workflow (Pint, tests sur PostgreSQL, lint et build du frontend, image Docker) se retrouve dans le commit `7fd458d` pour être remis en place plus tard.
