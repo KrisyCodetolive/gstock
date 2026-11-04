@@ -10,6 +10,7 @@ use App\Domain\Identity\Models\User;
 use App\Domain\Platform\Actions\ProvisionTenant;
 use App\Domain\Platform\Models\Plan;
 use App\Domain\Platform\Models\Tenant;
+use App\Domain\Platform\Models\TenantInvoice;
 use App\Domain\Sales\Models\PaymentMethod;
 use App\Domain\Shops\Models\Shop;
 use App\Domain\Shops\Models\TenantSetting;
@@ -45,6 +46,16 @@ class DemoTenantSeeder extends Seeder
         // Essai terminé, deux mois payés, en cours pour encore deux semaines.
         $tenant->subscription->update(['starts_at' => now()->subDays(60), 'trial_ends_at' => now()->subDays(46), 'ends_at' => now()->addDays(14), 'status' => 'active']);
         $tenant->update(['status' => 'active', 'activated_at' => now()->subDays(60)]);
+        // Factures d'abonnement : la première période, puis un paiement refusé suivi d'un paiement réussi.
+        foreach ([[46, 'paid', 'Wave'], [16, 'failed', 'Orange Money'], [16, 'paid', 'Orange Money']] as $i => [$days, $status, $channel]) {
+            $at = now()->subDays($days)->setTime(10 + $i, 0);
+            $invoice = TenantInvoice::create([
+                'tenant_id' => $tenant->id, 'tenant_subscription_id' => $tenant->subscription->id, 'plan_id' => $tenant->subscription->plan_id,
+                'reference' => 'FA-demo-'.$i, 'amount' => $tenant->subscription->plan->price, 'status' => $status, 'payment_channel' => $channel,
+                'geniuspay_transaction_id' => 'GP-DEMO-'.($i + 1), 'paid_at' => $status === 'paid' ? $at : null, 'created_at' => $at, 'updated_at' => $at,
+            ]);
+            $invoice->update(['reference' => "FA-{$invoice->id}"]);
+        }
 
         $tenant->run(function () {
             TenantSetting::query()->first()->update([

@@ -7,7 +7,9 @@ use App\Http\Controllers\Api\V1\CreditController;
 use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\ExpenseController;
+use App\Http\Controllers\Api\V1\GeniusPayWebhookController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\OnboardingController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\PublicReceiptController;
 use App\Http\Controllers\Api\V1\PurchaseController;
@@ -16,14 +18,17 @@ use App\Http\Controllers\Api\V1\Referentials\CategoryController;
 use App\Http\Controllers\Api\V1\Referentials\ExpenseCategoryController;
 use App\Http\Controllers\Api\V1\Referentials\PaymentMethodController;
 use App\Http\Controllers\Api\V1\Referentials\UnitController;
+use App\Http\Controllers\Api\V1\RegistrationController;
 use App\Http\Controllers\Api\V1\RepaymentController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SaleController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\ShopController;
 use App\Http\Controllers\Api\V1\StockController;
+use App\Http\Controllers\Api\V1\SubscriptionController;
 use App\Http\Controllers\Api\V1\SupplierController;
 use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\GeniusPaySimulationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -31,6 +36,18 @@ use Illuminate\Support\Facades\Route;
  * L'espace est identifié par le sous-domaine (ADR-009), jamais par un paramètre.
  * Permissions contrôlées sur chaque endpoint (§6.2) ; espace suspendu en lecture seule (M00).
  */
+// Domaine principal (M00) : formules et inscription, sans session ni espace.
+Route::get('plans', [RegistrationController::class, 'plans']);
+Route::get('register/check-slug', [RegistrationController::class, 'checkSlug'])->middleware('throttle:60,1');
+Route::post('register', [RegistrationController::class, 'register'])->middleware('throttle:10,1');
+
+// Webhook GeniusPay des abonnements (ADR-003) : authentifié par sa signature.
+Route::post('webhooks/geniuspay/platform', [GeniusPayWebhookController::class, 'platform'])->middleware('throttle:120,1');
+
+// Page de paiement simulée (pilote « simulation », jamais en production) : liens signés.
+Route::get('simulation/geniuspay/{invoice}', [GeniusPaySimulationController::class, 'show'])->name('geniuspay.simulation');
+Route::get('simulation/geniuspay/{invoice}/pay', [GeniusPaySimulationController::class, 'pay'])->name('geniuspay.simulation.pay');
+
 Route::middleware('tenant')->group(function () {
     // Reçu partagé par WhatsApp : public, lien signé et expirant (ADR-013).
     Route::get('public/receipts/{token}', [PublicReceiptController::class, 'show'])->middleware('throttle:60,1');
@@ -38,11 +55,26 @@ Route::middleware('tenant')->group(function () {
     Route::prefix('auth')->middleware('throttle:auth')->group(function () {
         Route::post('login', [AuthController::class, 'login']);
         Route::post('logout', [AuthController::class, 'logout']);
+        Route::post('token-login', [AuthController::class, 'tokenLogin']);
         Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
         Route::post('reset-password', [AuthController::class, 'resetPassword']);
     });
 
+    // Permis même quand l'espace est suspendu : payer l'abonnement, l'assistant de démarrage.
+    Route::middleware(['auth:sanctum', 'active'])->group(function () {
+        Route::post('subscription/checkout', [SubscriptionController::class, 'checkout'])->middleware('permission:subscription.manage');
+        Route::post('onboarding/steps/{step}/skip', [OnboardingController::class, 'skip']);
+        Route::post('onboarding/dismiss', [OnboardingController::class, 'dismiss']);
+    });
+
     Route::middleware(['auth:sanctum', 'active', 'writable'])->group(function () {
+        // Mon abonnement (M00).
+        Route::middleware('permission:subscription.manage')->group(function () {
+            Route::get('subscription', [SubscriptionController::class, 'show']);
+            Route::get('subscription/invoices', [SubscriptionController::class, 'invoices']);
+        });
+        Route::get('onboarding', [OnboardingController::class, 'show']);
+
         Route::get('me', [MeController::class, 'show']);
         Route::put('me', [MeController::class, 'update']);
         Route::put('me/password', [MeController::class, 'password']);

@@ -6,6 +6,7 @@ use App\Domain\Audit\Audit;
 use App\Domain\Identity\Models\User;
 use App\Domain\Identity\PasswordResets;
 use App\Domain\Platform\CurrentTenant;
+use App\Domain\Platform\Registration\LoginLinks;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Present;
 use App\Support\ApiException;
@@ -41,6 +42,23 @@ class AuthController extends Controller
         }
         if (! $user->is_active) {
             throw ApiException::invalid('login', 'Ce compte est désactivé. Demandez au propriétaire de la boutique de le réactiver.');
+        }
+
+        Auth::guard('web')->login($user);
+        $request->session()->regenerate();
+        $user->forceFill(['last_login_at' => now()])->save();
+
+        return response()->json(['data' => Present::me($user)]);
+    }
+
+    /** Lien de connexion à usage unique reçu à l'inscription (M00) : ouvre l'espace déjà connecté. */
+    public function tokenLogin(Request $request, LoginLinks $links): JsonResponse
+    {
+        $tenant = CurrentTenant::get();
+        $userId = $links->consume((string) $request->input('token', ''), $tenant->id);
+        $user = $userId ? User::query()->find($userId) : null;
+        if (! $user || ! $user->is_active || $tenant->isClosed()) {
+            throw new ApiException(422, 'Ce lien de connexion a expiré ou a déjà servi. Connectez-vous avec votre e-mail et votre mot de passe.');
         }
 
         Auth::guard('web')->login($user);

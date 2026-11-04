@@ -18,4 +18,26 @@ return [
     /* Devise et fuseau par défaut d'un nouvel espace (Afrique de l'Ouest). */
     'currency' => 'XOF',
     'timezone' => 'Africa/Abidjan',
+
+    /* Durée de vie du lien de connexion envoyé à l'inscription, en minutes. */
+    'login_link_ttl' => 10,
+
+    /*
+     * Paiement de l'abonnement par GeniusPay, avec les clés de Genius Groups (ADR-003).
+     * `simulation` : page de paiement simulée servie par l'API (développement et
+     * démonstration seulement, refusée en production). Le pilote réel se branche sur
+     * `App\Domain\Platform\Billing\PlatformGateway` quand l'accès à GeniusPay est fourni.
+     */
+    'geniuspay' => [
+        'platform' => [
+            'driver' => env('GENIUSPAY_PLATFORM_DRIVER', 'simulation'),
+            'api_key' => env('GENIUSPAY_PLATFORM_API_KEY'),
+            'api_secret' => env('GENIUSPAY_PLATFORM_API_SECRET'),
+            // Secret qui signe les webhooks (HMAC SHA-256 du corps brut).
+            'webhook_secret' => env('GENIUSPAY_PLATFORM_WEBHOOK_SECRET', 'dev-platform-webhook-secret'),
+        ],
+    ],
+
+    /* Retour de la page de paiement : « Mon abonnement » de l'espace. */
+    'subscription_return_path' => '/parametres/abonnement',
 ];
