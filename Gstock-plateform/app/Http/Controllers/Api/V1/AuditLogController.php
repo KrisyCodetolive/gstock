@@ -24,12 +24,19 @@ class AuditLogController extends Controller
                 ? $q->whereNull('shop_id')->orWhereIn('shop_id', $shopIds)
                 : $q->whereIn('shop_id', $shopIds))
             ->orderByDesc('created_at')->orderByDesc('id');
+        // Recherche dans l'objet, le motif et le nom de l'auteur, sans tenir compte des accents.
+        $search = trim((string) $request->query('search', ''));
+        if ($search !== '') {
+            $needle = '%'.addcslashes($search, '%_\\').'%';
+            $query->where(fn (Builder $q) => $q->whereRaw("unaccent(coalesce(subject_label, '')) ILIKE unaccent(?)", [$needle])
+                ->orWhereRaw("unaccent(coalesce(reason, '')) ILIKE unaccent(?)", [$needle])
+                ->orWhereIn('user_id', User::query()->whereRaw("unaccent(firstname || ' ' || lastname) ILIKE unaccent(?)", [$needle])->select('id')));
+        }
 
         return ListQuery::respond(
             $request,
             $query,
             Present::auditLog(...),
-            searchIn: ['subject_label', 'reason'],
             filters: [
                 'domain' => fn (Builder $q, string $v) => $q->where('action', 'like', addcslashes($v, '%_').'.%'),
                 'user_id' => fn (Builder $q, string $v) => $q->where('user_id', (int) $v),

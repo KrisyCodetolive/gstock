@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\DB;
 class StockController extends Controller
 {
     /** État d'une ligne de stock, calculé par PostgreSQL : rupture, faible (sous le seuil), ok. */
-    private const STATE = "CASE WHEN shop_stock.quantity <= 0 THEN 'out'
+    public const STATE = "CASE WHEN shop_stock.quantity <= 0 THEN 'out'
         WHEN coalesce(shop_stock.stock_alert, products.stock_alert) IS NOT NULL
          AND shop_stock.quantity <= coalesce(shop_stock.stock_alert, products.stock_alert) THEN 'low' ELSE 'ok' END";
 
