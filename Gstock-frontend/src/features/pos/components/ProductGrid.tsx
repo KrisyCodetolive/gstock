@@ -23,7 +23,7 @@ export function ProductGrid({
 }) {
   const { t } = useTranslation()
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+    <ul className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5">
       {products.map((p) => {
         const inCart = quantities.get(articleKey(p.id, p.variant_id)) ?? 0
         const out = p.quantity !== null && Number(p.quantity) <= 0
@@ -35,7 +35,7 @@ export function ProductGrid({
               disabled={out}
               aria-label={`${p.name}, ${Number(p.price).toLocaleString('fr-FR')} FCFA${inCart ? `, ${t('sales.pos.in_cart', { count: inCart })}` : ''}`}
               className={cn(
-                'pressable-lg relative grid h-full w-full content-start gap-1.5 rounded-md bg-card p-2.5 text-left disabled:opacity-50',
+                'pressable-lg relative grid h-full w-full content-start gap-1 rounded-md bg-card p-2 text-left disabled:opacity-50',
                 inCart > 0 && 'bg-[color-mix(in_srgb,var(--card),var(--action)_8%)]',
               )}
             >
@@ -49,9 +49,9 @@ export function ProductGrid({
                 color={p.category?.color}
                 imageUrl={p.image_url}
                 type={p.type}
-                className={cn('w-full rounded-sm', p.image_url ? 'aspect-[3/2] h-auto' : 'h-10')}
+                className={cn('w-full rounded-sm', p.image_url ? 'aspect-[4/3] h-auto object-contain' : 'h-10')}
               />
-              <span className="line-clamp-2 text-sm leading-tight font-bold">{p.name}</span>
+              <span className="line-clamp-2 text-[13px] leading-tight font-bold">{p.name}</span>
               <Money value={p.price} />
               {p.quantity !== null && (
                 <span

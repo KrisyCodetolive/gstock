@@ -49,7 +49,7 @@ export interface MockDb {
 }
 
 /** À incrémenter quand les jeux de démonstration changent de forme. */
-const PREFIX = 'gstock.mock.db.v8'
+const PREFIX = 'gstock.mock.db.v9'
 /** Une base par espace, comme le filtre tenant_id du serveur (ADR-002). */
 const keyOf = (slug: string) => `${PREFIX}.${slug}`
 

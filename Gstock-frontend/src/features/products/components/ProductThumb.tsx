@@ -28,7 +28,8 @@ export function ProductThumb({
   className?: string
 }) {
   const base = cn('grid size-12 shrink-0 place-items-center overflow-hidden rounded-sm border-2 border-foreground', TINT[color ?? 'lavender'], className)
-  if (imageUrl) return <img src={imageUrl} alt="" className={cn(base, 'object-cover')} />
+  // `className` peut demander `object-contain` (image entière sur la teinte de la catégorie).
+  if (imageUrl) return <img src={imageUrl} alt="" className={cn('object-cover', base)} />
   if (type === 'service') {
     return (
       <span className={base} aria-hidden="true">
