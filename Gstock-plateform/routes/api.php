@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AdjustmentController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\Referentials\BrandController;
 use App\Http\Controllers\Api\V1\Referentials\CategoryController;
 use App\Http\Controllers\Api\V1\Referentials\ExpenseCategoryController;
@@ -11,6 +13,7 @@ use App\Http\Controllers\Api\V1\Referentials\UnitController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\ShopController;
+use App\Http\Controllers\Api\V1\StockController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -83,5 +86,31 @@ Route::middleware('tenant')->group(function () {
             Route::post($path, [$controller, 'store'])->middleware("permission:{$write}");
             Route::put("{$path}/{id}", [$controller, 'update'])->middleware("permission:{$write}")->whereNumber('id');
         }
+
+        // Mes produits (M06) : catalogue commun à l'espace.
+        Route::get('products', [ProductController::class, 'index'])->middleware('permission:products.view');
+        Route::post('products', [ProductController::class, 'store'])->middleware('permission:products.create');
+        Route::get('products/{product}', [ProductController::class, 'show'])->middleware('permission:products.view');
+        // Désactiver demande products.disable, modifier products.update : vérifié dans le service.
+        Route::put('products/{product}', [ProductController::class, 'update'])->middleware('permission:products.update,products.disable');
+        Route::post('products/{product}/image', [ProductController::class, 'uploadImage'])->middleware('permission:products.update,products.create');
+        Route::delete('products/{product}/image', [ProductController::class, 'deleteImage'])->middleware('permission:products.update');
+        Route::get('products/{product}/stock', [ProductController::class, 'stock'])->middleware('permission:products.view');
+        // Mon stock, vue « Toutes mes boutiques » (M07).
+        Route::get('stock', [StockController::class, 'overview'])->middleware('permission:stock.view');
+
+        // Ressources de boutique : affectation vérifiée sur chaque requête (§6.2).
+        Route::prefix('shops/{shop}')->middleware('shop')->group(function () {
+            Route::get('products/search', [ProductController::class, 'search']);
+            Route::middleware('permission:stock.view')->group(function () {
+                Route::get('stock', [StockController::class, 'index']);
+                Route::get('stock/alerts', [StockController::class, 'alerts']);
+                Route::get('stock/movements', [StockController::class, 'movements']);
+                Route::get('adjustments/{id}', [AdjustmentController::class, 'show'])->whereNumber('id');
+            });
+            // Le type de mouvement (entrée, sortie, inventaire) demande sa propre permission : vérifié dans le service.
+            Route::post('adjustments', [AdjustmentController::class, 'store'])->middleware('permission:stock.entry,stock.exit,stock.adjust');
+            Route::post('adjustments/{id}/cancel', [AdjustmentController::class, 'cancel'])->middleware('permission:stock.adjust')->whereNumber('id');
+        });
     });
 });

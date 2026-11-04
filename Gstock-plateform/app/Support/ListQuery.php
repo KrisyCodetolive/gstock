@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 /**
  * Listes de l'API (§9) : `page`, `per_page` (100 au plus), `search`, `sort=-champ`,
@@ -18,6 +19,7 @@ final class ListQuery
      * @param  array<string, Closure(Builder, string): void>  $filters
      * @param  list<string>  $sortable
      * @param  Closure(mixed): array  $toArray  transformation de chaque ligne
+     * @param  ?Closure(Collection): void  $beforeMap  préparation de la page entière
      */
     public static function respond(
         Request $request,
@@ -28,6 +30,7 @@ final class ListQuery
         array $sortable = [],
         string $defaultSort = 'id',
         array $extra = [],
+        ?Closure $beforeMap = null,
     ): JsonResponse {
         $search = trim((string) $request->query('search', ''));
         if ($search !== '' && $searchIn !== []) {
@@ -53,6 +56,10 @@ final class ListQuery
 
         $perPage = min(100, max(1, (int) $request->query('per_page', 20)));
         $page = $query->paginate($perPage);
+        // Préparation de toute la page en une fois (ex. niveaux de stock), avant la mise en forme ligne par ligne.
+        if ($beforeMap) {
+            $beforeMap(collect($page->items()));
+        }
 
         return response()->json([
             'data' => array_map($toArray, $page->items()),

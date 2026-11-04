@@ -4,17 +4,21 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Platform\CurrentTenant;
 use App\Domain\Shops\Models\Shop;
+use App\Domain\Stock\StockLedger;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Present;
 use App\Support\ApiException;
 use App\Support\ListQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /** Boutiques de l'espace (M03, ADR-011) : jamais supprimées, désactivées. */
 class ShopController extends Controller
 {
+    public function __construct(private StockLedger $ledger) {}
+
     public function index(Request $request): JsonResponse
     {
         return ListQuery::respond(
@@ -35,7 +39,13 @@ class ShopController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $this->validated($request);
-        $shop = Shop::create($data);
+        // La création d'une boutique crée une ligne de stock à 0 pour chaque article (§7.2).
+        $shop = DB::transaction(function () use ($data) {
+            $shop = Shop::create($data);
+            $this->ledger->ensureRowsForShop($shop);
+
+            return $shop;
+        });
 
         return response()->json(['data' => Present::shop($shop)], 201);
     }

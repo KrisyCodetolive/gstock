@@ -4,6 +4,7 @@ namespace App\Domain\Catalog\Models;
 
 use App\Support\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** Catégorie de produits (M05) : un nom et une teinte de vignette. */
 class Category extends Model
@@ -15,4 +16,9 @@ class Category extends Model
     protected $fillable = ['name', 'color', 'is_active'];
 
     protected $casts = ['is_active' => 'boolean'];
+
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
 }

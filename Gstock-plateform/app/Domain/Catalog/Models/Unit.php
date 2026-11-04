@@ -29,6 +29,12 @@ class Unit extends Model
         return $this->belongsTo(self::class, 'base_unit_id');
     }
 
+    /** Produits comptés dans cette unité (unité de base du produit). */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
     public function derivedUnits(): HasMany
     {
         return $this->hasMany(self::class, 'base_unit_id');
