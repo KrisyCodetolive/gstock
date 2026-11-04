@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { Outlet } from 'react-router'
 import { LoadingState } from '@/components/states'
+import { SupportBanner } from '@/features/auth/components/SupportBanner'
 import { UserMenu } from '@/features/auth/components/UserMenu'
 import { SubscriptionBanner } from '@/features/onboarding/components/SubscriptionBanner'
 import { OfflineBanner, OfflineIndicator } from '@/features/sync/components/OfflineIndicator'
@@ -21,6 +22,7 @@ export function AppLayout() {
           <OfflineIndicator className="max-w-[40vw]" />
           <UserMenu />
         </header>
+        <SupportBanner />
         <OfflineBanner />
         <SubscriptionBanner />
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-5 pb-32 lg:px-8 lg:pt-8 lg:pb-12">

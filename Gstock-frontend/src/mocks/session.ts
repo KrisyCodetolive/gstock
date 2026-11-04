@@ -52,5 +52,7 @@ export function toMe(user: MockUser): Me {
       advanced_mode: db.settings.advanced_mode,
       subscription: summaryOf(platform.current),
     },
+    // Le mode support n'existe que dans le back-office du serveur.
+    support: null,
   }
 }

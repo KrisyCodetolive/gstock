@@ -2,6 +2,8 @@
 
 namespace App\Domain\Platform\Models;
 
+use App\Domain\Identity\Models\User;
+use App\Domain\Shops\Models\Shop;
 use App\Domain\Shops\Models\TenantPaymentSetting;
 use App\Domain\Shops\Models\TenantSetting;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,12 +28,13 @@ class Tenant extends BaseTenant
     protected $casts = [
         'activated_at' => 'datetime',
         'first_sale_at' => 'datetime',
+        'suspended_at' => 'datetime',
     ];
 
     /** Colonnes réelles ; le reste irait dans la colonne JSON `data` de stancl. */
     public static function getCustomColumns(): array
     {
-        return ['id', 'name', 'slug', 'owner_email', 'phone', 'currency_code', 'timezone', 'status', 'activated_at', 'first_sale_at', 'created_at', 'updated_at'];
+        return ['id', 'name', 'slug', 'owner_email', 'phone', 'currency_code', 'timezone', 'status', 'activated_at', 'first_sale_at', 'suspended_at', 'suspension_reason', 'created_at', 'updated_at'];
     }
 
     public function subscriptions(): HasMany
@@ -53,6 +56,27 @@ class Tenant extends BaseTenant
     public function paymentSettings(): HasOne
     {
         return $this->hasOne(TenantPaymentSetting::class);
+    }
+
+    public function shops(): HasMany
+    {
+        return $this->hasMany(Shop::class);
+    }
+
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(TenantInvoice::class);
+    }
+
+    /** Suspendu par Genius Groups (M01) : lecture seule, quel que soit l'abonnement. */
+    public function isSuspendedByPlatform(): bool
+    {
+        return $this->suspended_at !== null;
     }
 
     /** Fermé par Genius Groups : plus aucune connexion (M02). */

@@ -55,15 +55,21 @@ class AuthController extends Controller
     public function tokenLogin(Request $request, LoginLinks $links): JsonResponse
     {
         $tenant = CurrentTenant::get();
-        $userId = $links->consume((string) $request->input('token', ''), $tenant->id);
-        $user = $userId ? User::query()->find($userId) : null;
+        $entry = $links->consume((string) $request->input('token', ''), $tenant->id);
+        $user = $entry ? User::query()->find($entry['user_id']) : null;
         if (! $user || ! $user->is_active || $tenant->isClosed()) {
             throw new ApiException(422, 'Ce lien de connexion a expiré ou a déjà servi. Connectez-vous avec votre e-mail et votre mot de passe.');
         }
 
         Auth::guard('web')->login($user);
         $request->session()->regenerate();
-        $user->forceFill(['last_login_at' => now()])->save();
+        if (isset($entry['support'])) {
+            // Mode support (M01) : session limitée, bandeau visible ; la dernière connexion de l'utilisateur ne change pas.
+            $request->session()->put('support', $entry['support']);
+        } else {
+            $request->session()->forget('support');
+            $user->forceFill(['last_login_at' => now()])->save();
+        }
 
         return response()->json(['data' => Present::me($user)]);
     }

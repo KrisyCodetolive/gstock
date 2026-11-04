@@ -26,7 +26,12 @@ export function TokenLoginPage() {
     if (!token || started.current) return
     started.current = true
     login.mutate(token, {
-      onSuccess: () => {
+      onSuccess: (me) => {
+        // Mode support du back-office : l'accueil de la personne, avec son bandeau ; sinon, fin d'inscription.
+        if (me.support) {
+          void navigate('/', { replace: true })
+          return
+        }
         toast.success(t('register.created'))
         void navigate('/demarrage', { replace: true })
       },

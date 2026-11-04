@@ -33,7 +33,17 @@ final class Present
                 'advanced_mode' => (bool) $settings?->advanced_mode,
                 'subscription' => CurrentTenant::state()->summary(),
             ],
+            // Session ouverte par l'assistance GStock (M01) : l'application affiche un bandeau.
+            'support' => self::supportSession(),
         ];
+    }
+
+    /** @return ?array{admin_name: string, expires_at: string} */
+    private static function supportSession(): ?array
+    {
+        $support = request()->hasSession() ? request()->session()->get('support') : null;
+
+        return $support ? ['admin_name' => $support['admin'], 'expires_at' => $support['until']] : null;
     }
 
     public static function userSummary(User $user): array

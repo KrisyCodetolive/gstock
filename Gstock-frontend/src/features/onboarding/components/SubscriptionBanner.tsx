@@ -20,7 +20,12 @@ export function SubscriptionBanner() {
 
   let tone: 'warn' | 'danger'
   let text: string
-  if (s.read_only) {
+  // Suspendu par GStock, abonnement réglé : rien à payer, il faut contacter le support.
+  const byPlatform = s.read_only && s.tenant_status === 'suspended' && s.status !== 'past_due'
+  if (byPlatform) {
+    tone = 'danger'
+    text = t('banner.suspended_platform')
+  } else if (s.read_only) {
     tone = 'danger'
     text = t('banner.suspended')
   } else if (s.status === 'past_due') {
@@ -44,7 +49,9 @@ export function SubscriptionBanner() {
     >
       <Icon className="size-5 shrink-0" aria-hidden="true" />
       <span className="flex-1">{text}</span>
-      {can('subscription.manage') ? (
+      {byPlatform ? (
+        <span>{t('banner.contact_support')}</span>
+      ) : can('subscription.manage') ? (
         <Link to={SUBSCRIPTION_PATH} className="font-bold underline underline-offset-4">
           {t('banner.action')}
         </Link>
@@ -61,6 +68,7 @@ export function RequireWritable({ children }: { children: ReactNode }) {
   const can = useCan()
   const { subscription } = useSession().tenant
   if (!subscription.read_only) return children
+  const byPlatform = subscription.tenant_status === 'suspended' && subscription.status !== 'past_due'
   return (
     <div className="grid min-h-dvh place-items-center px-4">
       <div className="grid gap-6">
@@ -69,13 +77,13 @@ export function RequireWritable({ children }: { children: ReactNode }) {
           icon={CircleAlert}
           tone="danger"
           title={t('read_only.title')}
-          text={can('subscription.manage') ? t('read_only.text') : `${t('read_only.text')} ${t('read_only.ask_owner')}`}
+          text={byPlatform ? t('read_only.text_platform') : can('subscription.manage') ? t('read_only.text') : `${t('read_only.text')} ${t('read_only.ask_owner')}`}
           action={
             <div className="flex flex-wrap justify-center gap-2">
               <Button asChild variant="outline">
                 <Link to="/">{t('nav.home')}</Link>
               </Button>
-              {can('subscription.manage') && (
+              {can('subscription.manage') && !byPlatform && (
                 <Button asChild variant="action">
                   <Link to={SUBSCRIPTION_PATH}>{t('read_only.action')}</Link>
                 </Button>

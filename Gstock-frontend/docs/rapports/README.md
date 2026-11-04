@@ -1,6 +1,6 @@
 # GStock — État du projet
 
-> Mis à jour le 4 novembre 2026, à la fin de la phase B9 (synchronisation hors ligne du backend).
+> Mis à jour le 4 novembre 2026, à la fin de la phase B10 (back-office de Genius Groups).
 > Ce dossier est l'inventaire de ce qui a été **fait**. Il s'adresse à la personne (ou à l'agent) qui reprend le projet : ce fichier donne la vue d'ensemble et ce qui est commun à toutes les phases ; **chaque phase terminée a son rapport** (tableau ci-dessous) : ce qui a été livré, où se trouve le code, les règles appliquées, les vérifications faites et les limites.
 
 ## En bref
@@ -8,9 +8,9 @@
 | | État |
 |---|---|
 | **Frontend** (`Gstock-frontend/`) | **Toutes les phases F1 à F9 terminées** (§11.4 du cahier), plus F10 (compléments de la V1 relevés par la [comparaison avec l'ancien GStock](comparaison-ancien-gstock.md)). Application navigable, entièrement sur données simulées (MSW). |
-| **Backend** (`Gstock-plateform/`) | **Socle (B1), référentiels (B2), produits et stock (B3), clients et ventes (B4), crédits clients (B5), approvisionnements et dépenses (B6), tableau de bord et journal (B7), inscription et abonnement (B8), synchronisation hors ligne (B9) livrés** : PostgreSQL en Docker, `/api/v1`, multi-tenant par sous-domaine, Sanctum, permissions, rôles, utilisateurs, boutiques, paramètres, audit, référentiels, catalogue, stock jamais négatif et égal à la somme des mouvements, caisse et ventes calculées par le serveur, paiements de crédit répartis, avoirs et échéanciers, approvisionnements convertis en unité de base, dettes fournisseurs, dépenses, tableau de bord selon la distinction financière du §7.8, inscription, assistant de démarrage, abonnement payé par webhook (GeniusPay simulé en attendant l'accès), synchronisation hors ligne ; 89 tests. Le frontend s'y branche avec `npm run dev:api`. Modules métier à venir. Voir [B1-socle-api.md](B1-socle-api.md). |
+| **Backend** (`Gstock-plateform/`) | **Socle (B1), référentiels (B2), produits et stock (B3), clients et ventes (B4), crédits clients (B5), approvisionnements et dépenses (B6), tableau de bord et journal (B7), inscription et abonnement (B8), synchronisation hors ligne (B9), back-office Filament (B10) livrés** : PostgreSQL en Docker, `/api/v1`, multi-tenant par sous-domaine, Sanctum, permissions, rôles, utilisateurs, boutiques, paramètres, audit, référentiels, catalogue, stock jamais négatif et égal à la somme des mouvements, caisse et ventes calculées par le serveur, paiements de crédit répartis, avoirs et échéanciers, approvisionnements convertis en unité de base, dettes fournisseurs, dépenses, tableau de bord selon la distinction financière du §7.8, inscription, assistant de démarrage, abonnement payé par webhook (GeniusPay simulé en attendant l'accès), synchronisation hors ligne, back-office de Genius Groups (`/admin`) ; 95 tests. Le frontend s'y branche avec `npm run dev:api`. Modules métier à venir. Voir [B1-socle-api.md](B1-socle-api.md). |
 | **Contrat d'API** | Défini côté frontend : types dans `src/types/`, endpoints dans `src/lib/api/`, comportement serveur reproduit dans `src/mocks/`. **C'est la spécification que le backend devra respecter** (ADR-004). Voir « Le contrat d'API pour le backend ». |
-| **Phases restantes** | Backend : back-office Filament, pilote GeniusPay réel (abonnements et encaissements des boutiques, dès que l'accès est fourni) (§15). Tous les écrans du commerçant ont leur backend. |
+| **Phases restantes** | Backend : pilote GeniusPay réel (abonnements et encaissements des boutiques, dès que l'accès est fourni) (§15). Tous les écrans du commerçant ont leur backend. |
 
 ## Rapports des phases terminées
 
@@ -36,6 +36,7 @@
 | B7 — Tableau de bord et journal d'activité du backend (distinction financière §7.8, toutes boutiques, recherche par auteur) | [B7-tableau-de-bord-api.md](B7-tableau-de-bord-api.md) | `api-tableau-de-bord` |
 | B8 — Inscription, assistant de démarrage et abonnement du backend (lien de connexion, factures, webhook GeniusPay, paiement simulé) | [B8-inscription-abonnement-api.md](B8-inscription-abonnement-api.md) | `api-inscription` |
 | B9 — Synchronisation hors ligne du backend (références définitives, idempotence, écarts « à vérifier », refus motivés) | [B9-hors-ligne-api.md](B9-hors-ligne-api.md) | `api-hors-ligne` |
+| B10 — Back-office de Genius Groups (Filament : tableau de bord, espaces, boutiques, utilisateurs, mode support, formules, factures, journal) | [B10-back-office.md](B10-back-office.md) | `back-office` |
 
 Hors phase : [comparaison-ancien-gstock.md](comparaison-ancien-gstock.md) confronte l'inventaire de l'ancien GStock (Stocky v5.0) avec le nouveau, pour décider de ce qu'il faut reprendre.
 
@@ -109,6 +110,7 @@ Ces décisions complètent ou précisent le cahier. Celles marquées **[cahier]*
 | Échéanciers (backend) | Une seule table `installments` pour les crédits clients et les dettes fournisseurs (`payable_type`) ; statut calculé à la lecture. |
 | Tableau de bord (backend) | Calculé à la demande en SQL agrégé (`app/Domain/Reporting/DashboardService.php`), sans table de statistiques ; fuseau `Africa/Abidjan`. Voir [B7](B7-tableau-de-bord-api.md). |
 | GeniusPay (backend) | Sans documentation ni clés, le paiement passe par l'interface `PlatformGateway` ; seul le pilote `simulation` existe (page servie par l'API, refusée en production). Format du webhook provisoire. Voir [B8](B8-inscription-abonnement-api.md). |
+| Back-office (M01) | Filament 5 sur `/admin` (ou `ADMIN_DOMAIN`), garde `platform` séparée ; suspension par GStock distincte de l'impayé (`tenants.suspended_at`) ; mode support limité dans le temps avec bandeau. Voir [B10](B10-back-office.md). |
 | Déconnexion | Mène toujours à l'accueil de la personne suivante (pas à la dernière page de la précédente). Nécessite `RouterProvider` importé de `react-router/dom` (voir « Pièges déjà rencontrés »). |
 
 ## Le contrat d'API pour le backend
@@ -179,6 +181,7 @@ Recettes pour une nouvelle rubrique (c'est ainsi que F2 à F4 ont été faites) 
 - **Backend, soldes des crédits** : ne jamais écrire `remaining_amount` à la main. Passer par `CreditLedger::recompute()` après chaque paiement, régularisation ou annulation ; les paiements `pending` (GeniusPay) ne comptent pas.
 - **Backend, `php artisan serve`** : ne transmet au serveur PHP qu'une liste fixe de variables d'environnement ; une variable passée en ligne de commande (ex. `FRONTEND_URL`) est ignorée. La mettre dans `.env`, ou lancer `php -S` depuis `public/` avec le `server.php` de Laravel.
 - **Hors ligne contre le vrai serveur, en développement** : pas de service worker ; un écran ne s'ouvre sans réseau que si son code a déjà été chargé dans la session, et ses listes que si elles ont été lues avec le réseau. Pour un test réaliste, utiliser le build (`vite build` puis `vite preview`).
+- **Filament** : les arguments des fonctions sont fournis par leur nom (`$query`, `$data`, `$record`) ; `fn (Builder $q)` reçoit une requête vide. Les widgets se testent avec `Livewire::test()`.
 - **Backend, horloge** : toujours `now()` (Carbon) et jamais `time()`, sinon `travel()` dans les tests n'a pas d'effet (cas rencontré sur l'expiration des liens de reçu).
 - **Versions récentes** : TypeScript 7, React Router 8, MSW 3, Tailwind 4, Zod 4, i18next 26. Vérifier les API dans `node_modules` plutôt que de se fier à des exemples anciens (MSW 3 : `onUnhandledFrame` au lieu de `onUnhandledRequest`).
 
