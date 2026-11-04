@@ -152,3 +152,27 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Impression du reçu (58 / 80 mm) : seul le ticket sort de l'imprimante. */
+@media print {
+  @page {
+    margin: 0;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    border: 0;
+    padding: 0;
+    background: white;
+  }
+  .no-print {
+    display: none;
+  }
+}

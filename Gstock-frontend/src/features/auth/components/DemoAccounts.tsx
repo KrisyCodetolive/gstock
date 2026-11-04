@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { StatusBadge } from '@/components/StatusBadge'
 import { Button } from '@/components/ui/button'
+import { seedHistory } from '@/mocks/data/sales-seed'
 import { resetDb } from '@/mocks/db'
 import { roleLabel } from '@/lib/roles'
 import { shops } from '@/mocks/data/tenant'
@@ -56,6 +57,7 @@ export function DemoAccounts({ onPick, disabled }: { onPick: (account: LoginForm
         className="justify-self-start"
         onClick={() => {
           resetDb()
+          seedHistory()
           toast.success(t('auth.demo_reset_done'))
         }}
       >

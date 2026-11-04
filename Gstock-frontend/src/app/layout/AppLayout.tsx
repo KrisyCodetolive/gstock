@@ -1,4 +1,6 @@
+import { Suspense } from 'react'
 import { Outlet } from 'react-router'
+import { LoadingState } from '@/components/states'
 import { UserMenu } from '@/features/auth/components/UserMenu'
 import { ShopSwitcher } from '@/features/shops/components/ShopSwitcher'
 import { BottomNav } from './BottomNav'
@@ -14,7 +16,9 @@ export function AppLayout() {
           <UserMenu />
         </header>
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-5 pb-32 lg:px-8 lg:pt-8 lg:pb-12">
-          <Outlet />
+          <Suspense fallback={<LoadingState rows={4} />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
       <BottomNav />

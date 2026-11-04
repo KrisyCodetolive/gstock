@@ -2,10 +2,12 @@
 // modifications dans le navigateur, pour qu'elles survivent à un rechargement.
 import type { Brand, Category, ExpenseCategory, PaymentMethod, Unit } from '@/types/referentials'
 import type { PlanLimits, Shop, TenantSettings } from '@/types/settings'
+import * as clients from './data/customers'
 import * as catalog from './data/products'
 import * as referentials from './data/referentials'
 import * as tenant from './data/tenant'
 import * as people from './data/users'
+import type { MockSale } from './sales'
 
 type Row<T> = Omit<T, 'products_count' | 'users_count'>
 
@@ -25,12 +27,17 @@ export interface MockDb {
   shopStock: catalog.MockShopStock[]
   movements: catalog.MockMovement[]
   adjustments: catalog.MockAdjustment[]
+  customers: clients.MockCustomer[]
+  credits: clients.MockCredit[]
+  sales: MockSale[]
   /** document_sequences : prochain numéro par préfixe (§7.9). */
   sequences: Record<string, number>
+  /** Vrai quand l'historique de démonstration (ventes, crédits) a été généré. */
+  seeded: boolean
 }
 
 /** À incrémenter quand les jeux de démonstration changent de forme. */
-const KEY = 'gstock.mock.db.v2'
+const KEY = 'gstock.mock.db.v3'
 
 function seed(): MockDb {
   return structuredClone({
@@ -49,7 +56,11 @@ function seed(): MockDb {
     shopStock: catalog.shopStock,
     movements: catalog.movements,
     adjustments: catalog.adjustments,
-    sequences: { MS: 1 },
+    customers: clients.customers,
+    credits: [],
+    sales: [],
+    sequences: { MS: 1, V: 1, CR: 1 },
+    seeded: false,
   })
 }
 

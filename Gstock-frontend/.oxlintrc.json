@@ -63,7 +63,8 @@
     },
     {
       "files": [
-        "src/components/ui/**"
+        "src/components/ui/**",
+        "src/app/router.tsx"
       ],
       "rules": {
         "react/only-export-components": "off"
