@@ -1,9 +1,9 @@
 import { createBrowserRouter, type RouteObject } from 'react-router'
-import { RequireAuth } from '@/features/auth/components/RequireAuth'
+import { RequireAuth, SplashScreen } from '@/features/auth/components/RequireAuth'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { HomePage } from '@/features/dashboard/pages/HomePage'
 import { ANY_SETTINGS_PERMISSION, settingsSection } from '@/features/settings/sections'
-import { lazy, type ReactNode } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import type { Permission } from '@/types/auth'
 import { AppLayout } from './layout/AppLayout'
 import { NAV_ITEMS } from './navigation'
@@ -34,6 +34,7 @@ const SettingsHubPage = lazy(() => import('@/features/settings/pages/SettingsHub
 const TenantSettingsPage = lazy(() => import('@/features/settings/pages/TenantSettingsPage').then((m) => ({ default: m.TenantSettingsPage })))
 const CustomersListPage = lazy(() => import('@/features/customers/pages/CustomersListPage').then((m) => ({ default: m.CustomersListPage })))
 const CustomerPage = lazy(() => import('@/features/customers/pages/CustomerPage').then((m) => ({ default: m.CustomerPage })))
+const PosPage = lazy(() => import('@/features/pos/pages/PosPage').then((m) => ({ default: m.PosPage })))
 
 const ShowcasePage = lazy(() => import('./pages/ShowcasePage').then((m) => ({ default: m.ShowcasePage })))
 
@@ -91,6 +92,20 @@ const settings: RouteObject[] = [
 
 export const router = createBrowserRouter([
   { path: '/connexion', element: <LoginPage />, errorElement: <RouteErrorPage /> },
+  // Caisse plein écran, hors de la mise en page habituelle (M08).
+  {
+    path: '/vendre',
+    element: (
+      <RequireAuth>
+        <RequirePermission permissions={['sales.create']}>
+          <Suspense fallback={<SplashScreen />}>
+            <PosPage />
+          </Suspense>
+        </RequirePermission>
+      </RequireAuth>
+    ),
+    errorElement: <RouteErrorPage />,
+  },
   {
     path: '/',
     element: (

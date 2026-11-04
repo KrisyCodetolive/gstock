@@ -62,10 +62,11 @@ export function seedHistory() {
         const used = new Set<number>()
         for (let n = 1 + Math.floor(rand() * 3); n > 0; n--) {
           const p = pick(sellable)
-          const available = stockRow(shopId, p.id).quantity
-          if (used.has(p.id) || available < 2) continue
+          // On ne vend pas sous le seuil d'alerte : les alertes de la démo restent lisibles.
+          const room = stockRow(shopId, p.id).quantity - (p.stock_alert ?? 5) - 1
+          if (used.has(p.id) || room < 1) continue
           used.add(p.id)
-          items.push({ product_id: p.id, quantity: String(1 + Math.floor(rand() * Math.min(3, available - 1))) })
+          items.push({ product_id: p.id, quantity: String(1 + Math.floor(rand() * Math.min(3, room))) })
         }
         if (items.length === 0) continue
 

@@ -40,7 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'home', path: '/', label: 'nav.home', icon: House },
   {
     id: 'sell', path: '/vendre', label: 'nav.sell', description: 'home.sell_text',
-    icon: ShoppingCart, permissions: ['sales.create'], phase: 'F4', tint: 'peach',
+    icon: ShoppingCart, permissions: ['sales.create'], tint: 'peach',
   },
   {
     id: 'credits', path: '/credits', label: 'nav.credits', shortLabel: 'nav.credits_short',
