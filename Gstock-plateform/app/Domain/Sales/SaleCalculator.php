@@ -4,6 +4,7 @@ namespace App\Domain\Sales;
 
 use App\Domain\Catalog\Article;
 use App\Domain\Catalog\Models\Product;
+use App\Domain\Credits\InstallmentSchedule;
 use App\Domain\Identity\Models\User;
 use App\Domain\Sales\Models\PaymentMethod;
 use App\Support\ApiException;
@@ -68,7 +69,7 @@ final class SaleCalculator
                 if ($offline && $sent !== null) {
                     // Vendu hors ligne au prix de l'appareil : on garde ce prix, l'écart est signalé.
                     $price = D::format($sent, D::MONEY);
-                    $priceChanges[] = sprintf("Prix de %s : %s FCFA sur l'appareil, %s FCFA aujourd'hui.", $name, self::fcfa($price), self::fcfa($catalogPrice));
+                    $priceChanges[] = sprintf("Prix de %s : %s FCFA sur l'appareil, %s FCFA aujourd'hui.", $name, InstallmentSchedule::fr($price), InstallmentSchedule::fr($catalogPrice));
                 } else {
                     if (! $user->hasAnyPermission('sales.edit_price')) {
                         throw ApiException::forbidden("Vous n'avez pas le droit de modifier un prix.");
