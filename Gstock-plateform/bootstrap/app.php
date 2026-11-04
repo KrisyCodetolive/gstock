@@ -53,7 +53,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (AuthenticationException $e, Request $request) use ($api) {
             if ($api($request)) {
-                return response()->json(['message' => 'Votre session a expiré. Reconnectez-vous.'], 401);
+                // Message propre au cas (fin du mode support), sinon le message habituel.
+                $message = $e->getMessage() !== 'Unauthenticated.' ? $e->getMessage() : 'Votre session a expiré. Reconnectez-vous.';
+
+                return response()->json(['message' => $message], 401);
             }
         });
 

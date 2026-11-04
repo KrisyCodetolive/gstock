@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Un utilisateur désactivé perd ses sessions en cours (§6.2). Par sécurité, un
  * compte n'est jamais accepté sur le sous-domaine d'un autre espace (ADR-002).
+ * Une session du mode support se termine à l'heure prévue.
  */
 class EnsureUserIsActive
 {
@@ -23,6 +24,13 @@ class EnsureUserIsActive
                 $request->session()->invalidate();
             }
             throw new AuthenticationException;
+        }
+        // Session ouverte en mode support (M01) : elle s'arrête d'elle-même à l'heure prévue.
+        $support = $request->hasSession() ? $request->session()->get('support') : null;
+        if ($user && $support && now()->greaterThanOrEqualTo($support['until'])) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            throw new AuthenticationException('La session d’assistance est terminée.');
         }
 
         return $next($request);

@@ -12,16 +12,21 @@ use Illuminate\Support\Str;
  */
 final class LoginLinks
 {
-    public function issue(int $tenantId, int $userId): string
+    /** @param  array{support?: array{admin: string, until: string}}  $extra  mode support du back-office (M01) */
+    public function issue(int $tenantId, int $userId, array $extra = []): string
     {
         $token = Str::random(48);
-        Cache::put($this->key($token), ['tenant_id' => $tenantId, 'user_id' => $userId], now()->addMinutes(config('gstock.login_link_ttl')));
+        Cache::put($this->key($token), ['tenant_id' => $tenantId, 'user_id' => $userId, ...$extra], now()->addMinutes(config('gstock.login_link_ttl')));
 
         return $token;
     }
 
-    /** Identifiant de l'utilisateur si le jeton est valable pour cet espace ; le jeton est consommé. */
-    public function consume(string $token, int $tenantId): ?int
+    /**
+     * Contenu du lien s'il est valable pour cet espace ; le lien est consommé.
+     *
+     * @return ?array{tenant_id: int, user_id: int, support?: array{admin: string, until: string}}
+     */
+    public function consume(string $token, int $tenantId): ?array
     {
         if ($token === '') {
             return null;
@@ -37,7 +42,7 @@ final class LoginLinks
         }
         Cache::forget($this->key($token));
 
-        return $entry['user_id'];
+        return $entry;
     }
 
     private function key(string $token): string

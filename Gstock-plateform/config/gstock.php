@@ -38,6 +38,12 @@ return [
         ],
     ],
 
+    /* Back-office de Genius Groups (M01) : `admin.gstock.app` en production, `/admin` sur tout domaine sinon. */
+    'admin' => [
+        'domain' => env('ADMIN_DOMAIN'),
+        'path' => env('ADMIN_PATH', 'admin'),
+    ],
+
     /* Retour de la page de paiement : « Mon abonnement » de l'espace. */
     'subscription_return_path' => '/parametres/abonnement',
 ];

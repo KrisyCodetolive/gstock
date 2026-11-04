@@ -28,6 +28,17 @@ final class SubscriptionState
         if ($subscription->tenant?->isClosed()) {
             return new self('cancelled', 'cancelled', true, 0, null);
         }
+        $state = self::fromDates($subscription, $now);
+        // Suspendu par Genius Groups (M01) : lecture seule, l'abonnement garde son état.
+        if ($subscription->tenant?->isSuspendedByPlatform()) {
+            return new self($state->status, 'suspended', true, $state->daysLeft, $state->graceEndsAt);
+        }
+
+        return $state;
+    }
+
+    private static function fromDates(TenantSubscription $subscription, CarbonImmutable $now): self
+    {
 
         $paidUntil = $subscription->ends_at?->toImmutable();
         $trialUntil = $subscription->trial_ends_at?->toImmutable();
