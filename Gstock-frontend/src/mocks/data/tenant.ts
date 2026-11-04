@@ -1,7 +1,5 @@
 // Espace de démonstration (cahier §11.3) : un commerçant, deux boutiques.
-import type { PaymentSettings, PlanLimits, Shop, TenantSettings } from '@/types/settings'
-
-export const planLimits: PlanLimits = { name: 'Commerce', max_shops: 3, max_users: 10 }
+import type { PaymentSettings, Shop, TenantSettings } from '@/types/settings'
 
 export const tenantSettings: Omit<TenantSettings, 'plan'> = {
   name: 'Alimentation Koné',

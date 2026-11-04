@@ -15,6 +15,7 @@ import {
   requirePermission,
   Validator,
 } from '../http'
+import { currentPlan } from '../platform'
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const normalizePhone = (value: string) => value.replace(/[\s.-]/g, '').replace(/^\+225/, '')
@@ -72,8 +73,8 @@ function validate(body: Partial<UserPayload>, current?: MockUser) {
   if (!current) v.check((body.password ?? '').length >= 8, 'password', 'Le mot de passe doit contenir au moins 8 caractères.')
   else if (body.password) v.check(body.password.length >= 8, 'password', 'Le mot de passe doit contenir au moins 8 caractères.')
 
-  if (!current && db.users.length >= db.planLimits.max_users) {
-    v.add('firstname', `Votre abonnement permet ${db.planLimits.max_users} utilisateurs au maximum.`)
+  if (!current && db.users.length >= currentPlan().max_users) {
+    v.add('firstname', `Votre abonnement permet ${currentPlan().max_users} utilisateurs au maximum.`)
   }
   v.done()
   return { email, phone, role_id: role!.id }

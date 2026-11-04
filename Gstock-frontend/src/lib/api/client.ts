@@ -31,6 +31,8 @@ function defaultMessage(status: number): string {
       return 'Impossible de joindre le serveur. Vérifiez votre connexion internet.'
     case 401:
       return 'Votre session a expiré. Reconnectez-vous.'
+    case 402:
+      return "Votre abonnement est suspendu : l'espace est en lecture seule."
     case 403:
       return "Vous n'avez pas accès à cette page."
     case 404:

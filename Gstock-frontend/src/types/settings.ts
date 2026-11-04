@@ -69,4 +69,5 @@ export interface PlanLimits {
   name: string
   max_shops: number
   max_users: number
+  max_products: number
 }

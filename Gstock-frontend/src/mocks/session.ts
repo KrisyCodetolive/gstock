@@ -3,20 +3,22 @@
 import type { Me } from '@/types/auth'
 import { db } from './db'
 import type { MockUser } from './data/users'
+import { platform, summaryOf } from './platform'
 
-const KEY = 'gstock.mock.session'
+/** Une session par espace, comme le cookie de chaque sous-domaine. */
+const key = () => `gstock.mock.session.${platform.current}`
 
 export function startSession(userId: number) {
-  localStorage.setItem(KEY, String(userId))
+  localStorage.setItem(key(), String(userId))
 }
 
 export function endSession() {
-  localStorage.removeItem(KEY)
+  localStorage.removeItem(key())
 }
 
 /** Un utilisateur désactivé perd sa session (§6.2). */
 export function currentUser(): MockUser | undefined {
-  const id = Number(localStorage.getItem(KEY))
+  const id = Number(localStorage.getItem(key()))
   const user = db.users.find((u) => u.id === id)
   return user?.is_active ? user : undefined
 }
@@ -48,6 +50,7 @@ export function toMe(user: MockUser): Me {
       currency: db.settings.currency,
       timezone: db.settings.timezone,
       advanced_mode: db.settings.advanced_mode,
+      subscription: summaryOf(platform.current),
     },
   }
 }

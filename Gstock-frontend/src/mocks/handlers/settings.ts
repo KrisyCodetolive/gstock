@@ -4,10 +4,11 @@ import { audit } from '../audit'
 import type { PaymentSettings, PaymentSettingsPayload, TenantSettingsPayload } from '@/types/settings'
 import { db, persist } from '../db'
 import { API, handle, nullable, requirePermission, Validator } from '../http'
+import { planLimits } from '../platform'
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-const settingsResource = () => ({ ...db.settings, plan: db.planLimits })
+const settingsResource = () => ({ ...db.settings, plan: planLimits() })
 
 /** Les clés ne sortent jamais en clair : seulement un indice (M03). */
 function paymentResource(): PaymentSettings {

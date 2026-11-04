@@ -3,8 +3,9 @@ import { delay, http, HttpResponse } from 'msw'
 import type { Product, ProductCreatePayload, ProductSearchResult, ProductShopStock } from '@/types/catalog'
 import type { MockProduct } from '../data/products'
 import { db, nextId, persist } from '../db'
-import { API, findOr404, handle, normalize, nullable, paginate, permissionsOf, requirePermission, requireUser, Validator } from '../http'
+import { API, findOr404, handle, MockHttpError, normalize, nullable, paginate, permissionsOf, requirePermission, requireUser, Validator } from '../http'
 import { alertOf, applyStockChanges, money, qty, requireShopAccess, stockRow, stockState } from '../stock'
+import { currentPlan } from '../platform'
 
 function refs(p: MockProduct) {
   const category = db.categories.find((c) => c.id === p.category_id)
@@ -184,6 +185,13 @@ export const productsHandlers = [
       const user = requirePermission('products.create')
       const body = (await request.json()) as Partial<ProductCreatePayload>
       const { initial, ...fields } = validate(body)
+      // Limite du plan (M00) : les produits désactivés ne comptent pas.
+      const max = currentPlan().max_products
+      if (db.products.filter((p) => p.is_active).length >= max) {
+        throw new MockHttpError(422, `Votre abonnement permet ${max} produits au maximum.`, {
+          name: [`Votre abonnement permet ${max} produits au maximum. Désactivez des produits que vous ne vendez plus ou passez à une formule supérieure.`],
+        })
+      }
       const id = nextId(db.products)
       const product: MockProduct = { id, ...fields, code: fields.code ?? `P-${String(id).padStart(4, '0')}`, image_url: null }
 

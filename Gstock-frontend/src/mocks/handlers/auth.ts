@@ -3,6 +3,7 @@ import { delay, http, HttpResponse } from 'msw'
 import type { LoginPayload } from '@/types/auth'
 import { db, persist } from '../db'
 import { API, handle, MockHttpError, requireUser, Validator } from '../http'
+import { currentTenant } from '../platform'
 import { endSession, startSession, toMe } from '../session'
 
 const normalizePhone = (value: string) => value.replace(/[\s.-]/g, '').replace(/^\+225/, '')
@@ -27,6 +28,11 @@ export const authHandlers = [
         throw new MockHttpError(422, 'Identifiants incorrects.', {
           login: ['E-mail, téléphone ou mot de passe incorrect.'],
         })
+      }
+      // Espace fermé par Genius Groups : plus de connexion (M02). Un espace suspendu reste consultable.
+      if (currentTenant().closed) {
+        const message = 'Cet espace est fermé. Contactez le support GStock.'
+        throw new MockHttpError(422, message, { login: [message] })
       }
       if (!user.is_active) {
         const message = 'Ce compte est désactivé. Demandez au propriétaire de la boutique de le réactiver.'
