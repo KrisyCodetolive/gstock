@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Domain\Credits\CreditLedger;
 use App\Domain\Credits\Models\CustomerCredit;
 use App\Domain\Customers\Models\Customer;
 use App\Domain\Platform\CurrentTenant;
@@ -26,8 +27,8 @@ final class SalesPresenter
             'is_active' => $c->is_active,
             'created_at' => $c->created_at->toIso8601String(),
             'balance' => D::format($balance ?? self::balance($c->id, $shopIds), D::MONEY),
-            // Avoirs (décision P3) : avec le module Crédits.
-            'credit_note_balance' => '0.00',
+            // Avoir : somme que la boutique doit au client (décision P3).
+            'credit_note_balance' => app(CreditLedger::class)->creditNoteBalance($c->id, $shopIds),
         ];
     }
 
@@ -95,7 +96,7 @@ final class SalesPresenter
             'credit' => $credit ? [
                 'id' => $credit->id,
                 'remaining_amount' => D::format((string) $credit->remaining_amount, D::MONEY),
-                'repaid_amount' => $credit->status === 'cancelled' ? '0.00' : D::sub((string) $credit->amount, (string) $credit->remaining_amount, D::MONEY),
+                'repaid_amount' => app(CreditLedger::class)->repaid($credit->id),
                 'status' => $credit->status,
             ] : null,
             'note' => $s->note,

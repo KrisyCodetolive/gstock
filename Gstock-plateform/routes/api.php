@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AdjustmentController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CreditController;
 use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\ProductController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Api\V1\Referentials\CategoryController;
 use App\Http\Controllers\Api\V1\Referentials\ExpenseCategoryController;
 use App\Http\Controllers\Api\V1\Referentials\PaymentMethodController;
 use App\Http\Controllers\Api\V1\Referentials\UnitController;
+use App\Http\Controllers\Api\V1\RepaymentController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SaleController;
 use App\Http\Controllers\Api\V1\SettingsController;
@@ -108,6 +110,8 @@ Route::middleware('tenant')->group(function () {
         Route::get('customers/{customer}/summary', [CustomerController::class, 'summary'])->middleware('permission:customers.view');
         Route::post('customers', [CustomerController::class, 'store'])->middleware('permission:customers.create');
         Route::put('customers/{customer}', [CustomerController::class, 'update'])->middleware('permission:customers.update');
+        // Fiche crédit d'un client, sur les boutiques accessibles (M09).
+        Route::get('customers/{customer}/credits', [CreditController::class, 'customerFile'])->middleware('permission:credits.view');
 
         // Mon stock, vue « Toutes mes boutiques » (M07).
         Route::get('stock', [StockController::class, 'overview'])->middleware('permission:stock.view');
@@ -138,6 +142,28 @@ Route::middleware('tenant')->group(function () {
                 Route::post('sales/{id}/share-link', [SaleController::class, 'shareLink'])->whereNumber('id');
             });
             Route::post('sales/{id}/cancel', [SaleController::class, 'cancel'])->middleware('permission:sales.cancel')->whereNumber('id');
+
+            // Mes crédits clients (M09).
+            Route::middleware('permission:credits.view')->group(function () {
+                Route::get('credits/summary', [CreditController::class, 'summary']);
+                Route::get('credits/debtors', [CreditController::class, 'debtors']);
+                Route::get('credits', [CreditController::class, 'index']);
+                Route::get('credits/{id}/installments', [CreditController::class, 'installments'])->whereNumber('id');
+                Route::get('installments', [CreditController::class, 'allInstallments']);
+            });
+            Route::post('credits/opening-balance', [CreditController::class, 'openingBalance'])->middleware('permission:credits.opening_balance');
+            Route::post('credits/{id}/cancel', [CreditController::class, 'cancel'])->middleware('permission:credits.cancel')->whereNumber('id');
+            Route::post('credits/{id}/adjustments', [CreditController::class, 'adjust'])->middleware('permission:credits.cancel')->whereNumber('id');
+            Route::put('credits/{id}/installments', [CreditController::class, 'setInstallments'])->middleware('permission:credits.create')->whereNumber('id');
+
+            Route::post('repayments', [RepaymentController::class, 'store'])->middleware('permission:repayments.create');
+            Route::middleware('permission:credits.view,repayments.create')->group(function () {
+                Route::get('repayments', [RepaymentController::class, 'index']);
+                Route::get('repayments/{id}', [RepaymentController::class, 'show'])->whereNumber('id');
+                Route::get('repayments/{id}/receipt', [RepaymentController::class, 'receipt'])->whereNumber('id');
+                Route::post('repayments/{id}/share-link', [RepaymentController::class, 'shareLink'])->whereNumber('id');
+            });
+            Route::post('repayments/{id}/cancel', [RepaymentController::class, 'cancel'])->middleware('permission:repayments.cancel')->whereNumber('id');
         });
     });
 });
