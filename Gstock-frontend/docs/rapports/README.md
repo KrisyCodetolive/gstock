@@ -1,6 +1,6 @@
 # GStock — État du projet
 
-> Mis à jour le 4 novembre 2026, à la fin de la phase F10.
+> Mis à jour le 4 novembre 2026, à la fin de la phase B1 (socle du backend).
 > Ce dossier est l'inventaire de ce qui a été **fait**. Il s'adresse à la personne (ou à l'agent) qui reprend le projet : ce fichier donne la vue d'ensemble et ce qui est commun à toutes les phases ; **chaque phase terminée a son rapport** (tableau ci-dessous) : ce qui a été livré, où se trouve le code, les règles appliquées, les vérifications faites et les limites.
 
 ## En bref
@@ -8,9 +8,9 @@
 | | État |
 |---|---|
 | **Frontend** (`Gstock-frontend/`) | **Toutes les phases F1 à F9 terminées** (§11.4 du cahier), plus F10 (compléments de la V1 relevés par la [comparaison avec l'ancien GStock](comparaison-ancien-gstock.md)). Application navigable, entièrement sur données simulées (MSW). |
-| **Backend** (`Gstock-plateform/`) | **Pas commencé.** Squelette Laravel 12 d'origine (SQLite, `routes/web.php`). Aucune ligne de code métier. |
+| **Backend** (`Gstock-plateform/`) | **Socle livré (B1)** : PostgreSQL en Docker, `/api/v1`, multi-tenant par sous-domaine, Sanctum, permissions, rôles, utilisateurs, boutiques, paramètres, audit, 24 tests. Le frontend s'y branche avec `npm run dev:api`. Modules métier à venir. Voir [B1-socle-api.md](B1-socle-api.md). |
 | **Contrat d'API** | Défini côté frontend : types dans `src/types/`, endpoints dans `src/lib/api/`, comportement serveur reproduit dans `src/mocks/`. **C'est la spécification que le backend devra respecter** (ADR-004). Voir « Le contrat d'API pour le backend ». |
-| **Phases restantes** | Aucune côté frontend. Prochaine étape : le backend (`Gstock-plateform/`), qui doit reproduire le contrat ci-dessous. |
+| **Phases restantes** | Backend : back-office Filament (étape 3), modules métier (étape 4 : référentiels, produits, stock, clients, ventes, crédits, approvisionnements, dépenses, tableau de bord), puis branchement module par module, paiements GeniusPay et synchronisation hors ligne (§15). |
 
 ## Rapports des phases terminées
 
@@ -27,11 +27,13 @@
 | F9 — Hors ligne (PWA, cache, synchronisation) | [F9-hors-ligne.md](F9-hors-ligne.md) | `front-hors-ligne` |
 | F10 — Compléments de la V1 (mot de passe oublié, profil, photos, scan caméra, unité d'achat, échéancier fournisseurs, variantes) | [F10-complements-v1.md](F10-complements-v1.md) | `front-complements-v1` |
 
+| B1 — Socle du backend (Laravel, PostgreSQL, multi-tenant, identité et accès, boutiques, audit) | [B1-socle-api.md](B1-socle-api.md) | `api-socle` |
+
 Hors phase : [comparaison-ancien-gstock.md](comparaison-ancien-gstock.md) confronte l'inventaire de l'ancien GStock (Stocky v5.0) avec le nouveau, pour décider de ce qu'il faut reprendre.
 
 Hors phase également, branche `demo-images-produits` : chaque produit de démonstration a une illustration SVG d'emballage dans le style « Marché » (`src/mocks/data/product-images.ts`, données simulées seulement, absentes du build de production ; base simulée v9), et les tuiles de la caisse sont plus compactes (3 colonnes sur mobile, 5 sur grand écran).
 
-Le **backend** (`Gstock-plateform/`) n'a pas de rapport : rien n'y a encore été fait.
+Les phases du backend sont notées `B<n>` (B1 = socle) ; leurs rapports sont dans ce même dossier.
 
 **À la fin de chaque phase** : ajouter son rapport sur le même modèle sur le modèle des précédents, et mettre à jour ce sommaire et l'état dans `CLAUDE.md`.
 
@@ -157,6 +159,9 @@ Recettes pour une nouvelle rubrique (c'est ainsi que F2 à F4 ont été faites) 
 - **Variantes et clés React** : plusieurs lignes peuvent porter le même `product.id` (une par variante). Toute liste de lignes ou d'articles se clé avec `articleKey(product.id, variant?.id)`, sinon React mélange les lignes.
 - **Codes-barres de démonstration** : ce sont de vrais EAN-13. La clé de contrôle est calculée (`ean13()` dans `src/mocks/data/products.ts`) : un code à la clé fausse n'est lu ni par la caméra ni par une douchette. Un nouveau code ne doit pas reprendre les 12 premiers chiffres d'un code existant.
 - **Fichiers envoyés** : passer par `http.upload(path, formData)`, jamais par `http.post` (qui encode en JSON).
+- **Backend, tests et Sanctum** : en test, l'application n'est pas recréée entre deux requêtes. `actingAs()` avec la garde de session perd l'utilisateur à la requête suivante : utiliser `Sanctum::actingAs()`, et `forgetGuards()` après une déconnexion (voir `tests/TestCase.php`).
+- **Backend, espaces en développement** : l'espace est le sous-domaine de `localhost` (`alimentation-kone.localhost:5173`). Le proxy Vite garde le Host (`changeOrigin: false`), sinon le serveur ne reconnaît pas l'espace. `SANCTUM_STATEFUL_DOMAINS=*.localhost,*.localhost:*` accepte tous les ports.
+- **Backend, recherche** : les listes cherchent sans accents grâce à l'extension PostgreSQL `unaccent` (créée par la première migration).
 - **Versions récentes** : TypeScript 7, React Router 8, MSW 3, Tailwind 4, Zod 4, i18next 26. Vérifier les API dans `node_modules` plutôt que de se fier à des exemples anciens (MSW 3 : `onUnhandledFrame` au lieu de `onUnhandledRequest`).
 
 ## Tests
