@@ -1,6 +1,7 @@
 import { Package, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
+import { ScanButton } from '@/components/BarcodeScanner'
 import { DataList } from '@/components/DataList'
 import { Pagination, SearchInput } from '@/components/ListControls'
 import { Money } from '@/components/Money'
@@ -63,7 +64,10 @@ export function ProductsListPage() {
         }
       />
       <div className="flex flex-col gap-3 sm:flex-row">
-        <SearchInput value={list.search} onChange={list.setSearch} placeholder={t('products.search')} />
+        <div className="flex w-full gap-2 sm:max-w-sm">
+          <SearchInput value={list.search} onChange={list.setSearch} placeholder={t('products.search')} />
+          <ScanButton onDetected={list.setSearch} />
+        </div>
         <div className="sm:w-64">
           <Select value={list.filter.category_id ?? ALL} onValueChange={(v) => list.setFilter('category_id', v === ALL ? undefined : v)}>
             <SelectTrigger aria-label={t('products.filter_category')}>

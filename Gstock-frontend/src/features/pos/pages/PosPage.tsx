@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Money } from '@/components/Money'
 import { ResponsiveSheet } from '@/components/ResponsiveSheet'
 import { EmptyState, ErrorState, LoadingState } from '@/components/states'
+import { ScanButton } from '@/components/BarcodeScanner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
@@ -74,15 +75,17 @@ export function PosPage() {
   }
 
   /** Entrée dans la recherche : un code-barres exact ajoute directement le produit (douchette). */
-  const onSearchEnter = () => {
-    const code = search.trim()
+  const onSearchEnter = (value = search) => {
+    const code = value.trim()
     if (!code) return
     const match = bootstrap.data?.products.find((p) => p.barcode === code)
     if (match) {
       add(match)
       toast.success(t('sales.pos.barcode_added', { name: match.name }))
       setSearch('')
-    } else if (/^\d{8,14}$/.test(code)) {
+    } else if (/^\d{8,14}$/.test(code) || value !== search) {
+      // Code inconnu : on le laisse dans la recherche pour que l'on voie ce qui a été lu.
+      setSearch(code)
       toast.error(t('sales.pos.barcode_unknown'))
     }
   }
@@ -123,21 +126,24 @@ export function PosPage() {
               <span className="tabular">{held.length}</span>
             </Button>
           </div>
-          <div className="relative">
-            <label htmlFor="pos-search" className="sr-only">
-              {t('sales.pos.search')}
-            </label>
-            <Search className="pointer-events-none absolute top-3.5 left-3 size-5 text-muted-foreground" aria-hidden="true" />
-            <Input
-              id="pos-search"
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && onSearchEnter()}
-              placeholder={t('sales.pos.search')}
-              className="pl-10"
-              autoComplete="off"
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <label htmlFor="pos-search" className="sr-only">
+                {t('sales.pos.search')}
+              </label>
+              <Search className="pointer-events-none absolute top-3.5 left-3 size-5 text-muted-foreground" aria-hidden="true" />
+              <Input
+                id="pos-search"
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && onSearchEnter()}
+                placeholder={t('sales.pos.search')}
+                className="pl-10"
+                autoComplete="off"
+              />
+            </div>
+            <ScanButton onDetected={(code) => onSearchEnter(code)} />
           </div>
           {bootstrap.data && bootstrap.data.categories.length > 0 && (
             <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" role="group" aria-label={t('products.filter_category')}>

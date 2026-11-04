@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { FormAlert, FormField } from '@/components/FormField'
 import { FormActions, FormSection } from '@/components/FormLayout'
 import { PageHeader } from '@/components/PageHeader'
+import { ScanButton } from '@/components/BarcodeScanner'
 import { PhotoPicker } from '@/components/PhotoPicker'
 import { SelectField } from '@/components/SelectField'
 import { StatusBadge } from '@/components/StatusBadge'
@@ -175,9 +176,17 @@ function ProductFormBody({ product }: { product?: Product }) {
                   options={units.data?.data.filter((u) => u.base_unit_id === null).map((u) => ({ value: String(u.id), label: `${u.name} (${u.short_name})` })) ?? []}
                   error={errors.unit_id?.message}
                 />
-                <FormField id="barcode" label={t('products.form.barcode')} optional error={errors.barcode?.message}>
-                  <Input inputMode="numeric" className="tabular" {...form.register('barcode')} />
-                </FormField>
+                <div className="flex items-end gap-2">
+                  <FormField id="barcode" label={t('products.form.barcode')} optional error={errors.barcode?.message} className="flex-1">
+                    <Input inputMode="numeric" className="tabular" {...form.register('barcode')} />
+                  </FormField>
+                  {editable && (
+                    <ScanButton
+                      className={errors.barcode ? 'mb-7' : undefined}
+                      onDetected={(code) => form.setValue('barcode', code, { shouldDirty: true, shouldValidate: true })}
+                    />
+                  )}
+                </div>
                 <FormField id="code" label={t('products.form.code')} optional hint={t('products.form.code_hint')} error={errors.code?.message}>
                   <Input {...form.register('code')} />
                 </FormField>

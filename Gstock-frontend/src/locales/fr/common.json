@@ -194,6 +194,16 @@
       "remove": "Retirer",
       "hint": "Photo prise avec le téléphone ou choisie dans la galerie.",
       "sending": "Envoi de la photo…"
+    },
+    "scan": {
+      "button": "Scanner avec la caméra",
+      "title": "Scanner un code-barres",
+      "text": "Placez le code-barres dans le cadre, il est lu tout seul.",
+      "starting": "Ouverture de la caméra…",
+      "aim": "Visez le code-barres",
+      "denied": "La caméra est bloquée. Autorisez-la dans les réglages du navigateur, puis réessayez.",
+      "no_camera": "Aucune caméra n'a été trouvée sur cet appareil.",
+      "error": "La caméra n'a pas pu s'ouvrir. Fermez les autres applications qui l'utilisent, puis réessayez."
     }
   },
   "list": {

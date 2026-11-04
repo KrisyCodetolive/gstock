@@ -146,12 +146,19 @@ function defaultStock(index: number, shop: number, alert: number): number {
   return alert + (n % (alert * 3 + 5))
 }
 
+/** Codes EAN-13 valides : le dernier chiffre est la clé de contrôle, vérifiée par les lecteurs. */
+function ean13(code: string): string {
+  const digits = code.slice(0, 12).split('').map(Number)
+  const sum = digits.reduce((s, d, i) => s + d * (i % 2 ? 3 : 1), 0)
+  return code.slice(0, 12) + String((10 - (sum % 10)) % 10)
+}
+
 export const products: MockProduct[] = ROWS.map(([name, category, unit, cost, price, alert, barcode], i) => ({
   id: i + 1,
   type: 'simple',
   name,
   code: `P-${String(i + 1).padStart(4, '0')}`,
-  barcode,
+  barcode: barcode && barcode.length === 13 ? ean13(barcode) : barcode,
   category_id: category,
   brand_id: name.startsWith('Huile Dinor') ? 1 : null,
   unit_id: unit,

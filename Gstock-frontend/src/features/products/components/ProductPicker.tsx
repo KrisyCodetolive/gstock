@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Money } from '@/components/Money'
 import { ResponsiveSheet } from '@/components/ResponsiveSheet'
 import { ErrorState, LoadingState } from '@/components/states'
+import { ScanButton } from '@/components/BarcodeScanner'
 import { Input } from '@/components/ui/input'
 import { useCurrentShop } from '@/features/shops/hooks'
 import { formatQuantity } from '@/lib/format'
@@ -52,19 +53,28 @@ export function ProductPicker({
       title={t('stock.picker.title')}
     >
       <div className="grid gap-4">
-        <div className="relative">
-          <label htmlFor="picker-search" className="sr-only">
-            {t('stock.picker.search')}
-          </label>
-          <Search className="pointer-events-none absolute top-3.5 left-3 size-5 text-muted-foreground" aria-hidden="true" />
-          <Input
-            id="picker-search"
-            type="search"
-            autoFocus
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={t('stock.picker.search')}
-            className="pl-10"
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <label htmlFor="picker-search" className="sr-only">
+              {t('stock.picker.search')}
+            </label>
+            <Search className="pointer-events-none absolute top-3.5 left-3 size-5 text-muted-foreground" aria-hidden="true" />
+            <Input
+              id="picker-search"
+              type="search"
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={t('stock.picker.search')}
+              className="pl-10"
+            />
+          </div>
+          <ScanButton
+            onDetected={(code) => {
+              // Un code-barres exact ne renvoie que son produit (recherche serveur).
+              setDraft(code)
+              setQ(code)
+            }}
           />
         </div>
         {results.isPending ? (
