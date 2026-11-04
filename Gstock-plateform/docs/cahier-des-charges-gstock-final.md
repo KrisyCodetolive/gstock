@@ -570,7 +570,11 @@ Tous les montants sont **recalculés par le serveur** ; ceux envoyés par le nav
 | Annulé | `cancelled` | Annulé par une opération autorisée, avec motif |
 
 - **Solde initial** : lors de la mise en place, une dette existante peut être saisie sans vente, marquée « solde initial » (permission `credits.opening_balance`).
-- Annuler un remboursement libère ses affectations et recalcule les restes. Annuler une vente à crédit annule son crédit ; si des remboursements y étaient affectés, ils restent valides et deviennent un **avoir** du client, à réaffecter (point ouvert P3).
+- Annuler un remboursement libère ses affectations et recalcule les restes.
+- **Annuler une vente à crédit déjà en partie remboursée** (décision P3, §17) : le crédit est annulé ; l'argent déjà reçu sur ce crédit n'est jamais perdu. Au moment de l'annulation, le commerçant choisit pour ce montant :
+  - **le garder en avoir** : GStock enregistre un **avoir** au nom du client (somme due par la boutique au client), utilisable pour payer un prochain achat ou une autre de ses dettes ;
+  - **le rendre au client** : GStock enregistre un **remboursement au client** (sortie d'argent, mode de paiement, motif), qui diminue l'argent reçu de la période.
+  L'opération est journalisée (ADR-012) ; le motif d'annulation reste obligatoire.
 
 ### 7.7 Échéances (paiement échelonné)
 
@@ -1260,7 +1264,7 @@ La réussite se mesure à l'adoption réelle, pas au nombre de comptes créés. 
 |---|---|---|---|
 | P1 | Stock négatif autorisé ? | **Décidé : non.** Toute opération qui rendrait le stock négatif est refusée (§7.2) | M07, M08, hors ligne |
 | P2 | Règle de conflit à la synchronisation hors ligne | Enregistrer l'opération, la marquer « à vérifier », notifier le gérant | M08, F9 |
-| P3 | Annulation d'une vente à crédit déjà partiellement remboursée | Transformer les remboursements en avoir client réaffectable | M09 |
+| P3 | Annulation d'une vente à crédit déjà partiellement remboursée | **Décidé : au choix du commerçant à l'annulation, avoir au nom du client ou argent rendu au client** (§7.6) | M08, M09 |
 | P4 | Prix de vente différents selon la boutique | Phase 2 (`shop_product_prices`) | M06 |
 | P5 | Clients partagés entre boutiques ou propres à chaque boutique | Partagés (choix actuel), crédits suivis par boutique | M10, M09 |
 | P6 | Facture normalisée obligatoire en Côte d'Ivoire | À vérifier auprès de la DGI avant la mise en production | M08 |
