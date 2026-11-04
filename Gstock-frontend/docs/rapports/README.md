@@ -1,16 +1,16 @@
 # GStock — État du projet
 
-> Mis à jour le 4 novembre 2026, à la fin de la phase F4.
+> Mis à jour le 4 novembre 2026, à la fin de la phase F5.
 > Ce dossier est l'inventaire de ce qui a été **fait**. Il s'adresse à la personne (ou à l'agent) qui reprend le projet : ce fichier donne la vue d'ensemble et ce qui est commun à toutes les phases ; **chaque phase terminée a son rapport** (tableau ci-dessous) : ce qui a été livré, où se trouve le code, les règles appliquées, les vérifications faites et les limites.
 
 ## En bref
 
 | | État |
 |---|---|
-| **Frontend** (`Gstock-frontend/`) | Phases **F1 à F4 terminées** sur 9 (§11.4 du cahier). Application navigable, entièrement sur données simulées (MSW). |
+| **Frontend** (`Gstock-frontend/`) | Phases **F1 à F5 terminées** sur 9 (§11.4 du cahier). Application navigable, entièrement sur données simulées (MSW). |
 | **Backend** (`Gstock-plateform/`) | **Pas commencé.** Squelette Laravel 12 d'origine (SQLite, `routes/web.php`). Aucune ligne de code métier. |
 | **Contrat d'API** | Défini côté frontend : types dans `src/types/`, endpoints dans `src/lib/api/`, comportement serveur reproduit dans `src/mocks/`. **C'est la spécification que le backend devra respecter** (ADR-004). Voir « Le contrat d'API pour le backend ». |
-| **Phases restantes** | F5 à F9, décrites au §11.4 du cahier. Aucune n'est commencée. |
+| **Phases restantes** | F6 à F9, décrites au §11.4 du cahier. Aucune n'est commencée. |
 
 ## Rapports des phases terminées
 
@@ -20,10 +20,11 @@
 | F2 — Espace (paramètres, boutiques, utilisateurs, rôles, référentiels) | [F2-espace.md](F2-espace.md) | `front-espace` |
 | F3 — Produits et stock | [F3-produits-stock.md](F3-produits-stock.md) | `front-produits` |
 | F4 — Clients, caisse, ventes, reçus | [F4-clients-ventes.md](F4-clients-ventes.md) | `front-ventes` |
+| F5 — Crédits clients | [F5-credits.md](F5-credits.md) | `front-credits` |
 
 Le **backend** (`Gstock-plateform/`) n'a pas de rapport : rien n'y a encore été fait.
 
-**À la fin de chaque phase** : ajouter son rapport (`F5-….md`, etc.) sur le modèle des précédents, et mettre à jour ce sommaire et l'état dans `CLAUDE.md`.
+**À la fin de chaque phase** : ajouter son rapport (`F6-….md`, etc.) sur le modèle des précédents, et mettre à jour ce sommaire et l'état dans `CLAUDE.md`.
 
 Sources de vérité, à lire avant toute modification :
 
@@ -74,7 +75,7 @@ Ces décisions complètent ou précisent le cahier. Celles marquées **[cahier]*
 | Quantités | Chaînes décimales à 3 décimales (`"12.000"`), en unité de base. Montants : chaînes à 2 décimales (`"4500.00"`), affichés sans décimales. |
 | Référence d'un crédit issu d'une vente | Même référence que la vente (`V-N`). `CR-N` est réservé aux soldes initiaux. |
 | Paniers en attente | Gardés **sur l'appareil** (Zustand persisté, clé `gstock.pos`), pas sur le serveur. Compatible avec le futur mode hors ligne ; un panier n'est donc pas partagé entre deux téléphones. |
-| Annuler une vente déjà remboursée (P3) | Encore ouvert dans le cahier. En attendant, le serveur simulé **refuse** (409) l'annulation d'une vente dont le crédit a reçu un remboursement. À trancher. |
+| Annuler une vente déjà remboursée (P3) **[cahier]** | Décidé en F5 : le commerçant choisit de garder l'argent déjà reçu en **avoir** au nom du client (utilisable pour une dette ou un achat) ou de le **rendre** (sortie d'argent). |
 | Produits à variantes | Reportés : seuls `simple` et `service` sont gérés (le formulaire l'annonce en mode avancé). |
 | Mode avancé | Exposé dans `GET /me` (`tenant.advanced_mode`) pour que chaque écran sache quoi masquer. |
 | Déconnexion | Mène toujours à l'accueil de la personne suivante (pas à la dernière page de la précédente). Nécessite `RouterProvider` importé de `react-router/dom` (voir « Pièges déjà rencontrés »). |
@@ -92,7 +93,8 @@ Le backend devra reproduire ce que font les handlers de `src/mocks/handlers/` (u
   - `DELETE /roles/{id}` ;
   - paramètres `?shop_id=` sur `/products`, `?services=` sur la recherche produits ;
   - champs `summary` dans les listes de stock et de ventes ; `plan` dans `GET /settings` ; `tenant.advanced_mode` dans `GET /me`.
-- **Où trouver les règles serveur déjà écrites** : `src/mocks/http.ts` (garde de session, permissions, validation, pagination), `src/mocks/stock.ts` (stock), `src/mocks/sales.ts` (ventes, crédits). Elles sont commentées avec les paragraphes du cahier.
+  - F5 : `GET /shops/{id}/credits`, `GET /shops/{id}/repayments` et `/{id}`, `POST /shops/{id}/repayments/{id}/share-link`, `refund_mode` et `refund_payment_method_id` sur les annulations (P3), paiement par avoir (`payment_method_id: null`, `credit_note: true`), `credit_note_balance` sur le client. Détail dans [F5-credits.md](F5-credits.md).
+- **Où trouver les règles serveur déjà écrites** : `src/mocks/http.ts` (garde de session, permissions, validation, pagination), `src/mocks/stock.ts` (stock), `src/mocks/sales.ts` (ventes), `src/mocks/credits.ts` (crédits, remboursements, échéances, avoirs). Elles sont commentées avec les paragraphes du cahier.
 
 ## Comment le frontend est organisé
 
@@ -136,4 +138,4 @@ Recettes pour une nouvelle rubrique (c'est ainsi que F2 à F4 ont été faites) 
 
 ## Points ouverts du cahier
 
-Encore à trancher (§17) : P2 (conflits hors ligne), P3 (annulation d'une vente déjà en partie remboursée, aujourd'hui refusée par le serveur simulé, voir F4), P6 (facture normalisée DGI), P7 (plans tarifaires), P8 (validation des ADR), P9 (nom de domaine), P10 (reprise de données), P11 (transfert du propriétaire).
+Encore à trancher (§17) : P2 (conflits hors ligne), P6 (facture normalisée DGI), P7 (plans tarifaires), P8 (validation des ADR), P9 (nom de domaine), P10 (reprise de données), P11 (transfert du propriétaire).
