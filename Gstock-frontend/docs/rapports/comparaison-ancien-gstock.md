@@ -1,6 +1,6 @@
 # Comparaison avec l'ancien GStock (Stocky v5.0)
 
-> Établie le 4 novembre 2026, à la fin de la phase F9.
+> Établie le 4 novembre 2026, à la fin de la phase F9 ; §2.3 mis à jour à la fin de F10.
 > Le nouveau GStock doit reprendre les fonctionnalités de l'ancien. Ce document confronte l'inventaire de l'ancienne application (24 modules, 178 fonctionnalités, 31 rapports) avec ce qui **existe déjà** dans le nouveau, et liste ce qui manque.
 
 **Sources**
@@ -66,16 +66,18 @@ Elles ne sont prévues dans aucune phase. Si les clients actuels s'en servent, i
 | **M12** Statuts de commande fournisseur (commandé, puis reçu) | Phase 3 |
 | Notifications SMS | Phase 3 |
 
-### 2.3 Prévues dès la V1, mais pas encore livrées
+### 2.3 Prévues dès la V1 : livrées en F10
+
+Ces six points manquaient à la fin de F9. Ils ont été livrés par la phase [F10](F10-complements-v1.md).
 
 | Fonctionnalité | Situation |
 |---|---|
-| Mot de passe oublié et page profil (M01) | Non livrés (limite notée en F1) |
-| Produits à variantes (M03) | Reportés (décision prise en F3) |
-| Photo du produit | Pas d'envoi d'image (F3) |
-| Scan par la caméra du téléphone | Absent ; seule la douchette fonctionne (F3, F4) |
-| Unité d'achat différente de l'unité de base | Absente (F6) |
-| Échéancier des dettes fournisseurs | Absent (F6) |
+| Mot de passe oublié et page profil (M01) | ✅ Livrés en F10 (par e-mail ; pas encore d'e-mail de confirmation) |
+| Produits à variantes (M03) | ✅ Livrés en F10 (prix, code-barres et stock par variante) |
+| Photo du produit | ✅ Livrée en F10 |
+| Scan par la caméra du téléphone | ✅ Livré en F10 (caisse, recherche, sélecteurs, fiche produit) |
+| Unité d'achat différente de l'unité de base | ✅ Livrée en F10 (l'unité de *vente* reste à faire) |
+| Échéancier des dettes fournisseurs | ✅ Livré en F10 |
 
 ### 2.4 Volontairement remplacées
 
