@@ -2,12 +2,15 @@
 
 namespace Database\Seeders;
 
+use App\Domain\Catalog\Models\Brand;
+use App\Domain\Catalog\Models\Category;
 use App\Domain\Identity\Models\Permission;
 use App\Domain\Identity\Models\Role;
 use App\Domain\Identity\Models\User;
 use App\Domain\Platform\Actions\ProvisionTenant;
 use App\Domain\Platform\Models\Plan;
 use App\Domain\Platform\Models\Tenant;
+use App\Domain\Sales\Models\PaymentMethod;
 use App\Domain\Shops\Models\Shop;
 use App\Domain\Shops\Models\TenantSetting;
 use Illuminate\Database\Seeder;
@@ -49,6 +52,18 @@ class DemoTenantSeeder extends Seeder
                 'address' => 'Angré 8e tranche, Cocody, Abidjan',
                 'receipt_footer' => 'Merci pour votre confiance. À bientôt !',
             ]);
+            // Catégories et marques du catalogue de démonstration (mêmes que les données simulées).
+            foreach ([
+                ['Riz et céréales', 'peach'], ['Huiles', 'yellow'], ['Boissons', 'mint'], ['Savons et entretien', 'lavender'],
+                ['Sucre et farine', 'peach'], ['Lait et petit-déjeuner', 'mint'], ['Conserves et condiments', 'yellow'], ['Hygiène', 'lavender'],
+            ] as [$name, $color]) {
+                Category::create(['name' => $name, 'color' => $color]);
+            }
+            Brand::create(['name' => 'Dinor']);
+            Brand::create(['name' => 'Uncle Ben’s']);
+            // Paiement par carte pas encore proposé dans cet espace.
+            PaymentMethod::query()->where('type', 'card')->update(['is_active' => false]);
+
             $cocody = Shop::query()->where('name', 'Boutique Cocody')->firstOrFail();
             $yopougon = Shop::create(['name' => 'Boutique Yopougon', 'city' => 'Abidjan', 'district' => 'Siporex', 'address' => 'Face à la pharmacie Siporex', 'phone' => '0700000012']);
 

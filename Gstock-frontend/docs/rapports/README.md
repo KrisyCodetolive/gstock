@@ -1,6 +1,6 @@
 # GStock — État du projet
 
-> Mis à jour le 4 novembre 2026, à la fin de la phase B1 (socle du backend).
+> Mis à jour le 4 novembre 2026, à la fin de la phase B2 (référentiels du backend).
 > Ce dossier est l'inventaire de ce qui a été **fait**. Il s'adresse à la personne (ou à l'agent) qui reprend le projet : ce fichier donne la vue d'ensemble et ce qui est commun à toutes les phases ; **chaque phase terminée a son rapport** (tableau ci-dessous) : ce qui a été livré, où se trouve le code, les règles appliquées, les vérifications faites et les limites.
 
 ## En bref
@@ -8,9 +8,9 @@
 | | État |
 |---|---|
 | **Frontend** (`Gstock-frontend/`) | **Toutes les phases F1 à F9 terminées** (§11.4 du cahier), plus F10 (compléments de la V1 relevés par la [comparaison avec l'ancien GStock](comparaison-ancien-gstock.md)). Application navigable, entièrement sur données simulées (MSW). |
-| **Backend** (`Gstock-plateform/`) | **Socle livré (B1)** : PostgreSQL en Docker, `/api/v1`, multi-tenant par sous-domaine, Sanctum, permissions, rôles, utilisateurs, boutiques, paramètres, audit, 24 tests. Le frontend s'y branche avec `npm run dev:api`. Modules métier à venir. Voir [B1-socle-api.md](B1-socle-api.md). |
+| **Backend** (`Gstock-plateform/`) | **Socle (B1) et référentiels (B2) livrés** : PostgreSQL en Docker, `/api/v1`, multi-tenant par sous-domaine, Sanctum, permissions, rôles, utilisateurs, boutiques, paramètres, audit, catégories, unités, modes de paiement, catégories de dépenses, marques ; 33 tests. Le frontend s'y branche avec `npm run dev:api`. Modules métier à venir. Voir [B1-socle-api.md](B1-socle-api.md). |
 | **Contrat d'API** | Défini côté frontend : types dans `src/types/`, endpoints dans `src/lib/api/`, comportement serveur reproduit dans `src/mocks/`. **C'est la spécification que le backend devra respecter** (ADR-004). Voir « Le contrat d'API pour le backend ». |
-| **Phases restantes** | Backend : back-office Filament (étape 3), modules métier (étape 4 : référentiels, produits, stock, clients, ventes, crédits, approvisionnements, dépenses, tableau de bord), puis branchement module par module, paiements GeniusPay et synchronisation hors ligne (§15). |
+| **Phases restantes** | Backend : back-office Filament (étape 3), modules métier (étape 4 : produits, stock, clients, ventes, crédits, approvisionnements, dépenses, tableau de bord), puis branchement module par module, paiements GeniusPay et synchronisation hors ligne (§15). |
 
 ## Rapports des phases terminées
 
@@ -28,6 +28,7 @@
 | F10 — Compléments de la V1 (mot de passe oublié, profil, photos, scan caméra, unité d'achat, échéancier fournisseurs, variantes) | [F10-complements-v1.md](F10-complements-v1.md) | `front-complements-v1` |
 
 | B1 — Socle du backend (Laravel, PostgreSQL, multi-tenant, identité et accès, boutiques, audit) | [B1-socle-api.md](B1-socle-api.md) | `api-socle` |
+| B2 — Référentiels du backend (catégories, unités, modes de paiement, catégories de dépenses, marques) | [B2-referentiels-api.md](B2-referentiels-api.md) | `api-referentiels` |
 
 Hors phase : [comparaison-ancien-gstock.md](comparaison-ancien-gstock.md) confronte l'inventaire de l'ancien GStock (Stocky v5.0) avec le nouveau, pour décider de ce qu'il faut reprendre.
 
