@@ -15,6 +15,7 @@ import { formatDateTime } from '@/lib/format'
 import { useListParams } from '@/lib/use-list-params'
 import { cn } from '@/lib/utils'
 import type { SaleListItem } from '@/types/sales'
+import { StatusBadge } from '@/components/StatusBadge'
 import { PaymentStatusBadge } from '../components/PaymentStatusBadge'
 import { useSales } from '../hooks'
 
@@ -53,7 +54,8 @@ export function SalesHistoryPage() {
     search: list.params.search,
     filter: {
       ...periodRange(period),
-      payment_status: list.filter.paiement,
+      // « À vérifier » : ventes faites hors ligne et synchronisées avec un écart (P2).
+      ...(list.filter.paiement === 'to_review' ? { sync_status: 'to_review' } : { payment_status: list.filter.paiement }),
       user_id: list.filter.vendeur,
       customer_id: list.filter.client,
     },
@@ -110,6 +112,7 @@ export function SalesHistoryPage() {
                   {t(`sales.payment_status.${s}`)}
                 </SelectItem>
               ))}
+              <SelectItem value="to_review">{t('offline.statuses.to_review')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -182,7 +185,7 @@ export function SalesHistoryPage() {
               { header: t('sales.history.columns.customer'), cell: customerName },
               { header: t('sales.history.columns.seller'), cell: (s) => s.user?.name ?? '—', className: 'text-muted-foreground' },
               { header: t('sales.history.columns.total'), cell: (s) => <Money value={s.total} className={s.status === 'cancelled' ? 'line-through opacity-60' : undefined} /> },
-              { header: t('sales.history.columns.status'), cell: (s) => <PaymentStatusBadge status={s.payment_status} saleStatus={s.status} /> },
+              { header: t('sales.history.columns.status'), cell: (s) => <Badges sale={s} /> },
             ]}
             card={(s) => (
               <div className="grid gap-1">
@@ -196,7 +199,7 @@ export function SalesHistoryPage() {
                   <span className="text-sm text-muted-foreground">
                     {date(s)} · {t('sales.history.items', { count: s.items_count })}
                   </span>
-                  <PaymentStatusBadge status={s.payment_status} saleStatus={s.status} />
+                  <Badges sale={s} />
                 </div>
               </div>
             )}
@@ -205,5 +208,16 @@ export function SalesHistoryPage() {
         </>
       )}
     </div>
+  )
+}
+
+/** État de paiement, et « À vérifier » pour une vente hors ligne synchronisée avec un écart. */
+function Badges({ sale }: { sale: SaleListItem }) {
+  const { t } = useTranslation()
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      <PaymentStatusBadge status={sale.payment_status} saleStatus={sale.status} />
+      {sale.sync_status === 'to_review' && <StatusBadge tone="warn">{t('offline.statuses.to_review')}</StatusBadge>}
+    </span>
   )
 }

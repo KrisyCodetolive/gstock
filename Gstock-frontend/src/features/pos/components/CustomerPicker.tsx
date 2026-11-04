@@ -14,6 +14,9 @@ import { CustomerFields } from '@/features/customers/components/CustomerFields'
 import { useCustomers, useSaveCustomer } from '@/features/customers/hooks'
 import { CUSTOMER_FIELDS, customerSchema, customerToForm, formToCustomer, type CustomerForm } from '@/features/customers/schemas'
 import { applyApiErrors } from '@/lib/form-errors'
+import { normalizeText } from '@/lib/text'
+import { useOnline } from '@/offline/network'
+import type { PosBootstrap } from '@/types/sales'
 import type { CartCustomer } from '../store'
 
 /** Choix du client à la caisse, avec création rapide (nom, téléphone facultatif, M10). */
@@ -21,13 +24,18 @@ export function CustomerPicker({
   open,
   onOpenChange,
   onPick,
+  offlineCustomers,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   onPick: (customer: CartCustomer) => void
+  /** Clients gardés sur l'appareil (caisse), proposés sans réseau (ADR-005). */
+  offlineCustomers?: PosBootstrap['customers']
 }) {
   const { t } = useTranslation()
   const can = useCan()
+  const online = useOnline()
+  const local = !online && offlineCustomers !== undefined
   const [draft, setDraft] = useState('')
   const [q, setQ] = useState('')
   const [creating, setCreating] = useState(false)
@@ -37,7 +45,8 @@ export function CustomerPicker({
     return () => clearTimeout(timer)
   }, [draft])
 
-  const customers = useCustomers({ search: q || undefined, per_page: 20, filter: { is_active: 'true' } }, open && !creating)
+  const customers = useCustomers({ search: q || undefined, per_page: 20, filter: { is_active: 'true' } }, open && !creating && !local)
+  const localMatches = local ? offlineCustomers.filter((c) => !q || normalizeText(`${c.name} ${c.phone ?? ''}`).includes(normalizeText(q))).slice(0, 20) : []
 
   const close = () => {
     setDraft('')
@@ -73,13 +82,44 @@ export function CustomerPicker({
               className="pl-10"
             />
           </div>
-          {can('customers.create') && (
+          {local && <p className="text-sm font-semibold text-warn">{t('offline.customer_offline')}</p>}
+          {can('customers.create') && !local && (
             <Button type="button" variant="outline" className="justify-self-start" onClick={() => setCreating(true)}>
               <UserPlus aria-hidden="true" />
               {t('sales.pos.customer_new')}
             </Button>
           )}
-          {customers.isPending ? (
+          {local ? (
+            localMatches.length === 0 ? (
+              <p className="py-4 text-center text-muted-foreground">{t('list.no_result_title')}</p>
+            ) : (
+              <ul className="grid gap-2">
+                {localMatches.map((c) => (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onPick({ id: c.id, name: c.name, phone: c.phone, balance: c.balance, creditNote: c.credit_note })
+                        close()
+                      }}
+                      className="pressable flex min-h-14 w-full items-center justify-between gap-3 rounded-md bg-card px-3 py-2 text-left"
+                    >
+                      <span className="grid min-w-0">
+                        <span className="truncate font-bold">{c.name}</span>
+                        {c.phone && <span className="truncate text-sm text-muted-foreground">{c.phone}</span>}
+                      </span>
+                      {Number(c.balance) > 0 && (
+                        <span className="grid shrink-0 justify-items-end text-xs text-muted-foreground">
+                          {t('customers.due')}
+                          <Money value={c.balance} className="text-sm text-destructive" />
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )
+          ) : customers.isPending ? (
             <LoadingState rows={3} />
           ) : customers.isError ? (
             <ErrorState error={customers.error} onRetry={() => void customers.refetch()} />

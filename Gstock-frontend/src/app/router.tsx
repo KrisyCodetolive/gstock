@@ -59,6 +59,7 @@ const GeniusPaySimulatorPage =
   import.meta.env.VITE_USE_MOCKS === 'true'
     ? lazy(() => import('@/mocks/components/GeniusPaySimulatorPage').then((m) => ({ default: m.GeniusPaySimulatorPage })))
     : null
+const SyncPage = lazy(() => import('@/features/sync/pages/SyncPage').then((m) => ({ default: m.SyncPage })))
 const AuditPage = lazy(() => import('@/features/dashboard/pages/AuditPage').then((m) => ({ default: m.AuditPage })))
 
 const ShowcasePage = lazy(() => import('./pages/ShowcasePage').then((m) => ({ default: m.ShowcasePage })))
@@ -178,6 +179,8 @@ export const router = createBrowserRouter([
     errorElement: <RouteErrorPage />,
     children: [
       { index: true, element: <HomePage /> },
+      // Opérations faites sans réseau sur cet appareil (ADR-005) : chacun voit les siennes.
+      { path: '/synchronisation', element: <SyncPage /> },
       ...upcoming,
       ...catalog,
       ...settings,

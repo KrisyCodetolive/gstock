@@ -18,6 +18,8 @@ import {
 } from '@/lib/api/credits'
 import type { Id, ListParams } from '@/types/api'
 import type { CancelSettlement, InstallmentScheduleItem, RepaymentPayload } from '@/types/credits'
+import { sendOrKeep } from '@/offline/send'
+import type { OfflineContext } from '@/offline/queue'
 
 // Les données de crédit d'une boutique portent son id dans la clé de cache (§6.2).
 const key = ['credits'] as const
@@ -96,9 +98,26 @@ function useInvalidate() {
   }
 }
 
+/** Sans réseau, un paiement en espèces est gardé sur l'appareil et envoyé plus tard (ADR-005). */
 export function useCreateRepayment(shopId: Id | undefined) {
   const invalidate = useInvalidate()
-  return useMutation({ mutationFn: (payload: RepaymentPayload) => createRepayment(shopId!, payload), onSuccess: invalidate })
+  return useMutation({
+    mutationFn: ({ payload, context }: { payload: RepaymentPayload; context: OfflineContext }) =>
+      sendOrKeep(() => createRepayment(shopId!, payload), {
+        type: 'repayment',
+        offline_uuid: payload.offline_uuid,
+        shop_id: shopId!,
+        shop_name: context.shopName,
+        user_id: context.userId,
+        occurred_at: payload.received_at ?? new Date().toISOString(),
+        amount: Number(payload.amount).toFixed(2),
+        label: context.label,
+        payload,
+      }),
+    onSuccess: (result) => {
+      if (result.kind === 'online') invalidate()
+    },
+  })
 }
 
 export function useCancelRepayment(shopId: Id | undefined, id: Id) {
