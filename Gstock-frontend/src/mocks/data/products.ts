@@ -126,7 +126,7 @@ const ROWS: Row[] = [
 
 // Stock de départ (Cocody, Yopougon). Quelques produits faibles ou en rupture
 // pour les alertes ; un produit n'est vendu qu'à Cocody.
-const STOCK: Record<string, [number, number]> = {
+export const STOCK_FIXED: Record<string, [number, number]> = {
   'Riz parfumé 5 kg': [24, 18],
   'Huile Dinor 1 L': [3, 14],
   'Savon de Marseille': [0, 25],
@@ -189,7 +189,7 @@ products
   .filter((p) => p.type !== 'service')
   .forEach((p, index) => {
     for (const shopId of [1, 2]) {
-      const fixed = STOCK[p.name]
+      const fixed = STOCK_FIXED[p.name]
       const quantity = fixed ? fixed[shopId - 1]! : defaultStock(index, shopId, p.stock_alert ?? 5)
       shopStock.push({ shop_id: shopId, product_id: p.id, quantity, stock_alert: null })
       if (quantity > 0) {

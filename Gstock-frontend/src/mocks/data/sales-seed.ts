@@ -1,0 +1,100 @@
+// Historique de démonstration (§11.3) : un mois de ventes, dont une partie à
+// crédit, et quelques anciennes dettes. Tout passe par le moteur de vente
+// (recordSale) : stock, mouvements et crédits restent cohérents.
+import { db, persist } from '../db'
+import { recordSale } from '../sales'
+import { stockRow } from '../stock'
+import { openingBalances } from './customers'
+import { STOCK_FIXED } from './products'
+
+/** Générateur pseudo-aléatoire déterministe : la même démo à chaque remise à zéro. */
+function prng(seed: number) {
+  return () => {
+    seed |= 0
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+// Vendeurs par boutique : Aminata (1), Ibrahim (2), Fatou (3, Cocody), Koffi (4, Yopougon).
+const SELLERS: Record<number, number[]> = { 1: [3, 3, 2, 1], 2: [4, 4, 2] }
+
+export function seedHistory() {
+  if (db.seeded) return
+  const rand = prng(20261103)
+  const pick = <T,>(list: T[]) => list[Math.floor(rand() * list.length)]!
+
+  // Anciennes dettes (CR-N), saisies à la mise en place.
+  for (const ob of openingBalances) {
+    const n = db.sequences.CR ?? 1
+    db.sequences.CR = n + 1
+    db.credits.push({
+      id: db.credits.length + 1,
+      shop_id: ob.shop_id,
+      customer_id: ob.customer_id,
+      sale_id: null,
+      reference: `CR-${n}`,
+      occurred_at: '2026-10-01T09:00:00.000Z',
+      amount: ob.amount,
+      remaining_amount: ob.amount,
+      is_opening_balance: true,
+      status: 'open',
+      user_id: 1,
+    })
+  }
+
+  // Produits vendables : on garde intacts ceux qui illustrent les alertes de stock.
+  const sellable = db.products.filter((p) => p.is_active && p.type !== 'service' && !(p.name in STOCK_FIXED))
+  const creditCustomers = [1, 2, 3, 5, 6, 7, 9, 11, 13, 14, 17, 21]
+
+  const start = Date.UTC(2026, 9, 4, 8)
+  const days = 30
+  for (let d = 0; d < days; d++) {
+    for (const shopId of [1, 2]) {
+      const count = 4 + Math.floor(rand() * 4)
+      for (let k = 0; k < count; k++) {
+        const at = new Date(start + d * 86_400_000 + (1 + k * 2 + rand()) * 3_600_000).toISOString()
+        const sellerId = pick(SELLERS[shopId]!)
+        let user = db.users.find((u) => u.id === sellerId)!
+        const items = []
+        const used = new Set<number>()
+        for (let n = 1 + Math.floor(rand() * 3); n > 0; n--) {
+          const p = pick(sellable)
+          const available = stockRow(shopId, p.id).quantity
+          if (used.has(p.id) || available < 2) continue
+          used.add(p.id)
+          items.push({ product_id: p.id, quantity: String(1 + Math.floor(rand() * Math.min(3, available - 1))) })
+        }
+        if (items.length === 0) continue
+
+        // Total connu après calcul : on choisit d'abord le mode de règlement.
+        const r = rand()
+        const mode = r < 0.68 ? 'cash' : r < 0.84 ? 'mobile' : r < 0.94 ? 'partial' : 'credit'
+        const customer = mode === 'partial' || mode === 'credit' ? pick(creditCustomers) : rand() < 0.3 ? pick(creditCustomers) : null
+        const total = items.reduce((s, i) => s + Number(i.quantity) * db.products.find((p) => p.id === i.product_id)!.price, 0)
+        const payments =
+          mode === 'cash'
+            ? [{ payment_method_id: 1, amount: String(total), cash_given: String(Math.ceil(total / 1000) * 1000) }]
+            : mode === 'mobile'
+              ? [{ payment_method_id: 2, amount: String(total) }]
+              : mode === 'partial'
+                ? [{ payment_method_id: 1, amount: String(Math.round((total * (0.3 + rand() * 0.4)) / 50) * 50) }]
+                : []
+        // Une vente à crédit est faite par quelqu'un qui en a le droit (le gérant si besoin).
+        if (payments.length === 0 || mode === 'partial') {
+          const role = db.roles.find((r) => r.id === user.role_id)
+          if (!role?.permissions.includes('credits.create')) user = db.users.find((u) => u.id === 2)!
+        }
+        try {
+          recordSale(shopId, user, { items, payments, customer_id: customer }, at)
+        } catch {
+          // Stock épuisé entre-temps : la vente n'a pas lieu, comme en boutique.
+        }
+      }
+    }
+  }
+  db.seeded = true
+  persist()
+}
