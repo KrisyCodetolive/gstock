@@ -102,3 +102,37 @@ export interface LoginPayload {
   login: string
   password: string
 }
+
+/** POST /auth/forgot-password : un lien de réinitialisation est envoyé par e-mail. */
+export interface ForgotPasswordPayload {
+  email: string
+}
+
+export interface ForgotPasswordResult {
+  /** Toujours le même message, que le compte existe ou non (pas d'énumération). */
+  message: string
+  /** Données simulées uniquement : le lien qu'aurait contenu l'e-mail. Jamais renvoyé par le vrai serveur. */
+  demo_reset_url?: string
+}
+
+/** POST /auth/reset-password : jeton à usage unique, valable 60 minutes. */
+export interface ResetPasswordPayload {
+  token: string
+  password: string
+  password_confirmation: string
+}
+
+/** PUT /me : ce que la personne connectée peut changer sur son compte. */
+export interface ProfilePayload {
+  firstname: string
+  lastname: string
+  email: string | null
+  phone: string | null
+}
+
+/** PUT /me/password : l'ancien mot de passe est exigé. */
+export interface PasswordChangePayload {
+  current_password: string
+  password: string
+  password_confirmation: string
+}

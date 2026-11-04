@@ -1,6 +1,7 @@
-import { Download, LogOut } from 'lucide-react'
+import { Download, LogOut, UserRound } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import {
@@ -21,6 +22,7 @@ export function UserMenu({ align = 'end' }: { align?: 'start' | 'end' }) {
   const { t } = useTranslation()
   const { user, role } = useSession()
   const logout = useLogout()
+  const navigate = useNavigate()
   const { pending } = useOfflineCounts()
   const canInstall = useInstallStore((s) => s.prompt !== null)
   const [confirmLogout, setConfirmLogout] = useState(false)
@@ -39,6 +41,10 @@ export function UserMenu({ align = 'end' }: { align?: 'start' | 'end' }) {
             <span className="text-sm font-medium text-muted-foreground">{t('user.role', { role: roleLabel(role) })}</span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => void navigate('/profil')}>
+            <UserRound aria-hidden="true" />
+            {t('user.profile')}
+          </DropdownMenuItem>
           {canInstall && (
             <DropdownMenuItem onSelect={() => void promptInstall().then((ok) => ok && toast.success(t('offline.install_done')))}>
               <Download aria-hidden="true" />

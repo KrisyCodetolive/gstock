@@ -87,6 +87,33 @@ export function findOr404<T extends { id: number }>(rows: T[], id: unknown): T {
 }
 
 /** Normalise une saisie facultative : chaîne vide → null. */
+export const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/** Numéro ivoirien sans espaces ni indicatif : `07 00 00 00 01` → `0700000001`. */
+export const normalizePhone = (value: string) => value.replace(/[\s.-]/g, '').replace(/^\+225/, '')
+
+/**
+ * Lit une photo envoyée en multipart et la renvoie en data URL (le vrai serveur
+ * la range sur le stockage objet et renvoie son adresse). 422 si le fichier est refusé.
+ */
+export async function readImage(request: Request, field: string): Promise<string> {
+  const form = await request.formData().catch(() => null)
+  const file = form?.get(field)
+  const message = 'Choisissez une photo au format JPEG, PNG ou WebP.'
+  if (!(file instanceof File) || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    throw new MockHttpError(422, message, { [field]: [message] })
+  }
+  // Les photos sont réduites par l'application ; au-delà, c'est un envoi anormal.
+  if (file.size > 1024 * 1024) {
+    const tooBig = 'Cette photo est trop lourde.'
+    throw new MockHttpError(422, tooBig, { [field]: [tooBig] })
+  }
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return `data:${file.type};base64,${btoa(binary)}`
+}
+
 export function nullable(value: unknown): string | null {
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : null
 }

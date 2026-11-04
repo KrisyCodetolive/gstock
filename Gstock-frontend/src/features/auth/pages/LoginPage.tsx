@@ -90,7 +90,12 @@ export function LoginPage() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="password">{t('auth.password_label')}</Label>
+            <div className="flex items-baseline justify-between gap-3">
+              <Label htmlFor="password">{t('auth.password_label')}</Label>
+              <Link to="/mot-de-passe-oublie" className="text-sm font-bold text-primary underline-offset-4 hover:underline">
+                {t('auth.forgot_link')}
+              </Link>
+            </div>
             <div className="relative">
               <Input
                 id="password"
