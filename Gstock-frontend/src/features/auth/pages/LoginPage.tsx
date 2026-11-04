@@ -3,7 +3,7 @@ import { CircleAlert, Eye, EyeOff, LogIn } from 'lucide-react'
 import { lazy, Suspense, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import { Navigate, useLocation, useNavigate } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { Logo } from '@/components/Logo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -125,6 +125,10 @@ export function LoginPage() {
             {login.isPending ? t('auth.submitting') : t('auth.submit')}
           </Button>
         </form>
+
+        <Link to="/inscription" className="pressable flex min-h-12 items-center justify-center rounded-md bg-tint-yellow px-4 text-center font-bold">
+          {t('register.cta_from_login')}
+        </Link>
 
         {DemoAccounts && (
           <Suspense>

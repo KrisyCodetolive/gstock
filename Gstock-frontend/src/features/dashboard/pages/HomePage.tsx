@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils'
 import type { Permission } from '@/types/auth'
 import type { ActivityItem, Dashboard, DashboardPeriod } from '@/types/dashboard'
 import { useDashboard } from '../hooks'
+import { OnboardingCard } from '@/features/onboarding/components/OnboardingCard'
 
 const PERIODS: DashboardPeriod[] = ['today', 'week', 'month']
 
@@ -41,12 +42,13 @@ const PERIODS: DashboardPeriod[] = ['today', 'week', 'month']
 export function HomePage() {
   const { t } = useTranslation()
   const can = useCan()
-  const { user } = useSession()
+  const { user, role } = useSession()
   const { shop } = useCurrentShop()
 
   return (
     <div className="grid gap-6">
       <PageHeader title={t('home.hello', { name: user.firstname })} subtitle={shop ? `${shop.name} · ${t('home.intro')}` : t('home.intro')} />
+      {role.is_owner && <OnboardingCard />}
       {can('dashboard.view') ? <DashboardView /> : <QuickActionsFromNav />}
     </div>
   )

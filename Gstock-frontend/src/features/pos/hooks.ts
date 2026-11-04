@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useDebouncedValue } from '@/lib/use-debounced-value'
 import { createSale, getPosBootstrap, getSale, quoteSale } from '@/lib/api/sales'
 import type { Id } from '@/types/api'
 import type { SalePayload, SalePaymentInput, SaleQuoteInput } from '@/types/sales'
@@ -28,21 +28,12 @@ export function cartToInput(cart: Cart, payments?: SalePaymentInput[]): SaleQuot
   }
 }
 
-function useDebounced<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delay)
-    return () => clearTimeout(timer)
-  }, [value, delay])
-  return debounced
-}
-
 /**
  * Total « en direct » : le serveur recalcule les montants à chaque changement
  * du panier (§7.4). On garde l'ancien total affiché pendant le calcul.
  */
 export function useSaleQuote(shopId: Id | undefined, input: SaleQuoteInput | null) {
-  const serialized = useDebounced(input ? JSON.stringify(input) : null, 150)
+  const serialized = useDebouncedValue(input ? JSON.stringify(input) : null, 150)
   return useQuery({
     queryKey: ['pos', shopId, 'quote', serialized],
     queryFn: () => quoteSale(shopId!, JSON.parse(serialized!) as SaleQuoteInput),

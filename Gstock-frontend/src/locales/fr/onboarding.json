@@ -1,0 +1,201 @@
+{
+  "register": {
+    "title": "Créer mon espace",
+    "subtitle": "Gérez votre boutique, votre stock et vos crédits clients. Gratuit pendant {{days}} jours, sans paiement.",
+    "have_account": "Vous avez déjà un espace ?",
+    "login": "Se connecter",
+    "cta_from_login": "Pas encore d'espace ? Créer mon espace",
+    "step": "Étape {{current}} sur {{total}}",
+    "steps": {
+      "business": "Votre commerce",
+      "owner": "Vous",
+      "plan": "Votre formule"
+    },
+    "tenant_name": "Nom de votre commerce",
+    "tenant_name_placeholder": "ex. Alimentation Koné",
+    "slug": "Adresse de votre espace",
+    "slug_hint": "C'est l'adresse que vous et votre équipe ouvrirez pour vous connecter.",
+    "slug_checking": "Vérification…",
+    "slug_available": "Cette adresse est libre.",
+    "slug_use": "Prendre « {{slug}} »",
+    "shop_name": "Nom de votre boutique",
+    "shop_name_hint": "Vous pourrez ajouter d'autres boutiques plus tard.",
+    "shop_name_placeholder": "ex. Boutique Cocody",
+    "shop_city": "Ville",
+    "firstname": "Prénom",
+    "lastname": "Nom",
+    "phone": "Téléphone",
+    "phone_placeholder": "ex. 07 00 00 00 00",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "password_hint": "Au moins 8 caractères.",
+    "plan_hint": "Vous ne payez rien aujourd'hui. Vous choisirez de payer à la fin de l'essai.",
+    "trial": "{{days}} jours gratuits",
+    "next": "Continuer",
+    "back": "Retour",
+    "submit": "Créer mon espace",
+    "submitting": "Création de votre espace…",
+    "terms": "En créant votre espace, vous acceptez les conditions d'utilisation de GStock.",
+    "created": "Votre espace est prêt !",
+    "errors": {
+      "tenant_name": "Saisissez le nom de votre commerce.",
+      "slug": "Utilisez de 3 à 30 lettres minuscules sans accent, chiffres ou tirets.",
+      "shop_name": "Donnez un nom à votre boutique.",
+      "shop_city": "Indiquez la ville de la boutique.",
+      "firstname": "Saisissez votre prénom.",
+      "lastname": "Saisissez votre nom.",
+      "phone": "Saisissez un numéro à 10 chiffres, par exemple 07 00 00 00 00.",
+      "email": "Saisissez une adresse e-mail valide.",
+      "password": "Le mot de passe doit faire au moins 8 caractères.",
+      "plan_id": "Choisissez une formule."
+    }
+  },
+  "plans": {
+    "per_month": "/ mois",
+    "per_year": "/ an",
+    "recommended": "Le plus choisi",
+    "shops_one": "{{count}} boutique",
+    "shops_other": "{{count}} boutiques",
+    "users_one": "{{count}} utilisateur",
+    "users_other": "{{count}} utilisateurs",
+    "products": "{{max}} produits",
+    "current": "Votre formule",
+    "choose": "Choisir"
+  },
+  "token_login": {
+    "title": "Ouverture de votre espace…",
+    "failed_title": "Ce lien ne fonctionne plus",
+    "missing": "Le lien de connexion est incomplet.",
+    "to_login": "Aller à la connexion"
+  },
+  "onboarding": {
+    "title": "Bienvenue dans GStock",
+    "subtitle": "Trois étapes pour bien démarrer. Vous pouvez les faire dans l'ordre que vous voulez.",
+    "progress": "{{done}} sur {{total}} terminées",
+    "card_title": "Bien démarrer",
+    "card_text_one": "{{done}} étape sur {{total}} terminée",
+    "card_text_other": "{{done}} étapes sur {{total}} terminées",
+    "open": "Continuer",
+    "done": "Fait",
+    "skipped": "Passée",
+    "skip": "Passer cette étape",
+    "dismiss": "Fermer l'assistant",
+    "dismissed": "Assistant fermé. Vous retrouverez ces actions dans le menu.",
+    "finished_title": "Tout est prêt !",
+    "finished_text": "Votre espace est lancé. Bonnes ventes !",
+    "to_home": "Aller à l'accueil",
+    "trial_one": "Votre essai gratuit se termine dans {{count}} jour.",
+    "trial_other": "Votre essai gratuit se termine dans {{count}} jours.",
+    "steps": {
+      "products": {
+        "title": "Ajouter vos premiers produits",
+        "text": "Le nom et le prix suffisent. Vous pouvez saisir la quantité en boutique en même temps.",
+        "action": "Ajouter un produit"
+      },
+      "opening_balances": {
+        "title": "Saisir les dettes existantes",
+        "text": "Les clients qui vous doivent déjà de l'argent : reprenez votre cahier et notez ce qui reste à payer.",
+        "action": "Saisir une ancienne dette"
+      },
+      "first_sale": {
+        "title": "Faire une première vente",
+        "text": "Ouvrez la caisse, touchez les produits, encaissez.",
+        "action": "Vendre"
+      }
+    }
+  },
+  "subscription": {
+    "title": "Mon abonnement",
+    "nav_text": "Formule, paiement et factures",
+    "plan": "Formule « {{name}} »",
+    "status": {
+      "trial": "Essai gratuit",
+      "active": "Actif",
+      "past_due": "À régler",
+      "suspended": "Suspendu",
+      "cancelled": "Fermé"
+    },
+    "trial_left_one": "Il reste {{count}} jour d'essai gratuit, jusqu'au {{date}}.",
+    "trial_left_other": "Il reste {{count}} jours d'essai gratuit, jusqu'au {{date}}.",
+    "active_until": "Payé jusqu'au {{date}}.",
+    "past_due_text_one": "Le paiement est en retard. Réglez-le dans {{count}} jour pour continuer à enregistrer des opérations.",
+    "past_due_text_other": "Le paiement est en retard. Réglez-le dans les {{count}} jours pour continuer à enregistrer des opérations.",
+    "suspended_text": "Votre espace est en lecture seule : vous pouvez consulter vos données, mais plus enregistrer de vente, de paiement ni de mouvement de stock. Réglez l'abonnement pour tout débloquer.",
+    "pay": "Payer {{amount}}",
+    "pay_trial": "Payer maintenant",
+    "renew": "Prolonger d'un mois",
+    "change_plan": "Changer de formule",
+    "choose_plan": "Choisir une formule",
+    "choose_plan_text": "La nouvelle formule s'applique dès que le paiement est confirmé.",
+    "pay_for": "Payer la formule « {{name}} »",
+    "pay_hint": "Vous allez être redirigé vers GeniusPay : Wave, Orange Money, MTN Money, Moov Money ou carte bancaire.",
+    "redirecting": "Ouverture de la page de paiement…",
+    "pending_title": "Paiement en attente de confirmation",
+    "pending_text": "Dès que GeniusPay nous confirme le paiement {{reference}}, votre abonnement est prolongé. Cela prend quelques secondes.",
+    "paid_toast": "Paiement reçu : votre abonnement est prolongé.",
+    "failed_toast": "Le paiement {{reference}} n'a pas abouti. Votre abonnement n'a pas changé.",
+    "usage": "Votre utilisation",
+    "usage_shops": "Boutiques ouvertes",
+    "usage_users": "Utilisateurs",
+    "usage_products": "Produits",
+    "usage_of": "{{used}} sur {{max}}",
+    "invoices": "Factures",
+    "invoices_empty": "Aucune facture pour l'instant.",
+    "invoice_status": {
+      "pending": "En attente",
+      "paid": "Payée",
+      "failed": "Échouée"
+    },
+    "columns": {
+      "reference": "Facture",
+      "date": "Date",
+      "plan": "Formule",
+      "amount": "Montant",
+      "channel": "Moyen",
+      "status": "État"
+    },
+    "detail": {
+      "title": "Facture {{reference}}",
+      "created": "Émise le",
+      "paid": "Payée le",
+      "none": "—"
+    },
+    "pay_current": "Payer la formule actuelle"
+  },
+  "banner": {
+    "trial_one": "Essai gratuit : plus que {{count}} jour.",
+    "trial_other": "Essai gratuit : plus que {{count}} jours.",
+    "past_due_one": "Abonnement à régler : il vous reste {{count}} jour.",
+    "past_due_other": "Abonnement à régler : il vous reste {{count}} jours.",
+    "suspended": "Espace en lecture seule : l'abonnement n'est pas réglé.",
+    "action": "Voir mon abonnement",
+    "ask_owner": "Prévenez le propriétaire de l'espace."
+  },
+  "read_only": {
+    "title": "Espace en lecture seule",
+    "text": "L'abonnement n'est pas réglé : les ventes sont bloquées jusqu'au paiement.",
+    "action": "Régler l'abonnement",
+    "ask_owner": "Prévenez le propriétaire de l'espace pour qu'il règle l'abonnement."
+  },
+  "simulation": {
+    "title": "Paiement GeniusPay (simulation)",
+    "text": "Page de paiement simulée : sur le vrai service, le client paie ici puis revient sur GStock. L'abonnement n'est prolongé qu'à la confirmation (webhook).",
+    "invoice": "Facture {{reference}}",
+    "channel": "Moyen de paiement",
+    "pay": "Payer",
+    "fail": "Simuler un échec",
+    "cancel": "Abandonner",
+    "unknown": "Cette facture n'existe pas ou a déjà été traitée.",
+    "tools_title": "Simulation (démonstration seulement)",
+    "tools_text": "Faites avancer le temps pour voir les états de l'abonnement.",
+    "trial_end": "Essai : plus que 2 jours",
+    "past_due": "Échéance dépassée (délai de grâce)",
+    "suspend": "Délai de grâce dépassé (suspendu)",
+    "restore": "Revenir à un abonnement payé",
+    "space": "Espace simulé : {{name}}",
+    "space_url": "Adresse : {{url}}",
+    "to_demo": "Ouvrir l'espace de démonstration",
+    "other_spaces": "Autres espaces créés sur ce navigateur",
+    "open_space": "Ouvrir"
+  }
+}

@@ -44,13 +44,14 @@ export function CreditsPage() {
   const can = useCan()
   const navigate = useNavigate()
   const { shop } = useCurrentShop()
-  const list = useListParams(['vue', 'periode', 'client'])
+  const list = useListParams(['vue', 'periode', 'client', 'ancienne'])
   const tab: Tab = (TABS.map((x) => x.id) as string[]).includes(list.filter.vue ?? '') ? (list.filter.vue as Tab) : 'debiteurs'
   const period: Period = (PERIODS as string[]).includes(list.filter.periode ?? '') ? (list.filter.periode as Period) : 'month'
   const from = periodFrom(period)
   const summary = useCreditsSummary(shop?.id, { from })
   const [picker, setPicker] = useState(false)
-  const [opening, setOpening] = useState(false)
+  // Assistant de démarrage : /credits?ancienne=1 ouvre directement la saisie d'une ancienne dette.
+  const [opening, setOpening] = useState(list.filter.ancienne === '1')
 
   // Lien depuis la fiche client (« Enregistrer un remboursement ») : on va droit au paiement.
   if (list.filter.client) return <Navigate to={`/credits/clients/${list.filter.client}/paiement`} replace />
@@ -144,7 +145,15 @@ export function CreditsPage() {
       {tab === 'echeances' && <InstallmentsTab />}
 
       <CustomerPicker open={picker} onOpenChange={setPicker} onPick={(c) => navigate(`/credits/clients/${c.id}/paiement`)} />
-      {opening && <OpeningBalanceSheet open onOpenChange={setOpening} />}
+      {opening && (
+        <OpeningBalanceSheet
+          open
+          onOpenChange={(o) => {
+            setOpening(o)
+            if (!o) list.setFilter('ancienne', undefined)
+          }}
+        />
+      )}
     </div>
   )
 }

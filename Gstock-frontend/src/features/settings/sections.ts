@@ -1,6 +1,7 @@
 // Rubriques des paramètres : une seule liste pour la page d'accueil des
 // paramètres et pour les gardes de route.
 import {
+  BadgeCheck,
   Building2,
   CreditCard,
   FolderTree,
@@ -32,6 +33,7 @@ export interface SettingsSection {
 export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'tenant', path: '/parametres/espace', group: 'business', label: 'settings.sections.tenant', description: 'settings.sections.tenant_text', icon: Building2, permissions: ['settings.manage'], tint: 'peach' },
   { id: 'shops', path: '/parametres/boutiques', group: 'business', label: 'settings.sections.shops', description: 'settings.sections.shops_text', icon: Store, permissions: ['shops.manage'], tint: 'yellow' },
+  { id: 'subscription', path: '/parametres/abonnement', group: 'business', label: 'subscription.title', description: 'subscription.nav_text', icon: BadgeCheck, permissions: ['subscription.manage'], tint: 'lavender' },
   { id: 'payment', path: '/parametres/paiements-en-ligne', group: 'business', label: 'settings.sections.payment', description: 'settings.sections.payment_text', icon: Smartphone, permissions: ['payment_settings.manage'], tint: 'mint' },
   { id: 'users', path: '/parametres/utilisateurs', group: 'team', label: 'settings.sections.users', description: 'settings.sections.users_text', icon: Users, permissions: ['users.manage'], tint: 'lavender' },
   { id: 'roles', path: '/parametres/roles', group: 'team', label: 'settings.sections.roles', description: 'settings.sections.roles_text', icon: ShieldCheck, permissions: ['roles.manage'], tint: 'peach' },
