@@ -2,6 +2,7 @@
 // crédit, et quelques anciennes dettes. Tout passe par le moteur de vente
 // (recordSale) : stock, mouvements et crédits restent cohérents.
 import { db, persist } from '../db'
+import { recordRepayment, setInstallments } from '../credits'
 import { recordSale } from '../sales'
 import { stockRow } from '../stock'
 import { openingBalances } from './customers'
@@ -96,6 +97,43 @@ export function seedHistory() {
       }
     }
   }
+  // Remboursements partiels quelques jours après le crédit (§11.3), par un utilisateur
+  // qui en a le droit (Ibrahim, gérant), en espèces ou Mobile Money.
+  const lastDay = Date.UTC(2026, 10, 3, 18)
+  const manager = db.users.find((u) => u.id === 2)!
+  for (const credit of [...db.credits].sort((a, b) => a.occurred_at.localeCompare(b.occurred_at))) {
+    if (rand() > 0.55) continue
+    const at = Date.parse(credit.occurred_at) + (2 + Math.floor(rand() * 8)) * 86_400_000
+    if (at > lastDay) continue
+    const part = Math.round((credit.remaining_amount * (0.3 + rand() * 0.7)) / 50) * 50
+    if (part <= 0) continue
+    try {
+      recordRepayment(credit.shop_id, manager, {
+        customer_id: credit.customer_id,
+        amount: String(part),
+        payment_method_id: rand() < 0.75 ? 1 : 2,
+        received_at: new Date(at).toISOString(),
+        allocations: [{ credit_id: credit.id, amount: String(part) }],
+      })
+    } catch {
+      // Montant devenu supérieur au reste : on passe.
+    }
+  }
+
+  // Quelques échéanciers, dont une échéance déjà dépassée (§7.7).
+  const scheduled = db.credits.filter((c) => c.status !== 'settled' && c.remaining_amount >= 1500).slice(0, 4)
+  scheduled.forEach((credit, i) => {
+    const half = Math.round(credit.remaining_amount / 2 / 50) * 50
+    try {
+      setInstallments(credit, [
+        { due_date: i % 2 === 0 ? '2026-10-30' : '2026-11-06', amount: String(half) },
+        { due_date: '2026-11-15', amount: String(credit.remaining_amount - half) },
+      ])
+    } catch {
+      // Reste invalide pour un échéancier : on passe.
+    }
+  })
+
   db.seeded = true
   persist()
 }

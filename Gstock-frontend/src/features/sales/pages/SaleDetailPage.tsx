@@ -129,7 +129,7 @@ function SaleDetail({ sale }: { sale: Sale }) {
             {sale.payments.map((p) => (
               <li key={p.id} className="flex flex-wrap items-center justify-between gap-2">
                 <span className="grid">
-                  <span className="font-bold">{p.method.name}</span>
+                  <span className="font-bold">{p.method?.name ?? t('sales.detail.credit_note')}</span>
                   {p.cash_given && Number(p.change) > 0 && (
                     <span className="text-sm text-muted-foreground">
                       {t('sales.detail.cash_given', { given: Number(p.cash_given).toLocaleString('fr-FR'), change: Number(p.change).toLocaleString('fr-FR') })}

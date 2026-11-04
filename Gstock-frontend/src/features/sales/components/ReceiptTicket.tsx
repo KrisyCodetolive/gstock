@@ -66,7 +66,7 @@ export function ReceiptTicket({ receipt, width = 58 }: { receipt: Receipt; width
         </div>
         {sale.payments.map((p) => (
           <div key={p.id} className="flex justify-between">
-            <dt>{p.method.name}</dt>
+            <dt>{p.method?.name ?? t('sales.detail.credit_note')}</dt>
             <dd>{formatAmount(p.cash_given ?? p.amount)}</dd>
           </div>
         ))}

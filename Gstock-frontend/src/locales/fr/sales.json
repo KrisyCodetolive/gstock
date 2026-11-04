@@ -69,7 +69,8 @@
       "receipt": "Voir le reçu",
       "cancelled_on": "Annulée le {{date}} : {{reason}}",
       "unit_price": "{{qty}} × {{price}} FCFA",
-      "with_discount": "remise {{amount}} FCFA"
+      "with_discount": "remise {{amount}} FCFA",
+      "credit_note": "Avoir du client"
     },
     "cancel": {
       "title": "Annuler la vente",

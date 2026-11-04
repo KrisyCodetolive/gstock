@@ -3,14 +3,17 @@ import { delay, http, HttpResponse } from 'msw'
 import type { PosBootstrap, Receipt, Sale, SaleListItem, SalePayload, SaleQuoteInput, ShareLink } from '@/types/sales'
 import type { MockUser } from '../data/users'
 import { db, persist } from '../db'
-import { API, findOr404, handle, MockHttpError, paginate, requirePermission, Validator } from '../http'
+import { API, findOr404, handle, paginate, requirePermission, Validator } from '../http'
+import { recomputeCredit, repaidOf, type Settlement } from '../credits'
 import { cancelSale, computeSale, quoteResource, recordSale, type MockSale } from '../sales'
+import { signReceiptToken } from '../receipt-token'
 import { alertOf, canSeeAll, money, qty, requireShopAccess, stockRow, stockState, userName } from '../stock'
 
 function saleResource(s: MockSale): Sale {
   const shop = db.shops.find((x) => x.id === s.shop_id)!
   const customer = db.customers.find((c) => c.id === s.customer_id)
   const credit = db.credits.find((c) => c.sale_id === s.id)
+  if (credit) recomputeCredit(credit)
   return {
     id: s.id,
     reference: s.reference,
@@ -40,17 +43,19 @@ function saleResource(s: MockSale): Sale {
     payment_status: s.payment_status,
     status: s.status,
     payments: s.payments.map((p) => {
-      const m = db.paymentMethods.find((x) => x.id === p.payment_method_id)!
+      const m = db.paymentMethods.find((x) => x.id === p.payment_method_id)
       return {
         id: p.id,
-        method: { id: m.id, name: m.name, type: m.type, uses_geniuspay: m.uses_geniuspay },
+        method: m ? { id: m.id, name: m.name, type: m.type, uses_geniuspay: m.uses_geniuspay } : null,
         amount: money(p.amount)!,
         cash_given: money(p.cash_given),
         change: money(p.change),
         status: p.status,
       }
     }),
-    credit: credit ? { id: credit.id, remaining_amount: money(credit.remaining_amount)!, status: credit.status } : null,
+    credit: credit
+      ? { id: credit.id, remaining_amount: money(credit.remaining_amount)!, repaid_amount: money(repaidOf(credit))!, status: credit.status }
+      : null,
     note: s.note,
     cancelled_at: s.cancelled_at,
     cancel_reason: s.cancel_reason,
@@ -71,29 +76,7 @@ function simulateWebhook(sale: MockSale) {
   }, 4000)
 }
 
-// Lien de reçu signé et expirant (ADR-013) : jeton opaque, valable 7 jours.
-const SECRET = 'gstock-demo'
-function signToken(shopId: number, saleId: number) {
-  const exp = Date.now() + 7 * 86_400_000
-  const payload = `${shopId}.${saleId}.${exp}`
-  return { token: btoa(`${payload}.${hash(payload + SECRET)}`).replace(/=+$/, ''), exp }
-}
-function readToken(token: string) {
-  try {
-    const [shopId, saleId, exp, sig] = atob(token).split('.')
-    if (hash(`${shopId}.${saleId}.${exp}` + SECRET) !== sig) return null
-    return { shopId: Number(shopId), saleId: Number(saleId), exp: Number(exp) }
-  } catch {
-    return null
-  }
-}
-function hash(s: string) {
-  let h = 0
-  for (const c of s) h = (Math.imul(31, h) + c.charCodeAt(0)) | 0
-  return (h >>> 0).toString(36)
-}
-
-function receiptResource(sale: MockSale): Receipt {
+export function receiptResource(sale: MockSale): Receipt {
   const shop = db.shops.find((s) => s.id === sale.shop_id)!
   return {
     sale: saleResource(sale),
@@ -248,11 +231,11 @@ export const salesHandlers = [
       const user = requirePermission('sales.cancel')
       const shopId = requireShopAccess(user, params.shopId).id
       const sale = findOr404(db.sales.filter((s) => s.shop_id === shopId), params.id)
-      const { reason } = (await request.json()) as { reason?: string }
+      const { reason, ...settlement } = (await request.json()) as { reason?: string } & Settlement
       const v = new Validator()
       v.required(reason, 'reason', 'Indiquez pourquoi vous annulez cette vente.')
       v.done()
-      cancelSale(sale, user, reason!.trim())
+      cancelSale(sale, user, reason!.trim(), settlement)
       persist()
       return HttpResponse.json({ data: saleResource(sale) })
     }),
@@ -273,7 +256,7 @@ export const salesHandlers = [
       const user = requirePermission('sales.view', 'sales.create')
       const shopId = requireShopAccess(user, params.shopId).id
       const sale = findOr404(visibleSales(user, shopId), params.id)
-      const { token, exp } = signToken(shopId, sale.id)
+      const { token, exp } = signReceiptToken('s', shopId, sale.id)
       const url = `${new URL(request.url).origin}/recu/${token}`
       const data: ShareLink = {
         url,
@@ -284,14 +267,4 @@ export const salesHandlers = [
     }),
   ),
 
-  // Reçu public, sans connexion : seulement avec un lien signé non expiré.
-  http.get(`${API}/public/receipts/:token`, ({ params }) =>
-    handle(async () => {
-      await delay(250)
-      const t = readToken(String(params.token))
-      if (!t) throw new MockHttpError(404, 'Ce lien de reçu n’est pas valide.')
-      if (t.exp < Date.now()) throw new MockHttpError(410, 'Ce lien de reçu a expiré. Demandez un nouveau lien à la boutique.')
-      return HttpResponse.json({ data: receiptResource(findOr404(db.sales.filter((s) => s.shop_id === t.shopId), t.saleId)) })
-    }),
-  ),
 ]

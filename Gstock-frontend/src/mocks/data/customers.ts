@@ -21,6 +21,63 @@ export interface MockCredit {
   is_opening_balance: boolean
   status: 'open' | 'partial' | 'settled' | 'cancelled'
   user_id: number
+  note?: string | null
+  cancelled_at?: string | null
+  cancel_reason?: string | null
+  /** Décision P3 : argent déjà reçu gardé en avoir ou rendu au client. */
+  cancel_settlement?: { mode: 'credit_note' | 'refund'; amount: number } | null
+  /** Échéancier (§7.7). `frozen` : échéance soldée gardée telle quelle après un nouvel échéancier. */
+  installments?: { id: number; due_date: string; amount: number; frozen: boolean }[]
+}
+
+export interface MockRepayment {
+  id: number
+  shop_id: number
+  customer_id: number
+  reference: string
+  offline_uuid: string | null
+  received_at: string
+  amount: number
+  /** null : payé avec l'avoir du client. */
+  payment_method_id: number | null
+  allocations: { credit_id: number; amount: number }[]
+  note: string | null
+  status: 'pending' | 'completed' | 'cancelled'
+  user_id: number
+  cancelled_at: string | null
+  cancel_reason: string | null
+}
+
+export interface MockCreditAdjustment {
+  id: number
+  credit_id: number
+  amount: number
+  reason: string
+  user_id: number
+  created_at: string
+}
+
+/** Mouvements d'avoir d'un client dans une boutique : + créé, − utilisé (P3). */
+export interface MockCreditNoteEntry {
+  id: number
+  shop_id: number
+  customer_id: number
+  amount: number
+  source: 'credit_cancel' | 'repayment' | 'repayment_cancel' | 'sale' | 'sale_cancel'
+  source_id: number
+  created_at: string
+}
+
+export interface MockCustomerRefund {
+  id: number
+  shop_id: number
+  customer_id: number
+  credit_id: number
+  amount: number
+  payment_method_id: number
+  reason: string
+  user_id: number
+  created_at: string
 }
 
 const NAMES: [string, string | null, string | null][] = [

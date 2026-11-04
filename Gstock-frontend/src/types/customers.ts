@@ -13,6 +13,8 @@ export interface Customer {
   created_at: IsoDate
   /** Reste à payer sur tous ses crédits ouverts, toutes boutiques (§7.6). */
   balance: Money
+  /** Avoir : somme que la boutique doit au client (décision P3). */
+  credit_note_balance: Money
 }
 
 export interface CustomerPayload {

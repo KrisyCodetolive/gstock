@@ -29,6 +29,10 @@ export interface MockDb {
   adjustments: catalog.MockAdjustment[]
   customers: clients.MockCustomer[]
   credits: clients.MockCredit[]
+  repayments: clients.MockRepayment[]
+  creditAdjustments: clients.MockCreditAdjustment[]
+  creditNotes: clients.MockCreditNoteEntry[]
+  customerRefunds: clients.MockCustomerRefund[]
   sales: MockSale[]
   /** document_sequences : prochain numéro par préfixe (§7.9). */
   sequences: Record<string, number>
@@ -37,7 +41,7 @@ export interface MockDb {
 }
 
 /** À incrémenter quand les jeux de démonstration changent de forme. */
-const KEY = 'gstock.mock.db.v3'
+const KEY = 'gstock.mock.db.v4'
 
 function seed(): MockDb {
   return structuredClone({
@@ -58,8 +62,12 @@ function seed(): MockDb {
     adjustments: catalog.adjustments,
     customers: clients.customers,
     credits: [],
+    repayments: [],
+    creditAdjustments: [],
+    creditNotes: [],
+    customerRefunds: [],
     sales: [],
-    sequences: { MS: 1, V: 1, CR: 1 },
+    sequences: { MS: 1, V: 1, CR: 1, RB: 1 },
     seeded: false,
   })
 }

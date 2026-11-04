@@ -6,6 +6,7 @@ import type { MockProduct } from './data/products'
 import type { MockUser } from './data/users'
 import { db, nextReference } from './db'
 import { MockHttpError, permissionsOf, Validator } from './http'
+import { applySettlement, checkSettlement, creditNoteBalance, recomputeCredit, type Settlement } from './credits'
 import { applyStockChanges, money, qty, stockRow } from './stock'
 
 export interface MockSaleItem {
@@ -23,7 +24,8 @@ export interface MockSaleItem {
 
 export interface MockSalePayment {
   id: number
-  payment_method_id: number
+  /** null : payé avec l'avoir du client (décision P3). */
+  payment_method_id: number | null
   amount: number
   cash_given: number | null
   change: number | null
@@ -129,14 +131,15 @@ export function computeSale(input: SaleQuoteInput, user: MockUser): Computed {
   const total = round2(totalLines - discount)
 
   const payments = (input.payments ?? []).map((p: SalePaymentInput) => {
-    const method = db.paymentMethods.find((m) => m.id === Number(p.payment_method_id) && m.is_active)
-    if (!method) v.add('payments', 'Ce mode de paiement n’est pas disponible.')
+    // Paiement avec l'avoir du client : vérifié à l'enregistrement (il faut connaître le client).
+    const method = p.credit_note ? undefined : db.paymentMethods.find((m) => m.id === Number(p.payment_method_id) && m.is_active)
+    if (!p.credit_note && !method) v.add('payments', 'Ce mode de paiement n’est pas disponible.')
     const amount = round2(num(p.amount))
     if (!(amount > 0)) v.add('payments', 'Saisissez un montant supérieur à 0.')
     const given = method?.type === 'cash' && p.cash_given ? round2(num(p.cash_given)) : null
     if (given !== null && given < amount) v.add('payments', 'La somme donnée est inférieure au montant payé en espèces.')
     return {
-      payment_method_id: Number(p.payment_method_id),
+      payment_method_id: p.credit_note ? null : Number(p.payment_method_id),
       amount,
       cash_given: given,
       change: given !== null ? round2(given - amount) : null,
@@ -202,6 +205,13 @@ export function recordSale(
     if (!permissionsOf(user).includes('credits.create')) throw new MockHttpError(403, "Vous n'avez pas le droit de mettre à crédit.")
   }
 
+  const fromNote = c.payments.filter((p) => p.payment_method_id === null).reduce((s, p) => s + p.amount, 0)
+  if (fromNote > 0) {
+    if (!customer) throw new MockHttpError(422, 'Choisissez le client pour utiliser son avoir.', { customer_id: ['Choisissez le client pour utiliser son avoir.'] })
+    const note = creditNoteBalance(customer.id, shopId)
+    if (fromNote > note) throw new MockHttpError(422, `L'avoir du client n'est que de ${note.toLocaleString('fr-FR')} FCFA.`, { payments: [`L'avoir du client n'est que de ${note.toLocaleString('fr-FR')} FCFA.`] })
+  }
+
   const id = db.sales.length ? Math.max(...db.sales.map((s) => s.id)) + 1 : 1
   const reference = `V-${db.sequences.V ?? 1}`
   // Le stock diminue dès la validation, payée ou à crédit (§7.1).
@@ -231,15 +241,18 @@ export function recordSale(
     payment_status: c.payment_status,
     status: 'completed',
     payments: c.payments.map((p) => {
-      const method = db.paymentMethods.find((m) => m.id === p.payment_method_id)!
+      const method = db.paymentMethods.find((m) => m.id === p.payment_method_id)
       // GeniusPay : validé seulement à réception du webhook (ADR-003).
-      return { id: ++paymentId, ...p, status: geniuspay && method.uses_geniuspay ? 'pending' : 'completed' }
+      return { id: ++paymentId, ...p, status: geniuspay && method?.uses_geniuspay ? 'pending' : 'completed' }
     }),
     note: input.note?.trim() || null,
     cancelled_at: null,
     cancel_reason: null,
   }
   db.sales.push(sale)
+  if (fromNote > 0 && customer) {
+    db.creditNotes.push({ id: db.creditNotes.length + 1, shop_id: shopId, customer_id: customer.id, amount: -fromNote, source: 'sale', source_id: sale.id, created_at: occurredAt })
+  }
 
   if (c.credit_amount > 0 && customer) {
     db.credits.push({
@@ -259,14 +272,15 @@ export function recordSale(
   return sale
 }
 
-/** Annulation d'une vente : stock restitué, crédit annulé (§7.2, §7.6, ADR-012). */
-export function cancelSale(sale: MockSale, user: MockUser, reason: string) {
+/**
+ * Annulation d'une vente : stock restitué, crédit annulé (§7.2, §7.6, ADR-012).
+ * Si le crédit a déjà reçu des remboursements, le commerçant choisit (P3) :
+ * avoir au nom du client, ou argent rendu.
+ */
+export function cancelSale(sale: MockSale, user: MockUser, reason: string, settlement: Settlement = {}) {
   if (sale.status === 'cancelled') throw new MockHttpError(409, 'Cette vente a déjà été annulée.')
-  const credit = db.credits.find((c) => c.sale_id === sale.id)
-  if (credit && credit.remaining_amount < credit.amount) {
-    // P3 : les remboursements déjà reçus deviendront un avoir (F5).
-    throw new MockHttpError(409, 'Cette vente a déjà reçu des remboursements : annulez-les d’abord.')
-  }
+  const credit = db.credits.find((c) => c.sale_id === sale.id && c.status !== 'cancelled')
+  const repaid = credit ? checkSettlement(credit, settlement) : 0
   const now = new Date().toISOString()
   applyStockChanges(
     sale.items.map((i) => ({ shopId: sale.shop_id, product: db.products.find((p) => p.id === i.product_id)!, delta: i.quantity })),
@@ -274,16 +288,19 @@ export function cancelSale(sale: MockSale, user: MockUser, reason: string) {
   )
   Object.assign(sale, { status: 'cancelled', cancelled_at: now, cancel_reason: reason })
   for (const p of sale.payments) p.status = 'cancelled'
-  if (credit) Object.assign(credit, { status: 'cancelled', remaining_amount: 0 })
+  // L'avoir utilisé pour payer cette vente revient au client.
+  const fromNote = sale.payments.filter((p) => p.payment_method_id === null).reduce((s, p) => s + p.amount, 0)
+  if (fromNote > 0 && sale.customer_id) {
+    db.creditNotes.push({ id: db.creditNotes.length + 1, shop_id: sale.shop_id, customer_id: sale.customer_id, amount: fromNote, source: 'sale_cancel', source_id: sale.id, created_at: now })
+  }
+  if (credit) applySettlement(credit, user, settlement, reason, repaid)
 }
 
 /** Reste dû d'un client : Σ restes de ses crédits ouverts (§7.6). */
 export function customerBalance(customerId: number, shopIds?: number[]): number {
-  return round2(
-    db.credits
-      .filter((c: MockCredit) => c.customer_id === customerId && c.status !== 'cancelled' && (!shopIds || shopIds.includes(c.shop_id)))
-      .reduce((s, c) => s + c.remaining_amount, 0),
-  )
+  const credits = db.credits.filter((c: MockCredit) => c.customer_id === customerId && c.status !== 'cancelled' && (!shopIds || shopIds.includes(c.shop_id)))
+  for (const c of credits) recomputeCredit(c)
+  return round2(credits.reduce((s, c) => s + c.remaining_amount, 0))
 }
 
 export function availableQuantity(shopId: number, productId: number) {

@@ -60,7 +60,7 @@ Toutes les rubriques sont sous **Paramètres** ; l'accueil des paramètres (`fea
 
 ## Données simulées
 
-- `src/mocks/db.ts` part des jeux de `src/mocks/data/` et garde les modifications dans le `localStorage` (clé versionnée, aujourd'hui `gstock.mock.db.v3`). **Incrémenter la clé** si la forme des données change.
+- `src/mocks/db.ts` part des jeux de `src/mocks/data/` et garde les modifications dans le `localStorage` (clé versionnée, aujourd'hui `gstock.mock.db.v4`). **Incrémenter la clé** si la forme des données change.
 - `src/mocks/http.ts` : `handle`, `requireUser`, `requirePermission` (403), `Validator` (422 en français), `findOr404`, `paginate` (recherche sans accents, tri, filtres `filter[x]`, `meta`).
 
 ## Vérifications faites
