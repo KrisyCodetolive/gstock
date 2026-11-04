@@ -169,13 +169,16 @@
     "past_due_other": "Abonnement à régler : il vous reste {{count}} jours.",
     "suspended": "Espace en lecture seule : l'abonnement n'est pas réglé.",
     "action": "Voir mon abonnement",
-    "ask_owner": "Prévenez le propriétaire de l'espace."
+    "ask_owner": "Prévenez le propriétaire de l'espace.",
+    "suspended_platform": "Espace suspendu par GStock : consultation seulement.",
+    "contact_support": "Contactez le support GStock."
   },
   "read_only": {
     "title": "Espace en lecture seule",
     "text": "L'abonnement n'est pas réglé : les ventes sont bloquées jusqu'au paiement.",
     "action": "Régler l'abonnement",
-    "ask_owner": "Prévenez le propriétaire de l'espace pour qu'il règle l'abonnement."
+    "ask_owner": "Prévenez le propriétaire de l'espace pour qu'il règle l'abonnement.",
+    "text_platform": "GStock a suspendu cet espace : les ventes sont bloquées. Contactez le support GStock pour en savoir plus."
   },
   "simulation": {
     "title": "Paiement GeniusPay (simulation)",
@@ -197,5 +200,8 @@
     "to_demo": "Ouvrir l'espace de démonstration",
     "other_spaces": "Autres espaces créés sur ce navigateur",
     "open_space": "Ouvrir"
+  },
+  "support": {
+    "banner": "Session d'assistance GStock ouverte par {{name}}, jusqu'à {{time}}. Tout ce qui est fait ici est journalisé."
   }
 }

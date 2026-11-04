@@ -1,5 +1,5 @@
 // Contrat d'API du module M02 (authentification) et permissions du §6.3.
-import type { Id } from './api'
+import type { Id, IsoDate } from './api'
 import type { SubscriptionSummary } from './subscription'
 
 /** Permissions d'espace : données communes à toutes les boutiques. */
@@ -95,6 +95,8 @@ export interface Me {
   permissions: Permission[]
   shops: ShopSummary[]
   tenant: TenantSummary
+  /** Session ouverte par l'assistance GStock (mode support du back-office) : bandeau visible. */
+  support: { admin_name: string; expires_at: IsoDate } | null
 }
 
 export interface LoginPayload {
