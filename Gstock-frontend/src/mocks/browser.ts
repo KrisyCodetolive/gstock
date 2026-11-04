@@ -7,6 +7,8 @@ export async function startMocks() {
   seedHistory()
   const worker = setupWorker(...handlers)
   await worker.start({
+    // Build : MSW est chargé dans le service worker de l'application (src/sw/sw.ts).
+    serviceWorker: { url: import.meta.env.PROD ? '/sw.js' : '/mockServiceWorker.js' },
     // Les fichiers de l'application (JS, polices, images) passent sans être simulés.
     onUnhandledFrame: 'bypass',
     quiet: true,

@@ -5,12 +5,12 @@ import type { PosBootstrap, Receipt, Sale, SaleListItem, SalePayload, SaleQuoteI
 import type { MockUser } from '../data/users'
 import { db, persist } from '../db'
 import { API, findOr404, handle, paginate, requirePermission, Validator } from '../http'
-import { recomputeCredit, repaidOf, type Settlement } from '../credits'
-import { cancelSale, computeSale, quoteResource, recordSale, type MockSale } from '../sales'
+import { creditNoteBalance, recomputeCredit, repaidOf, type Settlement } from '../credits'
+import { cancelSale, computeSale, customerBalance, quoteResource, recordSale, type MockSale } from '../sales'
 import { signReceiptToken } from '../receipt-token'
 import { alertOf, canSeeAll, money, qty, requireShopAccess, stockRow, stockState, userName } from '../stock'
 
-function saleResource(s: MockSale): Sale {
+export function saleResource(s: MockSale): Sale {
   const shop = db.shops.find((x) => x.id === s.shop_id)!
   const customer = db.customers.find((c) => c.id === s.customer_id)
   const credit = db.credits.find((c) => c.sale_id === s.id)
@@ -60,6 +60,8 @@ function saleResource(s: MockSale): Sale {
     note: s.note,
     cancelled_at: s.cancelled_at,
     cancel_reason: s.cancel_reason,
+    sync_status: s.sync_status ?? 'ok',
+    review_reasons: s.review_reasons ?? [],
   }
 }
 
@@ -116,6 +118,7 @@ export const salesHandlers = [
               code: p.code,
               barcode: p.barcode,
               price: money(p.price)!,
+              tax_rate: p.tax_rate === null ? null : String(p.tax_rate),
               unit: { id: unit.id, name: unit.name, short_name: unit.short_name },
               category: category ? { id: category.id, name: category.name, color: category.color } : null,
               quantity: q === null ? null : qty(q),
@@ -127,6 +130,11 @@ export const salesHandlers = [
           .filter((m) => m.is_active)
           .map((m) => ({ id: m.id, name: m.name, type: m.type, uses_geniuspay: m.uses_geniuspay && db.paymentSettings.is_active })),
         geniuspay_enabled: db.paymentSettings.is_active,
+        customers: db.customers
+          .filter((c) => c.is_active)
+          .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+          .map((c) => ({ id: c.id, name: c.name, phone: c.phone, balance: money(customerBalance(c.id, [shopId]))!, credit_note: money(creditNoteBalance(c.id, shopId))! })),
+        generated_at: new Date().toISOString(),
       }
       return HttpResponse.json({ data })
     }),
@@ -194,12 +202,14 @@ export const salesHandlers = [
             credit_amount: r.credit_amount,
             payment_status: r.payment_status,
             status: r.status,
+            sync_status: r.sync_status,
             items_count: r.items.length,
           }
         })
       const filters = {
         payment_status: (s: SaleListItem, v: string) => s.payment_status === v,
         status: (s: SaleListItem, v: string) => s.status === v,
+        sync_status: (s: SaleListItem, v: string) => s.sync_status === v,
         customer_id: (s: SaleListItem, v: string) => String(s.customer?.id ?? '') === v,
         user_id: (s: (typeof rows)[number], v: string) => String(s.user_id) === v,
       }

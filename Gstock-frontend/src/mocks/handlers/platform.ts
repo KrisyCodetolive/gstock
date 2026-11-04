@@ -90,6 +90,10 @@ function requireOwner() {
 }
 
 export const platformHandlers = [
+  // Appareil sans réseau (mode avion, coupure) : le serveur est injoignable, comme en vrai.
+  http.all(`${API}/*`, () => (navigator.onLine ? undefined : HttpResponse.error())),
+  http.all('/sanctum/*', () => (navigator.onLine ? undefined : HttpResponse.error())),
+
   // Espace suspendu (impayé après le délai de grâce) : consultable, mais aucune opération (M00).
   http.all(`${API}/*`, ({ request }) => {
     if (request.method === 'GET' || request.method === 'HEAD') return
