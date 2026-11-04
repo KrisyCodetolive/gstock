@@ -1,5 +1,6 @@
 // Endpoints simulés du module M08 : caisse, ventes, reçus.
 import { delay, http, HttpResponse } from 'msw'
+import { audit } from '../audit'
 import type { PosBootstrap, Receipt, Sale, SaleListItem, SalePayload, SaleQuoteInput, ShareLink } from '@/types/sales'
 import type { MockUser } from '../data/users'
 import { db, persist } from '../db'
@@ -152,6 +153,16 @@ export const salesHandlers = [
       const existing = body.offline_uuid && db.sales.find((s) => s.offline_uuid === body.offline_uuid)
       if (existing) return HttpResponse.json({ data: saleResource(existing) })
       const sale = recordSale(shopId, user, body)
+      // Prix modifié à la caisse : action sensible (M14).
+      const changed = sale.items.filter((i) => i.price !== db.products.find((p) => p.id === i.product_id)!.price)
+      if (changed.length) {
+        audit(user, 'sale.price_changed', {
+          shopId,
+          subject: { type: 'sale', id: sale.id, label: sale.reference },
+          old: { prix: changed.map((i) => ({ produit: db.products.find((p) => p.id === i.product_id)!.name, prix: db.products.find((p) => p.id === i.product_id)!.price })) },
+          new: { prix: changed.map((i) => ({ produit: db.products.find((p) => p.id === i.product_id)!.name, prix: i.price })) },
+        })
+      }
       persist()
       simulateWebhook(sale)
       return HttpResponse.json({ data: saleResource(sale) }, { status: 201 })
@@ -236,6 +247,13 @@ export const salesHandlers = [
       v.required(reason, 'reason', 'Indiquez pourquoi vous annulez cette vente.')
       v.done()
       cancelSale(sale, user, reason!.trim(), settlement)
+      audit(user, 'sale.cancelled', {
+        shopId,
+        subject: { type: 'sale', id: sale.id, label: sale.reference },
+        reason: reason!.trim(),
+        old: { statut: 'completed', total: sale.total },
+        new: { statut: 'cancelled', ...(settlement.refund_mode ? { argent_deja_recu: settlement.refund_mode === 'credit_note' ? 'avoir' : 'rendu' } : {}) },
+      })
       persist()
       return HttpResponse.json({ data: saleResource(sale) })
     }),

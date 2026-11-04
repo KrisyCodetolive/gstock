@@ -1,5 +1,6 @@
 // Endpoints simulés des modules M11 (fournisseurs, approvisionnements) et M12 (dépenses).
 import { delay, http, HttpResponse } from 'msw'
+import { audit } from '../audit'
 import type { Expense, Purchase, PurchaseListItem, Supplier, SupplierPayload } from '@/types/purchases'
 import type { MockExpense, MockPurchase, MockSupplier } from '../data/purchases'
 import type { MockUser } from '../data/users'
@@ -224,6 +225,7 @@ export const purchasesHandlers = [
       v.required(reason, 'reason', 'Indiquez pourquoi vous annulez cet approvisionnement.')
       v.done()
       cancelPurchase(p, user, reason!.trim())
+      audit(user, 'purchase.cancelled', { shopId, subject: { type: 'purchase', id: p.id, label: p.reference }, reason: reason!.trim(), old: { total: p.total } })
       persist()
       return HttpResponse.json({ data: purchaseResource(p) })
     }),
@@ -284,6 +286,7 @@ export const purchasesHandlers = [
       v.required(reason, 'reason', 'Indiquez pourquoi vous annulez cette dépense.')
       v.done()
       cancelExpense(e, reason!.trim())
+      audit(user, 'expense.cancelled', { shopId, subject: { type: 'expense', id: e.id, label: e.reference }, reason: reason!.trim(), old: { montant: e.amount } })
       persist()
       return HttpResponse.json({ data: expenseResource(e) })
     }),
