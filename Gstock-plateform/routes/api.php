@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\V1\ShopController;
 use App\Http\Controllers\Api\V1\StockController;
 use App\Http\Controllers\Api\V1\SubscriptionController;
 use App\Http\Controllers\Api\V1\SupplierController;
+use App\Http\Controllers\Api\V1\SyncController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\GeniusPaySimulationController;
 use Illuminate\Support\Facades\Route;
@@ -165,6 +166,8 @@ Route::middleware('tenant')->group(function () {
         Route::prefix('shops/{shop}')->middleware('shop')->group(function () {
             Route::get('products/search', [ProductController::class, 'search']);
             Route::get('dashboard', [DashboardController::class, 'shop'])->middleware('permission:dashboard.view');
+            // Opérations faites hors ligne (ADR-005) : le droit de chaque opération est vérifié une à une.
+            Route::post('sync', [SyncController::class, 'store'])->middleware(['permission:sales.create,repayments.create,expenses.create', 'throttle:60,1']);
             Route::middleware('permission:stock.view')->group(function () {
                 Route::get('stock', [StockController::class, 'index']);
                 Route::get('stock/alerts', [StockController::class, 'alerts']);
