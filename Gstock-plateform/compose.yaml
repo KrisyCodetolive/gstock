@@ -1,0 +1,22 @@
+# Développement local : PostgreSQL 16 (ADR-001). L'application tourne avec `composer dev`.
+# Base « gstock » pour le développement, « gstock_test » pour les tests (créée au premier démarrage).
+services:
+  pgsql:
+    image: postgres:16-alpine
+    container_name: gstock-pgsql
+    environment:
+      POSTGRES_DB: gstock
+      POSTGRES_USER: gstock
+      POSTGRES_PASSWORD: gstock
+    ports:
+      - "${FORWARD_DB_PORT:-54329}:5432"
+    volumes:
+      - gstock-pgsql:/var/lib/postgresql/data
+      - ./docker/postgres/create-test-database.sql:/docker-entrypoint-initdb.d/10-create-test-database.sql:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "gstock", "-d", "gstock"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  gstock-pgsql:

@@ -4,7 +4,20 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// Mode « api » (`npm run dev:api`) : l'application parle au vrai backend Laravel.
+// L'espace est le sous-domaine (ADR-009) : ouvrir http://alimentation-kone.localhost:5173.
+// Le Host est conservé pour que le serveur reconnaisse l'espace et pose ses cookies.
+const API_TARGET = process.env.GSTOCK_API_URL ?? 'http://127.0.0.1:8000'
+
 export default defineConfig({
+  server: {
+    allowedHosts: ['.localhost'],
+    proxy: {
+      '/api': { target: API_TARGET, changeOrigin: false },
+      '/sanctum': { target: API_TARGET, changeOrigin: false },
+      '/storage': { target: API_TARGET, changeOrigin: false },
+    },
+  },
   plugins: [
     react(),
     tailwindcss(),
