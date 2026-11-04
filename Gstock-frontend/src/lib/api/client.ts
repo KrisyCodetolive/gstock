@@ -95,7 +95,9 @@ async function request<T>(method: string, path: string, options: RequestOptions 
   }
   const xsrf = readCookie('XSRF-TOKEN')
   if (xsrf) headers['X-XSRF-TOKEN'] = xsrf
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json'
+  // Fichier envoyé (photo) : le navigateur pose lui-même l'en-tête multipart.
+  const isForm = options.body instanceof FormData
+  if (options.body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
 
   let response: Response
   try {
@@ -103,7 +105,7 @@ async function request<T>(method: string, path: string, options: RequestOptions 
       method,
       headers,
       credentials: 'include',
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      body: isForm ? (options.body as FormData) : options.body !== undefined ? JSON.stringify(options.body) : undefined,
       signal: options.signal,
     })
   } catch (error) {
@@ -129,6 +131,8 @@ export const http = {
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, { body }),
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, { body }),
   patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, { body }),
+  /** Envoi d'un fichier (multipart/form-data), par exemple une photo. */
+  upload: <T>(path: string, form: FormData) => request<T>('POST', path, { body: form }),
   /** Réservé aux référentiels et aux rôles : jamais sur une opération financière (ADR-012). */
   delete: <T>(path: string) => request<T>('DELETE', path),
 }

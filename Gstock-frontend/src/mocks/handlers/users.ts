@@ -10,6 +10,8 @@ import {
   handle,
   isOwner,
   MockHttpError,
+  EMAIL,
+  normalizePhone,
   nullable,
   paginate,
   requirePermission,
@@ -17,8 +19,6 @@ import {
 } from '../http'
 import { currentPlan } from '../platform'
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const normalizePhone = (value: string) => value.replace(/[\s.-]/g, '').replace(/^\+225/, '')
 
 function toResource(user: MockUser): UserDetail {
   const role = db.roles.find((r) => r.id === user.role_id)!

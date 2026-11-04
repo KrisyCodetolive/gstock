@@ -50,7 +50,8 @@ export function seedHistory() {
   }
 
   // Produits vendables : on garde intacts ceux qui illustrent les alertes de stock.
-  const sellable = db.products.filter((p) => p.is_active && p.type !== 'service' && !(p.name in STOCK_FIXED))
+  // Produits simples seulement : les variantes gardent leur stock de départ.
+  const sellable = db.products.filter((p) => p.is_active && p.type === 'simple' && !(p.name in STOCK_FIXED))
   const creditCustomers = [1, 2, 3, 5, 6, 7, 9, 11, 13, 14, 17, 21]
 
   // Les 30 derniers jours, aujourd'hui compris (jamais dans le futur).

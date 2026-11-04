@@ -1,4 +1,6 @@
 // Fournisseurs de démonstration (§11.3) et forme des approvisionnements et dépenses simulés.
+import type { MockInstallment } from '../installments'
+
 export interface MockSupplier {
   id: number
   name: string
@@ -14,11 +16,14 @@ export interface MockPurchase {
   supplier_id: number | null
   reference: string
   occurred_at: string
-  items: { product_id: number; quantity: number; cost: number; subtotal: number }[]
+  /** `quantity` et `cost` dans l'unité de la ligne ; `base_quantity` en unité de base (absents : unité de base). */
+  items: { product_id: number; variant_id?: number | null; unit_id?: number; quantity: number; base_quantity?: number; cost: number; subtotal: number }[]
   subtotal: number
   discount: number
   total: number
   status: 'received' | 'cancelled'
+  /** Échéancier facultatif du reste dû au fournisseur (§7.7). */
+  installments?: MockInstallment[]
   payments: { id: number; amount: number; payment_method_id: number; paid_at: string; note: string | null; user_id: number; status: 'completed' | 'cancelled' }[]
   note: string | null
   user_id: number

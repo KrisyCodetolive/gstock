@@ -1,8 +1,26 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
-import { getMe, login, logout } from '@/lib/api/auth'
+import {
+  changePassword,
+  deleteAvatar,
+  forgotPassword,
+  getMe,
+  login,
+  logout,
+  resetPassword,
+  updateProfile,
+  uploadAvatar,
+} from '@/lib/api/auth'
 import { ApiError } from '@/lib/api/client'
-import type { LoginPayload, Me, Permission } from '@/types/auth'
+import type {
+  ForgotPasswordPayload,
+  LoginPayload,
+  Me,
+  PasswordChangePayload,
+  Permission,
+  ProfilePayload,
+  ResetPasswordPayload,
+} from '@/types/auth'
 
 export const meQueryKey = ['me'] as const
 
@@ -62,5 +80,40 @@ export function useCan() {
   return (permission: Permission | readonly Permission[]) => {
     const list: readonly Permission[] = typeof permission === 'string' ? [permission] : permission
     return list.some((p) => me.permissions.includes(p))
+  }
+}
+
+export function useForgotPassword() {
+  return useMutation({ mutationFn: (payload: ForgotPasswordPayload) => forgotPassword(payload) })
+}
+
+/** Le serveur ferme les sessions ouvertes : on oublie la session locale. */
+export function useResetPassword() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: ResetPasswordPayload) => resetPassword(payload),
+    onSuccess: () => queryClient.setQueryData(meQueryKey, null),
+  })
+}
+
+/** Profil, photo : la réponse est le nouveau GET /me (nom et photo à jour partout). */
+export function useUpdateProfile() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: ProfilePayload) => updateProfile(payload),
+    onSuccess: (me) => queryClient.setQueryData(meQueryKey, me),
+  })
+}
+
+export function useChangePassword() {
+  return useMutation({ mutationFn: (payload: PasswordChangePayload) => changePassword(payload) })
+}
+
+export function useAvatar() {
+  const queryClient = useQueryClient()
+  const onSuccess = (me: Me) => queryClient.setQueryData(meQueryKey, me)
+  return {
+    upload: useMutation({ mutationFn: (file: File) => uploadAvatar(file), onSuccess }),
+    remove: useMutation({ mutationFn: deleteAvatar, onSuccess }),
   }
 }

@@ -1,13 +1,13 @@
 # GStock — État du projet
 
-> Mis à jour le 4 novembre 2026, à la fin de la phase F9.
+> Mis à jour le 4 novembre 2026, à la fin de la phase F10.
 > Ce dossier est l'inventaire de ce qui a été **fait**. Il s'adresse à la personne (ou à l'agent) qui reprend le projet : ce fichier donne la vue d'ensemble et ce qui est commun à toutes les phases ; **chaque phase terminée a son rapport** (tableau ci-dessous) : ce qui a été livré, où se trouve le code, les règles appliquées, les vérifications faites et les limites.
 
 ## En bref
 
 | | État |
 |---|---|
-| **Frontend** (`Gstock-frontend/`) | **Toutes les phases F1 à F9 terminées** (§11.4 du cahier). Application navigable, entièrement sur données simulées (MSW). |
+| **Frontend** (`Gstock-frontend/`) | **Toutes les phases F1 à F9 terminées** (§11.4 du cahier), plus F10 (compléments de la V1 relevés par la [comparaison avec l'ancien GStock](comparaison-ancien-gstock.md)). Application navigable, entièrement sur données simulées (MSW). |
 | **Backend** (`Gstock-plateform/`) | **Pas commencé.** Squelette Laravel 12 d'origine (SQLite, `routes/web.php`). Aucune ligne de code métier. |
 | **Contrat d'API** | Défini côté frontend : types dans `src/types/`, endpoints dans `src/lib/api/`, comportement serveur reproduit dans `src/mocks/`. **C'est la spécification que le backend devra respecter** (ADR-004). Voir « Le contrat d'API pour le backend ». |
 | **Phases restantes** | Aucune côté frontend. Prochaine étape : le backend (`Gstock-plateform/`), qui doit reproduire le contrat ci-dessous. |
@@ -25,6 +25,9 @@
 | F7 — Tableau de bord et journal d'activité | [F7-tableau-de-bord-audit.md](F7-tableau-de-bord-audit.md) | `front-tableau-de-bord` |
 | F8 — Inscription, assistant de démarrage, abonnement | [F8-inscription-abonnement.md](F8-inscription-abonnement.md) | `front-inscription` |
 | F9 — Hors ligne (PWA, cache, synchronisation) | [F9-hors-ligne.md](F9-hors-ligne.md) | `front-hors-ligne` |
+| F10 — Compléments de la V1 (mot de passe oublié, profil, photos, scan caméra, unité d'achat, échéancier fournisseurs, variantes) | [F10-complements-v1.md](F10-complements-v1.md) | `front-complements-v1` |
+
+Hors phase : [comparaison-ancien-gstock.md](comparaison-ancien-gstock.md) confronte l'inventaire de l'ancien GStock (Stocky v5.0) avec le nouveau, pour décider de ce qu'il faut reprendre.
 
 Le **backend** (`Gstock-plateform/`) n'a pas de rapport : rien n'y a encore été fait.
 
@@ -56,7 +59,7 @@ npm run dev          # http://localhost:5173, données simulées actives
   | Moussa Diallo | Gestionnaire de stock | Cocody, Yopougon | stock sans caisse |
   | Paul Yao | Vendeur, **désactivé** | Cocody | refus de connexion |
 
-- **Remettre la démo à zéro** : bouton en bas de l'écran de connexion. Il efface tout le `localStorage` simulé : plateforme (`gstock.mock.platform.v1`), une base par espace (`gstock.mock.db.v7.<slug>`), sessions.
+- **Remettre la démo à zéro** : bouton en bas de l'écran de connexion. Il efface tout le `localStorage` simulé : plateforme (`gstock.mock.platform.v1`), une base par espace (`gstock.mock.db.v8.<slug>`), sessions.
 - **Créer un espace** : « Créer mon espace » sur l'écran de connexion (`/inscription`). L'écran de connexion permet ensuite de passer d'un espace à l'autre (démo seulement). Dans « Mon abonnement », des outils de simulation font avancer le temps (fin d'essai, impayé, suspension).
 - **Tester le hors ligne** : en dev, couper le réseau (outils du navigateur) suffit pour vendre sans réseau. Pour le rechargement sans réseau, il faut le service worker : `VITE_USE_MOCKS=true npx vite build --outDir dist-mock && npx vite preview --outDir dist-mock`.
 - **Vitrine des composants** : `/vitrine` (développement uniquement).
@@ -82,7 +85,10 @@ Ces décisions complètent ou précisent le cahier. Celles marquées **[cahier]*
 | Référence d'un crédit issu d'une vente | Même référence que la vente (`V-N`). `CR-N` est réservé aux soldes initiaux. |
 | Paniers en attente | Gardés **sur l'appareil** (Zustand persisté, clé `gstock.pos`), pas sur le serveur. Compatible avec le futur mode hors ligne ; un panier n'est donc pas partagé entre deux téléphones. |
 | Annuler une vente déjà remboursée (P3) **[cahier]** | Décidé en F5 : le commerçant choisit de garder l'argent déjà reçu en **avoir** au nom du client (utilisable pour une dette ou un achat) ou de le **rendre** (sortie d'argent). |
-| Produits à variantes | Reportés : seuls `simple` et `service` sont gérés (le formulaire l'annonce en mode avancé). |
+| Produits à variantes | Livrés en F10 (mode avancé) : stock, prix et code-barres par variante. Dans les lignes renvoyées par l'API, `product.name` contient le nom de la variante (« Jus de fruits 1 L — Bissap ») et `variant` la précise ; côté écran, un article se repère par `articleKey(productId, variantId)`. Le type « à variantes » ne change plus après la création. |
+| Mot de passe oublié | Par e-mail seulement (F10) ; avec un compte au téléphone, le propriétaire change le mot de passe. `demo_reset_url` n'existe que dans les données simulées. |
+| Photos | Réduites sur l'appareil avant l'envoi (`src/lib/image.ts`), envoyées en multipart par `http.upload`. |
+| Unités d'achat | Unité choisie par ligne d'approvisionnement, convertie par le serveur ; le prix d'achat du produit reste par unité de base (F10). |
 | Mode avancé | Exposé dans `GET /me` (`tenant.advanced_mode`) pour que chaque écran sache quoi masquer. |
 | Plans (P7) | Hypothèse en attendant l'équipe produit : Essentiel 5 000, Commerce 12 000, Réseau 25 000 FCFA/mois ; essai 14 jours ; grâce 7 jours. Voir [F8](F8-inscription-abonnement.md). |
 | Espace suspendu | Lecture seule (écritures refusées en **402**), connexion permise ; seule la fermeture par Genius Groups bloque la connexion. |
@@ -107,6 +113,7 @@ Le backend devra reproduire ce que font les handlers de `src/mocks/handlers/` (u
   - F7 : détail de la réponse du tableau de bord (`money_in.by_method`, `money_out`, `result.complete`, `recent`…), `GET /dashboard` réservé au propriétaire, filtres du journal (`filter[domain]`…). Détail dans [F7-tableau-de-bord-audit.md](F7-tableau-de-bord-audit.md).
   - F8 : `GET /register/check-slug`, `POST /auth/token-login` (lien à usage unique renvoyé par `/register`), `GET /onboarding` et ses actions, `tenant.subscription` dans `GET /me`, `usage` et `pending_invoice` dans `GET /subscription`, statut 402 en lecture seule, `max_products`. Détail dans [F8-inscription-abonnement.md](F8-inscription-abonnement.md).
   - F9 : résultats de `POST /shops/{id}/sync` (`created`, `duplicate`, `to_review`, `rejected`), `customers` et `tax_rate` dans `pos/bootstrap`, `sync_status` et `review_reasons` sur les ventes. Détail dans [F9-hors-ligne.md](F9-hors-ligne.md).
+  - F10 : `PUT /me/password`, `POST|DELETE /me/avatar`, `POST|DELETE /products/{id}/image`, `PUT /shops/{id}/purchases/{id}/installments` (avec `installments` et `overdue_amount`), `purchase_unit_id` / `purchase_unit` / `units` sur le produit, `unit_id` / `unit` / `base_quantity` sur les lignes d'approvisionnement, `variants` sur le produit et `variant_id` / `variant` sur toutes les lignes (vente, approvisionnement, mouvement de stock). Détail dans [F10-complements-v1.md](F10-complements-v1.md).
 - **Où trouver les règles serveur déjà écrites** : `src/mocks/http.ts` (garde de session, permissions, validation, pagination), `src/mocks/stock.ts` (stock), `src/mocks/sales.ts` (ventes), `src/mocks/credits.ts` (crédits, remboursements, échéances, avoirs), `src/mocks/purchases.ts` (approvisionnements, dépenses), `src/mocks/handlers/dashboard.ts` (tableau de bord §7.8), `src/mocks/audit.ts` (journal), `src/mocks/platform.ts` et `handlers/platform.ts` (inscription, abonnement, webhook GeniusPay, lecture seule), `handlers/sync.ts` (synchronisation hors ligne). Elles sont commentées avec les paragraphes du cahier.
 
 ## Comment le frontend est organisé
@@ -145,6 +152,9 @@ Recettes pour une nouvelle rubrique (c'est ainsi que F2 à F4 ont été faites) 
 - **Plusieurs espaces simulés** : `db` est la base de l'espace ouvert ; changer d'espace passe par `openTenantDb()` (jamais une réaffectation de `db`, importé partout). Les scripts de test qui lisent le `localStorage` doivent utiliser les clés par espace.
 - **Données de démo** : tout passe par les moteurs (`recordSale`, `applyStockChanges`) pour rester cohérent ; ne pas écrire directement dans `db.shopStock`.
 - **Lint** : `react/only-export-components` impose un seul type d'export par fichier de composants (mettre schémas et constantes dans `schemas.ts`).
+- **Variantes et clés React** : plusieurs lignes peuvent porter le même `product.id` (une par variante). Toute liste de lignes ou d'articles se clé avec `articleKey(product.id, variant?.id)`, sinon React mélange les lignes.
+- **Codes-barres de démonstration** : ce sont de vrais EAN-13. La clé de contrôle est calculée (`ean13()` dans `src/mocks/data/products.ts`) : un code à la clé fausse n'est lu ni par la caméra ni par une douchette. Un nouveau code ne doit pas reprendre les 12 premiers chiffres d'un code existant.
+- **Fichiers envoyés** : passer par `http.upload(path, formData)`, jamais par `http.post` (qui encode en JSON).
 - **Versions récentes** : TypeScript 7, React Router 8, MSW 3, Tailwind 4, Zod 4, i18next 26. Vérifier les API dans `node_modules` plutôt que de se fier à des exemples anciens (MSW 3 : `onUnhandledFrame` au lieu de `onUnhandledRequest`).
 
 ## Tests

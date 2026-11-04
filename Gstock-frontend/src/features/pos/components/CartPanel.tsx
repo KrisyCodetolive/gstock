@@ -7,10 +7,11 @@ import { QuantityInput } from '@/components/QuantityInput'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useCan } from '@/features/auth/hooks'
+import { articleKey } from '@/lib/articles'
 import { formatQuantity } from '@/lib/format'
 import type { Id } from '@/types/api'
 import type { SaleQuote } from '@/types/sales'
-import { usePosStore, type Cart } from '../store'
+import { lineKey, usePosStore, type Cart } from '../store'
 import { LineEditor } from './LineEditor'
 import type { PosProduct } from './ProductGrid'
 
@@ -30,7 +31,8 @@ export function CartPanel({
 }: {
   shopId: Id
   cart: Cart
-  products: Map<Id, PosProduct>
+  /** Articles de la caisse, par clé articleKey (produit ou variante). */
+  products: Map<string, PosProduct>
   quote: SaleQuote | undefined
   computing: boolean
   quoteError: string | null
@@ -40,22 +42,22 @@ export function CartPanel({
   const { t } = useTranslation()
   const can = useCan()
   const store = usePosStore()
-  const [editing, setEditing] = useState<Id | null>(null)
+  const [editing, setEditing] = useState<string | null>(null)
   const count = cart.lines.reduce((s, l) => s + l.quantity, 0)
   const empty = cart.lines.length === 0
   const ready = !empty && quote !== undefined && !computing && !quoteError
 
-  const setQty = (productId: Id, value: string) => {
+  const setQty = (article: string, value: string) => {
     const n = Number(value.replace(',', '.'))
     if (!Number.isFinite(n)) return
-    const p = products.get(productId)
+    const p = products.get(article)
     // Pas plus que le stock disponible (§7.2) ; un service n'a pas de limite.
     if (p && p.quantity !== null && n > Number(p.quantity)) {
       toast.warning(t('sales.pos.max_reached', { value: `${formatQuantity(p.quantity)} ${p.unit.short_name}` }))
-      store.setQuantity(shopId, productId, Number(p.quantity))
+      store.setQuantity(shopId, article, Number(p.quantity))
       return
     }
-    store.setQuantity(shopId, productId, n)
+    store.setQuantity(shopId, article, n)
   }
 
   return (
@@ -81,15 +83,16 @@ export function CartPanel({
         ) : (
           <ul className="grid gap-3">
             {cart.lines.map((line) => {
-              const p = products.get(line.productId)
-              const q = quote?.items.find((i) => i.product_id === line.productId)
+              const article = lineKey(line)
+              const p = products.get(article)
+              const q = quote?.items.find((i) => articleKey(i.product_id, i.variant_id) === article)
               return (
-                <li key={line.productId} className="grid gap-2 border-b-2 border-muted pb-3 last:border-b-0">
+                <li key={article} className="grid gap-2 border-b-2 border-muted pb-3 last:border-b-0">
                   <div className="flex items-start justify-between gap-2">
                     <button
                       type="button"
                       className="grid min-w-0 text-left"
-                      onClick={() => setEditing(line.productId)}
+                      onClick={() => setEditing(article)}
                       aria-label={t('sales.pos.edit_line', { name: p?.name ?? '' })}
                     >
                       <span className="font-bold leading-tight">{p?.name ?? '…'}</span>
@@ -102,12 +105,12 @@ export function CartPanel({
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <QuantityInput
-                      id={`cart-qty-${line.productId}`}
+                      id={`cart-qty-${article}`}
                       value={String(line.quantity)}
-                      onChange={(v) => setQty(line.productId, v)}
+                      onChange={(v) => setQty(article, v)}
                       label={`${t('stock.form.quantity')} — ${p?.name ?? ''}`}
                     />
-                    <Button variant="ghost" size="icon-sm" onClick={() => store.remove(shopId, line.productId)} aria-label={t('sales.pos.remove', { name: p?.name ?? '' })}>
+                    <Button variant="ghost" size="icon-sm" onClick={() => store.remove(shopId, article)} aria-label={t('sales.pos.remove', { name: p?.name ?? '' })}>
                       <Trash2 aria-hidden="true" />
                     </Button>
                   </div>
@@ -176,7 +179,7 @@ export function CartPanel({
         <LineEditor
           shopId={shopId}
           product={products.get(editing)!}
-          line={cart.lines.find((l) => l.productId === editing)!}
+          line={cart.lines.find((l) => lineKey(l) === editing)!}
           onClose={() => setEditing(null)}
         />
       )}

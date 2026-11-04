@@ -12,6 +12,7 @@ import { ErrorState, LoadingState } from '@/components/states'
 import { Button } from '@/components/ui/button'
 import { useCan } from '@/features/auth/hooks'
 import { useCurrentShop } from '@/features/shops/hooks'
+import { articleKey } from '@/lib/articles'
 import { apiErrorMessage } from '@/lib/form-errors'
 import { formatDateTime, formatQuantity } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -71,7 +72,7 @@ function AdjustmentDetail({ adjustment: a }: { adjustment: Adjustment }) {
             const n = Number(item.quantity)
             const signed = a.kind === 'exit' ? -n : n
             return (
-              <li key={item.product.id}>
+              <li key={articleKey(item.product.id, item.variant?.id)}>
                 <Link to={`/produits/${item.product.id}`} className="flex items-center justify-between gap-3 rounded-md px-2 py-3 hover:bg-muted">
                   <span className="grid">
                     <span className="font-bold">{item.product.name}</span>

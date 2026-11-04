@@ -59,7 +59,11 @@
       "no_lines": "Ajoutez au moins un produit.",
       "invalid_line": "Saisissez une quantité et un prix d'achat pour chaque produit.",
       "submit": "Enregistrer l'approvisionnement",
-      "done": "{{reference}} enregistré : le stock a augmenté."
+      "done": "{{reference}} enregistré : le stock a augmenté.",
+      "unit": "Acheté par",
+      "unit_option": "{{name}} de {{qty}} {{base}}",
+      "cost_per": "Prix d'achat (FCFA par {{unit}})",
+      "base_quantity": "{{qty}} {{unit}} entrent en stock"
     },
     "detail": {
       "title": "Approvisionnement {{reference}}",
@@ -80,8 +84,16 @@
       "cancel_text": "La marchandise ressort du stock. Impossible si elle a déjà été vendue. L'approvisionnement reste visible, marqué « Annulé ».",
       "cancel_reason": "Pourquoi l'annulez-vous ?",
       "cancel_reason_required": "Le motif est obligatoire.",
-      "cancelled_done": "Approvisionnement annulé : le stock a été corrigé."
-    }
+      "cancelled_done": "Approvisionnement annulé : le stock a été corrigé.",
+      "installments": "Échéancier",
+      "installments_hint": "Facultatif : les dates auxquelles vous comptez payer le fournisseur. Chaque paiement solde d'abord l'échéance la plus ancienne.",
+      "no_installments": "Pas d'échéancier : le reste est à payer quand vous voulez.",
+      "schedule": "Prévoir des échéances",
+      "schedule_edit": "Modifier les échéances",
+      "schedule_title": "Échéances de {{reference}}"
+    },
+    "overdue": "Échéance en retard",
+    "overdue_amount": "{{amount}} FCFA en retard"
   },
   "suppliers": {
     "title": "Fournisseurs",

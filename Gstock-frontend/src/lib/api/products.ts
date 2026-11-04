@@ -21,6 +21,17 @@ export async function updateProduct(id: Id, payload: ProductPayload): Promise<Pr
   return (await http.put<Resource<Product>>(`/products/${id}`, payload)).data
 }
 
+/** Photo du produit, déjà réduite sur l'appareil (champ multipart `image`). */
+export async function uploadProductImage(id: Id, file: File): Promise<Product> {
+  const form = new FormData()
+  form.append('image', file)
+  return (await http.upload<Resource<Product>>(`/products/${id}/image`, form)).data
+}
+
+export async function deleteProductImage(id: Id): Promise<Product> {
+  return (await http.delete<Resource<Product>>(`/products/${id}/image`)).data
+}
+
 export async function getProductStock(id: Id): Promise<ProductShopStock[]> {
   return (await http.get<Resource<ProductShopStock[]>>(`/products/${id}/stock`)).data
 }

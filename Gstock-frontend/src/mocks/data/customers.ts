@@ -1,4 +1,6 @@
 // Clients de démonstration (§11.3) : 30 clients du quartier.
+import type { MockInstallment } from '../installments'
+
 export interface MockCustomer {
   id: number
   name: string
@@ -27,7 +29,7 @@ export interface MockCredit {
   /** Décision P3 : argent déjà reçu gardé en avoir ou rendu au client. */
   cancel_settlement?: { mode: 'credit_note' | 'refund'; amount: number } | null
   /** Échéancier (§7.7). `frozen` : échéance soldée gardée telle quelle après un nouvel échéancier. */
-  installments?: { id: number; due_date: string; amount: number; frozen: boolean }[]
+  installments?: MockInstallment[]
 }
 
 export interface MockRepayment {

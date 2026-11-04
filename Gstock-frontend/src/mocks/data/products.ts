@@ -4,6 +4,16 @@
 import type { ProductType } from '@/types/catalog'
 import { daysAgo } from './dates'
 
+export interface MockVariant {
+  id: number
+  name: string
+  code: string
+  barcode: string | null
+  cost: number | null
+  price: number
+  is_active: boolean
+}
+
 export interface MockProduct {
   id: number
   type: ProductType
@@ -13,17 +23,23 @@ export interface MockProduct {
   category_id: number | null
   brand_id: number | null
   unit_id: number
+  /** Unité d'achat (mode avancé) ; absente dans les bases créées avant son ajout. */
+  purchase_unit_id?: number | null
   cost: number | null
   price: number
   tax_rate: number | null
   stock_alert: number | null
   image_url: string | null
   is_active: boolean
+  /** Produit `variable` : ses variantes (le stock est tenu par variante). */
+  variants?: MockVariant[]
 }
 
 export interface MockShopStock {
   shop_id: number
   product_id: number
+  /** Variante d'un produit `variable` ; absente ou null sinon. */
+  variant_id?: number | null
   quantity: number
   stock_alert: number | null
 }
@@ -32,6 +48,7 @@ export interface MockMovement {
   id: number
   shop_id: number
   product_id: number
+  variant_id?: number | null
   quantity: number
   unit_cost: number | null
   source_type: 'opening' | 'adjustment' | 'adjustment_cancel' | 'sale' | 'sale_cancel' | 'purchase' | 'purchase_cancel'
@@ -49,7 +66,7 @@ export interface MockAdjustment {
   kind: 'entry' | 'exit' | 'inventory'
   reason: string
   status: 'completed' | 'cancelled'
-  items: { product_id: number; quantity: number; counted_quantity: number | null }[]
+  items: { product_id: number; variant_id?: number | null; quantity: number; counted_quantity: number | null }[]
   user_id: number
   occurred_at: string
   offline_uuid: string | null
@@ -146,15 +163,26 @@ function defaultStock(index: number, shop: number, alert: number): number {
   return alert + (n % (alert * 3 + 5))
 }
 
+/** Codes EAN-13 valides : le dernier chiffre est la clé de contrôle, vérifiée par les lecteurs. */
+function ean13(code: string): string {
+  const digits = code.slice(0, 12).split('').map(Number)
+  const sum = digits.reduce((s, d, i) => s + d * (i % 2 ? 3 : 1), 0)
+  return code.slice(0, 12) + String((10 - (sum % 10)) % 10)
+}
+
+const CARTON = new Set(['Coca-Cola 33 cl', 'Fanta orange 33 cl', 'Savon de Marseille', 'Savon Lux'])
+
 export const products: MockProduct[] = ROWS.map(([name, category, unit, cost, price, alert, barcode], i) => ({
   id: i + 1,
   type: 'simple',
   name,
   code: `P-${String(i + 1).padStart(4, '0')}`,
-  barcode,
+  barcode: barcode && barcode.length === 13 ? ean13(barcode) : barcode,
   category_id: category,
   brand_id: name.startsWith('Huile Dinor') ? 1 : null,
   unit_id: unit,
+  // Boissons et savons s'achètent au carton de 12 (unité 3).
+  purchase_unit_id: CARTON.has(name) ? 3 : null,
   cost,
   price,
   tax_rate: null,
@@ -181,6 +209,34 @@ products.push({
   is_active: true,
 })
 
+// Un produit à variantes (mode avancé) : chaque parfum a son prix et son stock.
+{
+  const id = products.length + 1
+  const code = `P-${String(id).padStart(4, '0')}`
+  products.push({
+    id,
+    type: 'variable',
+    name: 'Jus de fruits 1 L',
+    code,
+    barcode: null,
+    category_id: 3,
+    brand_id: null,
+    unit_id: 4,
+    purchase_unit_id: null,
+    cost: 600,
+    price: 900,
+    tax_rate: null,
+    stock_alert: 4,
+    image_url: null,
+    is_active: true,
+    variants: [
+      { id: 1, name: 'Ananas', code: `${code}-1`, barcode: ean13('618110090001'), cost: 700, price: 1000, is_active: true },
+      { id: 2, name: 'Bissap', code: `${code}-2`, barcode: ean13('618110090002'), cost: 600, price: 900, is_active: true },
+      { id: 3, name: 'Gingembre', code: `${code}-3`, barcode: ean13('618110090003'), cost: 600, price: 900, is_active: true },
+    ],
+  })
+}
+
 // Stock de départ saisi un peu plus d'un mois avant aujourd'hui.
 const OPENING_DATE = daysAgo(34, 8)
 
@@ -188,7 +244,7 @@ export const shopStock: MockShopStock[] = []
 export const movements: MockMovement[] = []
 
 products
-  .filter((p) => p.type !== 'service')
+  .filter((p) => p.type === 'simple')
   .forEach((p, index) => {
     for (const shopId of [1, 2]) {
       const fixed = STOCK_FIXED[p.name]
@@ -211,6 +267,32 @@ products
       }
     }
   })
+
+// Stock de départ des variantes, boutique par boutique.
+for (const p of products.filter((x) => x.type === 'variable')) {
+  p.variants!.forEach((variant, index) => {
+    for (const shopId of [1, 2]) {
+      const quantity = [[12, 6], [3, 10], [8, 0]][index]![shopId - 1]!
+      shopStock.push({ shop_id: shopId, product_id: p.id, variant_id: variant.id, quantity, stock_alert: null })
+      if (quantity > 0) {
+        movements.push({
+          id: movements.length + 1,
+          shop_id: shopId,
+          product_id: p.id,
+          variant_id: variant.id,
+          quantity,
+          unit_cost: variant.cost,
+          source_type: 'opening',
+          source_id: null,
+          reference: null,
+          reason: 'Stock initial',
+          user_id: 1,
+          occurred_at: OPENING_DATE,
+        })
+      }
+    }
+  })
+}
 
 export const adjustments: MockAdjustment[] = []
 

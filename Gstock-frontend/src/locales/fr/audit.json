@@ -45,6 +45,8 @@
       "user.activated": "Compte réactivé",
       "user.deactivated": "Compte désactivé",
       "user.shops_changed": "Boutiques d'un utilisateur changées",
+      "user.password_changed": "Mot de passe changé",
+      "user.password_reset": "Mot de passe réinitialisé par lien",
       "payment_settings.updated": "Clés de paiement modifiées"
     },
     "detail": {

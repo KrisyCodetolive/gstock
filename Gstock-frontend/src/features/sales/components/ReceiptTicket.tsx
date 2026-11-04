@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { articleKey } from '@/lib/articles'
 import { formatAmount, formatDateTime, formatQuantity } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { Receipt } from '@/types/sales'
@@ -40,7 +41,7 @@ export function ReceiptTicket({ receipt, width = 58 }: { receipt: Receipt; width
       <hr className="border-dashed border-black" />
       <ul className="grid gap-1.5">
         {sale.items.map((i) => (
-          <li key={i.product.id} className="grid">
+          <li key={articleKey(i.product.id, i.variant?.id)} className="grid">
             <span>{i.product.name}</span>
             <span className="flex justify-between gap-2">
               <span>

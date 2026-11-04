@@ -3,13 +3,16 @@ import type { Id, IsoDate, Money } from './api'
 import type { ProductCategoryRef, ProductUnitRef, StockState } from './catalog'
 
 /** GET /shops/{shop_id}/stock : une ligne par produit stockable. */
+/** Une ligne par article : un produit, ou une variante (`variant`, et `product.name` avec la variante). */
 export interface StockItem {
+  variant: { id: Id; name: string } | null
   product: {
     id: Id
     name: string
     code: string
     category: ProductCategoryRef | null
     unit: ProductUnitRef
+    image_url: string | null
     is_active: boolean
   }
   quantity: string
@@ -37,6 +40,7 @@ export interface StockSummary {
 
 /** GET /stock : vue « Toutes mes boutiques » (propriétaire). */
 export interface StockOverviewItem {
+  variant: StockItem['variant']
   product: StockItem['product']
   total: string
   shops: { shop_id: Id; quantity: string; state: StockState }[]
@@ -48,6 +52,7 @@ export type MovementSource = 'opening' | 'adjustment' | 'adjustment_cancel' | 's
 export interface StockMovement {
   id: Id
   product: { id: Id; name: string; unit: ProductUnitRef }
+  variant: { id: Id; name: string } | null
   /** Signée : positive pour une entrée, négative pour une sortie. */
   quantity: string
   /** Stock après le mouvement. */
@@ -65,6 +70,7 @@ export type AdjustmentStatus = 'completed' | 'cancelled'
 
 export interface AdjustmentItem {
   product: { id: Id; name: string; unit: ProductUnitRef }
+  variant: { id: Id; name: string } | null
   /** Entrée, sortie : quantité saisie. Inventaire : écart appliqué. */
   quantity: string
   /** Inventaire seulement : quantité comptée. */
@@ -88,7 +94,7 @@ export interface Adjustment {
 export interface AdjustmentPayload {
   kind: AdjustmentKind
   reason: string
-  items: { product_id: Id; quantity?: string; counted_quantity?: string }[]
+  items: { product_id: Id; variant_id?: Id | null; quantity?: string; counted_quantity?: string }[]
   /** Idempotence hors ligne (ADR-005). */
   offline_uuid?: string
 }

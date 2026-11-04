@@ -18,7 +18,9 @@ export default defineConfig({
       injectManifest: {
         // Script classique : il peut charger le worker de MSW avec importScripts.
         rollupFormat: 'iife',
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2,wasm}'],
+        // Le lecteur de codes-barres (zxing, environ 1 Mo) doit marcher sans réseau.
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         globIgnores: ['mockServiceWorker.js'],
       },
       manifest: {

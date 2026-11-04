@@ -1,6 +1,7 @@
 import { Package, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
+import { ScanButton } from '@/components/BarcodeScanner'
 import { DataList } from '@/components/DataList'
 import { Pagination, SearchInput } from '@/components/ListControls'
 import { Money } from '@/components/Money'
@@ -13,6 +14,7 @@ import { useCan } from '@/features/auth/hooks'
 import { useReferentialList } from '@/features/referentials/hooks'
 import { useCurrentShop } from '@/features/shops/hooks'
 import { formatQuantity } from '@/lib/format'
+import i18n from '@/lib/i18n'
 import { useListParams } from '@/lib/use-list-params'
 import type { Product } from '@/types/catalog'
 import { ProductThumb } from '../components/ProductThumb'
@@ -63,7 +65,10 @@ export function ProductsListPage() {
         }
       />
       <div className="flex flex-col gap-3 sm:flex-row">
-        <SearchInput value={list.search} onChange={list.setSearch} placeholder={t('products.search')} />
+        <div className="flex w-full gap-2 sm:max-w-sm">
+          <SearchInput value={list.search} onChange={list.setSearch} placeholder={t('products.search')} />
+          <ScanButton onDetected={list.setSearch} />
+        </div>
         <div className="sm:w-64">
           <Select value={list.filter.category_id ?? ALL} onValueChange={(v) => list.setFilter('category_id', v === ALL ? undefined : v)}>
             <SelectTrigger aria-label={t('products.filter_category')}>
@@ -101,7 +106,7 @@ export function ProductsListPage() {
             columns={[
               { header: t('products.columns.name'), cell: name },
               { header: t('products.columns.category'), cell: (p) => p.category?.name ?? '—', className: 'text-muted-foreground' },
-              { header: t('products.columns.price'), cell: (p) => <Money value={p.price} />, className: 'text-right' },
+              { header: t('products.columns.price'), cell: price, className: 'text-right' },
               { header: shop ? t('products.in_shop', { shop: shop.name }) : t('products.columns.quantity'), cell: quantity },
               { header: t('products.columns.state'), cell: (p) => p.stock && <StockStateBadge state={p.stock.state} /> },
             ]}
@@ -111,7 +116,7 @@ export function ProductsListPage() {
                 <div className="grid min-w-0 flex-1 gap-0.5">
                   <span className="text-base leading-tight font-bold">{name(p)}</span>
                   <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                    <Money value={p.price} />
+                    {price(p)}
                     {quantity(p)}
                   </span>
                 </div>
@@ -123,5 +128,17 @@ export function ProductsListPage() {
         </>
       )}
     </div>
+  )
+}
+
+/** Prix d'un produit ; « à partir de » le plus bas prix pour un produit à variantes. */
+function price(p: Product) {
+  if (p.type !== 'variable') return <Money value={p.price} />
+  return (
+    <span className="inline-flex items-baseline gap-1">
+      <span className="text-xs text-muted-foreground">{i18n.t('products.variants.from')}</span>
+      <Money value={p.price} />
+      <span className="text-xs text-muted-foreground">· {i18n.t('products.variants.count', { count: p.variants.length })}</span>
+    </span>
   )
 }

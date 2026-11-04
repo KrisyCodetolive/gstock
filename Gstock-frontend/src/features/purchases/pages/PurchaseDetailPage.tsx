@@ -1,4 +1,4 @@
-import { Ban, HandCoins } from 'lucide-react'
+import { Ban, CalendarClock, HandCoins } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router'
@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { BackLink } from '@/components/BackLink'
 import { CancelDialog } from '@/components/CancelDialog'
 import { FormAlert, FormField } from '@/components/FormField'
+import { InstallmentScheduleSheet } from '@/components/InstallmentScheduleSheet'
 import { FormSection } from '@/components/FormLayout'
 import { Money } from '@/components/Money'
 import { PageHeader } from '@/components/PageHeader'
@@ -15,13 +16,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCan } from '@/features/auth/hooks'
+import { InstallmentStatusBadge } from '@/features/credits/components/badges'
 import { useReferentialList } from '@/features/referentials/hooks'
 import { useCurrentShop } from '@/features/shops/hooks'
+import { articleKey } from '@/lib/articles'
 import { apiErrorMessage } from '@/lib/form-errors'
 import { formatDateTime, formatQuantity, formatShortDate } from '@/lib/format'
 import type { Purchase } from '@/types/purchases'
 import { PurchaseStatusBadge } from '../components/PurchaseStatusBadge'
-import { useAddPurchasePayment, useCancelPurchase, usePurchase } from '../hooks'
+import { useAddPurchasePayment, useCancelPurchase, usePurchase, useSetPurchaseInstallments } from '../hooks'
 
 export function PurchaseDetailPage() {
   const { t } = useTranslation()
@@ -49,7 +52,10 @@ function PurchaseDetail({ purchase: p }: { purchase: Purchase }) {
   const cancel = useCancelPurchase(shop?.id, p.id)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [payOpen, setPayOpen] = useState(false)
+  const [scheduleOpen, setScheduleOpen] = useState(false)
+  const schedule = useSetPurchaseInstallments(shop?.id, p.id)
   const cancelled = p.status === 'cancelled'
+  const owing = !cancelled && Number(p.due_amount) > 0
 
   return (
     <>
@@ -78,13 +84,18 @@ function PurchaseDetail({ purchase: p }: { purchase: Purchase }) {
       <FormSection title={t('purchases.detail.items')}>
         <ul className="grid divide-y-2 divide-muted">
           {p.items.map((i) => (
-            <li key={i.product.id}>
+            <li key={articleKey(i.product.id, i.variant?.id)}>
               <Link to={`/produits/${i.product.id}`} className="flex items-start justify-between gap-3 rounded-md px-1 py-3 hover:bg-muted">
                 <span className="grid">
                   <span className="font-bold">{i.product.name}</span>
                   <span className="text-sm text-muted-foreground">
-                    {t('purchases.detail.unit', { qty: `${formatQuantity(i.quantity)} ${i.product.unit.short_name}`, cost: Number(i.cost).toLocaleString('fr-FR') })}
+                    {t('purchases.detail.unit', { qty: `${formatQuantity(i.quantity)} ${i.unit.short_name}`, cost: Number(i.cost).toLocaleString('fr-FR') })}
                   </span>
+                  {i.unit.id !== i.product.unit.id && (
+                    <span className="text-sm text-muted-foreground">
+                      {t('purchases.form.base_quantity', { qty: formatQuantity(i.base_quantity), unit: i.product.unit.short_name })}
+                    </span>
+                  )}
                 </span>
                 <Money value={i.subtotal} />
               </Link>
@@ -148,6 +159,43 @@ function PurchaseDetail({ purchase: p }: { purchase: Purchase }) {
           </Button>
         )}
       </FormSection>
+
+      {(owing || p.installments.length > 0) && (
+        <FormSection title={t('purchases.detail.installments')} description={t('purchases.detail.installments_hint')}>
+          {p.installments.length === 0 ? (
+            <p className="text-muted-foreground">{t('purchases.detail.no_installments')}</p>
+          ) : (
+            <ul className="grid gap-2">
+              {p.installments.map((i) => (
+                <li key={i.id} className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-bold">{formatShortDate(i.due_date)}</span>
+                  <span className="flex items-center gap-2">
+                    <Money value={i.amount} />
+                    <InstallmentStatusBadge status={i.status} />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {owing && can('purchase_payments.create') && (
+            <Button variant="outline" className="justify-self-start" onClick={() => setScheduleOpen(true)}>
+              <CalendarClock aria-hidden="true" />
+              {p.installments.length ? t('purchases.detail.schedule_edit') : t('purchases.detail.schedule')}
+            </Button>
+          )}
+        </FormSection>
+      )}
+      {scheduleOpen && (
+        <InstallmentScheduleSheet
+          open
+          onOpenChange={(o) => !o && setScheduleOpen(false)}
+          title={t('purchases.detail.schedule_title', { reference: p.reference })}
+          remaining={Number(p.due_amount)}
+          installments={p.installments}
+          pending={schedule.isPending}
+          onSave={(items) => schedule.mutateAsync(items)}
+        />
+      )}
 
       {!cancelled && can('purchases.cancel') && (
         <FormSection title={t('purchases.detail.cancel')} description={t('purchases.detail.cancel_text')}>

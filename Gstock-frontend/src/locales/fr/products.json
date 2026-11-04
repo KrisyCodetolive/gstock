@@ -54,12 +54,21 @@
       "tax_rate": "Taxe (%)",
       "brand": "Marque",
       "brand_none": "Aucune",
-      "variants_soon": "Les produits à variantes (tailles, couleurs) arriveront dans une prochaine version.",
+      "variants_soon": "Variantes : chaque taille ou parfum a son prix, son code-barres et son stock.",
       "required_name": "Donnez un nom au produit.",
       "required_price": "Saisissez le prix de vente.",
       "invalid_number": "Saisissez un nombre positif.",
       "created": "Produit ajouté.",
-      "unit_default": "Unité (par défaut)"
+      "unit_default": "Unité (par défaut)",
+      "photo": "Photo",
+      "photo_failed": "Le produit est créé, mais la photo n'a pas pu être envoyée : {{reason}}",
+      "purchase_unit": "Unité d'achat",
+      "purchase_unit_none": "La même que l'unité du produit",
+      "purchase_unit_hint": "Proposée par défaut quand vous ajoutez du stock acheté chez un fournisseur.",
+      "purchase_unit_empty": "Créez d'abord une unité dérivée de l'unité du produit (Paramètres › Unités), par exemple Carton = Unité × 12.",
+      "purchase_unit_option": "{{name}} ({{qty}} {{base}})",
+      "type_variable": "Avec variantes (taille, parfum…)",
+      "price_variants": "Prix de vente : saisi pour chaque variante, plus bas."
     },
     "stock_by_shop": "Stock par boutique",
     "stock_by_shop_service": "Un service n'a pas de stock.",
@@ -75,6 +84,24 @@
       "disable_text": "Il ne sera plus proposé à la vente. Rien n'est supprimé : vous pourrez le réactiver.",
       "disabled": "Produit désactivé.",
       "enabled": "Produit réactivé."
+    },
+    "variants": {
+      "title": "Variantes",
+      "hint": "Chaque variante a son prix, son code-barres et son stock dans chaque boutique. Une variante ne se supprime pas : désactivez-la pour ne plus la vendre.",
+      "name": "Variante",
+      "name_placeholder": "ex. Bissap, Taille M",
+      "price": "Prix de vente (FCFA)",
+      "cost": "Prix d'achat (FCFA)",
+      "barcode": "Code-barres",
+      "active": "En vente",
+      "add": "Ajouter une variante",
+      "remove": "Retirer cette variante",
+      "required_name": "Donnez un nom à la variante.",
+      "required_one": "Ajoutez au moins une variante en vente.",
+      "from": "à partir de",
+      "count_one": "{{count}} variante",
+      "count_other": "{{count}} variantes",
+      "stock_title": "Stock par variante"
     }
   }
 }

@@ -1,5 +1,14 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createProduct, getProduct, getProductStock, listProducts, searchShopProducts, updateProduct } from '@/lib/api/products'
+import {
+  createProduct,
+  deleteProductImage,
+  getProduct,
+  getProductStock,
+  listProducts,
+  searchShopProducts,
+  updateProduct,
+  uploadProductImage,
+} from '@/lib/api/products'
 import type { Id, ListParams } from '@/types/api'
 import type { ProductCreatePayload, ProductPayload } from '@/types/catalog'
 
@@ -52,4 +61,17 @@ export function useSaveProduct(id?: Id) {
       void queryClient.invalidateQueries({ queryKey: ['referentials'] })
     },
   })
+}
+
+/** Photo d'un produit : la liste, la caisse et les sélecteurs l'affichent ensuite. */
+export function useProductImage() {
+  const queryClient = useQueryClient()
+  const onSuccess = () => {
+    void queryClient.invalidateQueries({ queryKey: productsKey })
+    void queryClient.invalidateQueries({ queryKey: ['pos'] })
+  }
+  return {
+    upload: useMutation({ mutationFn: ({ id, file }: { id: Id; file: File }) => uploadProductImage(id, file), onSuccess }),
+    remove: useMutation({ mutationFn: (id: Id) => deleteProductImage(id), onSuccess }),
+  }
 }

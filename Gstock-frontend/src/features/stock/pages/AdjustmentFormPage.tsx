@@ -15,6 +15,7 @@ import { ProductPicker } from '@/features/products/components/ProductPicker'
 import { ProductThumb } from '@/features/products/components/ProductThumb'
 import { useCurrentShop } from '@/features/shops/hooks'
 import { ApiError } from '@/lib/api/client'
+import { articleKey } from '@/lib/articles'
 import { formatQuantity } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { ProductSearchResult } from '@/types/catalog'
@@ -33,6 +34,9 @@ interface Line {
 }
 
 const parse = (v: string) => Number(v.replace(',', '.'))
+/** Une ligne par article : produit, ou variante d'un produit à variantes. */
+const keyOf = (l: Line) => articleKey(l.product.id, l.product.variant_id)
+const variantOf = (l: Line) => (l.product.variant_id ? { variant_id: l.product.variant_id } : {})
 
 /** Entrée, sortie ou inventaire : une référence MS-N par validation (M07). */
 export function AdjustmentFormPage({ kind }: { kind: AdjustmentKind }) {
@@ -80,8 +84,8 @@ export function AdjustmentFormPage({ kind }: { kind: AdjustmentKind }) {
         offline_uuid: offlineUuid,
         items: lines.map((l) =>
           kind === 'inventory'
-            ? { product_id: l.product.id, counted_quantity: String(parse(l.value)) }
-            : { product_id: l.product.id, quantity: String(parse(l.value)) },
+            ? { product_id: l.product.id, ...variantOf(l), counted_quantity: String(parse(l.value)) }
+            : { product_id: l.product.id, ...variantOf(l), quantity: String(parse(l.value)) },
         ),
       },
       {
@@ -95,7 +99,7 @@ export function AdjustmentFormPage({ kind }: { kind: AdjustmentKind }) {
     )
   }
 
-  const update = (id: number, value: string) => setLines((ls) => ls.map((l) => (l.product.id === id ? { ...l, value } : l)))
+  const update = (k: string, value: string) => setLines((ls) => ls.map((l) => (keyOf(l) === k ? { ...l, value } : l)))
 
   return (
     <div className="grid gap-6">
@@ -110,13 +114,14 @@ export function AdjustmentFormPage({ kind }: { kind: AdjustmentKind }) {
             <ul className="grid gap-3">
               {lines.map((line) => {
                 const error = submitted ? lineError(line) : null
-                const id = `qty-${line.product.id}`
+                const k = keyOf(line)
+                const id = `qty-${k}`
                 const current = line.product.quantity === null ? 0 : Number(line.product.quantity)
                 const gap = parse(line.value) - current
                 return (
-                  <li key={line.product.id} className="grid gap-3 rounded-md border-2 border-foreground p-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                  <li key={k} className="grid gap-3 rounded-md border-2 border-foreground p-3 sm:grid-cols-[1fr_auto] sm:items-center">
                     <div className="flex items-center gap-3">
-                      <ProductThumb name={line.product.name} color={line.product.category?.color} className="size-10" />
+                      <ProductThumb name={line.product.name} color={line.product.category?.color} imageUrl={line.product.image_url} className="size-10" />
                       <div className="grid min-w-0 flex-1">
                         <span className="truncate font-bold">{line.product.name}</span>
                         <span className="text-sm text-muted-foreground">
@@ -132,7 +137,7 @@ export function AdjustmentFormPage({ kind }: { kind: AdjustmentKind }) {
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => setLines((ls) => ls.filter((l) => l.product.id !== line.product.id))}
+                        onClick={() => setLines((ls) => ls.filter((l) => keyOf(l) !== k))}
                         aria-label={t('stock.form.remove_line', { name: line.product.name })}
                       >
                         <Trash2 aria-hidden="true" />
@@ -142,7 +147,7 @@ export function AdjustmentFormPage({ kind }: { kind: AdjustmentKind }) {
                       <QuantityInput
                         id={id}
                         value={line.value}
-                        onChange={(v) => update(line.product.id, v)}
+                        onChange={(v) => update(k, v)}
                         label={`${kind === 'inventory' ? t('stock.form.counted') : t('stock.form.quantity')} — ${line.product.name}`}
                         invalid={Boolean(error)}
                         describedBy={error ? `${id}-error` : undefined}
@@ -194,7 +199,7 @@ export function AdjustmentFormPage({ kind }: { kind: AdjustmentKind }) {
       <ProductPicker
         open={pickerOpen}
         onOpenChange={setPickerOpen}
-        excludeIds={lines.map((l) => l.product.id)}
+        exclude={lines.map(keyOf)}
         onPick={(product) =>
           setLines((ls) => [...ls, { product, value: kind === 'inventory' ? (product.quantity === null ? '0' : String(Number(product.quantity))) : '1' }])
         }

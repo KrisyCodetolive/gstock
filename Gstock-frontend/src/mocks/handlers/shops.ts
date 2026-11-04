@@ -2,7 +2,7 @@
 import { delay, http, HttpResponse } from 'msw'
 import type { Shop, ShopPayload } from '@/types/settings'
 import { db, nextId, persist } from '../db'
-import { stockRow } from '../stock'
+import { stockKeys, stockRow } from '../stock'
 import { API, findOr404, handle, normalize, nullable, paginate, requirePermission, Validator } from '../http'
 import { currentPlan } from '../platform'
 
@@ -79,8 +79,8 @@ export const shopsHandlers = [
       validate(body)
       const shop: ShopRow = { id: nextId(db.shops), ...fromBody(body) }
       db.shops.push(shop)
-      // La création d'une boutique crée une ligne de stock à 0 pour chaque produit (§7.2).
-      for (const p of db.products) if (p.type !== 'service') stockRow(shop.id, p.id)
+      // La création d'une boutique crée une ligne de stock à 0 pour chaque produit et chaque variante (§7.2).
+      for (const p of db.products) for (const variantId of stockKeys(p)) stockRow(shop.id, p.id, variantId)
       persist()
       return HttpResponse.json({ data: toResource(shop) }, { status: 201 })
     }),

@@ -12,6 +12,7 @@ import type {
   Supplier,
   SupplierPayload,
 } from '@/types/purchases'
+import type { InstallmentScheduleItem } from '@/types/credits'
 import { http } from './client'
 
 export function listSuppliers(params: ListParams = {}): Promise<Paginated<Supplier>> {
@@ -56,6 +57,11 @@ export async function addPurchasePayment(
 }
 
 /** Annulation avec motif : la marchandise sort du stock (ADR-012). */
+/** Échéancier du reste dû au fournisseur (§7.7) : remplace les échéances non payées. */
+export async function setPurchaseInstallments(shopId: Id, id: Id, installments: InstallmentScheduleItem[]): Promise<Purchase> {
+  return (await http.put<Resource<Purchase>>(`/shops/${shopId}/purchases/${id}/installments`, { installments })).data
+}
+
 export async function cancelPurchase(shopId: Id, id: Id, reason: string): Promise<Purchase> {
   return (await http.post<Resource<Purchase>>(`/shops/${shopId}/purchases/${id}/cancel`, { reason })).data
 }

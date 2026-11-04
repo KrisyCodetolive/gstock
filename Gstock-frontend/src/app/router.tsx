@@ -59,6 +59,9 @@ const GeniusPaySimulatorPage =
   import.meta.env.VITE_USE_MOCKS === 'true'
     ? lazy(() => import('@/mocks/components/GeniusPaySimulatorPage').then((m) => ({ default: m.GeniusPaySimulatorPage })))
     : null
+const ForgotPasswordPage = lazy(() => import('@/features/auth/pages/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })))
+const ResetPasswordPage = lazy(() => import('@/features/auth/pages/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })))
+const ProfilePage = lazy(() => import('@/features/profile/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const SyncPage = lazy(() => import('@/features/sync/pages/SyncPage').then((m) => ({ default: m.SyncPage })))
 const AuditPage = lazy(() => import('@/features/dashboard/pages/AuditPage').then((m) => ({ default: m.AuditPage })))
 
@@ -136,6 +139,9 @@ const settings: RouteObject[] = [
 
 export const router = createBrowserRouter([
   { path: '/connexion', element: <LoginPage />, errorElement: <RouteErrorPage /> },
+  // Mot de passe oublié (M02) : demande du lien, puis lien reçu par e-mail.
+  { path: '/mot-de-passe-oublie', element: <Suspense fallback={<SplashScreen />}><ForgotPasswordPage /></Suspense>, errorElement: <RouteErrorPage /> },
+  { path: '/reinitialiser-mot-de-passe', element: <Suspense fallback={<SplashScreen />}><ResetPasswordPage /></Suspense>, errorElement: <RouteErrorPage /> },
   // Domaine principal : inscription d'un nouveau commerçant (M00).
   { path: '/inscription', element: <Suspense fallback={<SplashScreen />}><RegisterPage /></Suspense>, errorElement: <RouteErrorPage /> },
   // Lien de connexion à usage unique, reçu à l'inscription.
@@ -181,6 +187,8 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       // Opérations faites sans réseau sur cet appareil (ADR-005) : chacun voit les siennes.
       { path: '/synchronisation', element: <SyncPage /> },
+      // Mon profil : chacun gère son propre compte, sans permission particulière.
+      { path: '/profil', element: <ProfilePage /> },
       ...upcoming,
       ...catalog,
       ...settings,

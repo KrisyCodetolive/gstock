@@ -2,6 +2,7 @@
 // Les montants sont recalculés par le serveur (§7.4).
 import type { Id, IsoDate, Money } from './api'
 import type { ProductUnitRef } from './catalog'
+import type { Installment } from './credits'
 
 /** Ressource /suppliers */
 export interface Supplier {
@@ -30,9 +31,14 @@ export type PurchaseStatus = 'received' | 'cancelled'
 
 export interface PurchaseLineInput {
   product_id: Id
+  /** Obligatoire pour un produit à variantes. */
+  variant_id?: Id | null
+  /** Quantité dans l'unité choisie (`unit_id`). */
   quantity: string
-  /** Prix d'achat unitaire. */
+  /** Prix d'achat d'une unité choisie (un carton, par exemple). */
   cost: string
+  /** Unité de la ligne, parmi `units` du produit ; absente : l'unité de base. */
+  unit_id?: Id | null
 }
 
 /** POST /shops/{shop_id}/purchases/quote : total calculé par le serveur. */
@@ -42,7 +48,7 @@ export interface PurchaseQuoteInput {
 }
 
 export interface PurchaseQuote {
-  items: { product_id: Id; quantity: string; cost: Money; subtotal: Money }[]
+  items: { product_id: Id; variant_id: Id | null; unit: ProductUnitRef; quantity: string; base_quantity: string; cost: Money; subtotal: Money }[]
   subtotal: Money
   discount: Money
   total: Money
@@ -76,7 +82,8 @@ export interface Purchase {
   shop: { id: Id; name: string }
   supplier: { id: Id; name: string; phone: string | null } | null
   occurred_at: IsoDate
-  items: { product: { id: Id; name: string; unit: ProductUnitRef }; quantity: string; cost: Money; subtotal: Money }[]
+  /** `unit` : unité d'achat de la ligne ; `base_quantity` : ce qui est entré en stock, en unité de base. */
+  items: { product: { id: Id; name: string; unit: ProductUnitRef }; variant: { id: Id; name: string } | null; unit: ProductUnitRef; quantity: string; base_quantity: string; cost: Money; subtotal: Money }[]
   subtotal: Money
   discount: Money
   total: Money
@@ -85,6 +92,8 @@ export interface Purchase {
   payment_status: PurchasePaymentStatus
   status: PurchaseStatus
   payments: PurchasePayment[]
+  /** Échéancier facultatif du reste dû (§7.7) ; vide s'il n'y en a pas. */
+  installments: Installment[]
   note: string | null
   user: { id: Id; name: string } | null
   cancelled_at: IsoDate | null
@@ -94,7 +103,11 @@ export interface Purchase {
 export type PurchaseListItem = Pick<
   Purchase,
   'id' | 'reference' | 'supplier' | 'occurred_at' | 'total' | 'paid_amount' | 'due_amount' | 'payment_status' | 'status'
-> & { items_count: number }
+> & {
+  items_count: number
+  /** Montant des échéances dépassées et non payées, "0.00" sinon. */
+  overdue_amount: Money
+}
 
 export interface PurchasesList {
   data: PurchaseListItem[]

@@ -31,7 +31,8 @@
   "user": {
     "menu": "Mon compte",
     "logout": "Se déconnecter",
-    "role": "Rôle : {{role}}"
+    "role": "Rôle : {{role}}",
+    "profile": "Mon profil"
   },
   "auth": {
     "title": "Connexion",
@@ -49,7 +50,34 @@
     "demo_text": "Touchez un profil pour vous connecter avec lui. Mot de passe : {{password}}",
     "demo_inactive": "Compte désactivé",
     "demo_reset": "Remettre les données de démonstration à zéro",
-    "demo_reset_done": "Données de démonstration remises à zéro."
+    "demo_reset_done": "Données de démonstration remises à zéro.",
+    "forgot_link": "Mot de passe oublié ?",
+    "forgot": {
+      "title": "Mot de passe oublié",
+      "text": "Saisissez l'adresse e-mail de votre compte : nous vous envoyons un lien pour choisir un nouveau mot de passe.",
+      "email": "Adresse e-mail",
+      "invalid_email": "Cette adresse e-mail n'est pas valide.",
+      "no_email_hint": "Vous vous connectez avec votre numéro de téléphone ? Demandez au propriétaire de l'espace de changer votre mot de passe.",
+      "submit": "Recevoir le lien",
+      "submitting": "Envoi…",
+      "sent_title": "Vérifiez vos e-mails",
+      "demo_link": "Démonstration : ouvrir le lien reçu",
+      "back": "Retour à la connexion"
+    },
+    "reset": {
+      "title": "Nouveau mot de passe",
+      "text": "Choisissez votre nouveau mot de passe. Vous pourrez ensuite vous connecter avec lui.",
+      "password": "Nouveau mot de passe",
+      "password_hint": "8 caractères au moins.",
+      "confirmation": "Retapez le nouveau mot de passe",
+      "short_password": "Le mot de passe doit contenir au moins 8 caractères.",
+      "mismatch": "Les deux mots de passe ne sont pas identiques.",
+      "submit": "Enregistrer le mot de passe",
+      "submitting": "Enregistrement…",
+      "done": "Mot de passe changé. Connectez-vous avec le nouveau.",
+      "missing": "Ce lien est incomplet. Demandez un nouveau lien.",
+      "new_link": "Demander un nouveau lien"
+    }
   },
   "home": {
     "hello": "Bonjour {{name}}",
@@ -159,7 +187,24 @@
     "yes": "Oui",
     "no": "Non",
     "saved": "Modifications enregistrées.",
-    "generic_error": "Une erreur est survenue. Réessayez dans un instant."
+    "generic_error": "Une erreur est survenue. Réessayez dans un instant.",
+    "photo": {
+      "add": "Ajouter une photo",
+      "change": "Changer la photo",
+      "remove": "Retirer",
+      "hint": "Photo prise avec le téléphone ou choisie dans la galerie.",
+      "sending": "Envoi de la photo…"
+    },
+    "scan": {
+      "button": "Scanner avec la caméra",
+      "title": "Scanner un code-barres",
+      "text": "Placez le code-barres dans le cadre, il est lu tout seul.",
+      "starting": "Ouverture de la caméra…",
+      "aim": "Visez le code-barres",
+      "denied": "La caméra est bloquée. Autorisez-la dans les réglages du navigateur, puis réessayez.",
+      "no_camera": "Aucune caméra n'a été trouvée sur cet appareil.",
+      "error": "La caméra n'a pas pu s'ouvrir. Fermez les autres applications qui l'utilisent, puis réessayez."
+    }
   },
   "list": {
     "clear_search": "Effacer la recherche",
@@ -172,5 +217,26 @@
   },
   "roles_display": {
     "owner": "Propriétaire"
+  },
+  "profile": {
+    "title": "Mon profil",
+    "photo": "Ma photo",
+    "identity": "Mes informations",
+    "identity_hint": "Votre e-mail ou votre téléphone sert à vous connecter.",
+    "firstname": "Prénom",
+    "lastname": "Nom",
+    "email": "E-mail",
+    "phone": "Téléphone",
+    "required_firstname": "Saisissez votre prénom.",
+    "required_lastname": "Saisissez votre nom.",
+    "required_login": "Gardez un e-mail ou un numéro de téléphone pour vous connecter.",
+    "shops": "Boutiques où vous travaillez : {{shops}}. Seul le propriétaire peut changer votre rôle et vos boutiques.",
+    "password": {
+      "title": "Changer mon mot de passe",
+      "current": "Mot de passe actuel",
+      "required_current": "Saisissez votre mot de passe actuel.",
+      "submit": "Changer le mot de passe",
+      "done": "Mot de passe changé."
+    }
   }
 }

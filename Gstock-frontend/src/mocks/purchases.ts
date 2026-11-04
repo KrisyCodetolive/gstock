@@ -4,7 +4,9 @@ import type { MockExpense, MockPurchase } from './data/purchases'
 import type { MockUser } from './data/users'
 import { db, nextReference } from './db'
 import { MockHttpError, Validator } from './http'
-import { applyStockChanges } from './stock'
+import { applyStockChanges, resolveArticle } from './stock'
+import { unitFactor, unitFamily } from './units'
+import { buildSchedule, scheduleOf } from './installments'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 const num = (v: unknown) => (v === undefined || v === null || v === '' ? NaN : Number(String(v).replace(',', '.')))
@@ -15,7 +17,7 @@ export function computePurchase(input: PurchaseQuoteInput) {
   const v = new Validator()
   const lines = input.items ?? []
   v.check(lines.length > 0, 'items', 'Ajoutez au moins un produit.')
-  const ids = lines.map((l) => Number(l.product_id))
+  const ids = lines.map((l) => `${Number(l.product_id)}:${l.variant_id ?? ''}`)
   v.check(new Set(ids).size === ids.length, 'items', 'Un même produit apparaît deux fois.')
   const items = lines.flatMap((l) => {
     const product = db.products.find((p) => p.id === Number(l.product_id) && p.is_active)
@@ -23,11 +25,22 @@ export function computePurchase(input: PurchaseQuoteInput) {
       v.add('items', 'Un des produits ne peut pas être approvisionné.')
       return []
     }
+    // Produit à variantes : on achète une variante précise (son stock, son prix d'achat).
+    const article = resolveArticle(product, l.variant_id, v)
+    if (!article) return []
     const quantity = num(l.quantity)
     const cost = num(l.cost)
-    if (!(quantity > 0)) v.add('items', `Saisissez une quantité supérieure à 0 pour ${product.name}.`)
-    if (!(cost >= 0)) v.add('items', `Saisissez le prix d'achat de ${product.name}.`)
-    return [{ product, product_id: product.id, quantity, cost: round2(cost), subtotal: round2(quantity * cost) }]
+    if (!(quantity > 0)) v.add('items', `Saisissez une quantité supérieure à 0 pour ${article.name}.`)
+    if (!(cost >= 0)) v.add('items', `Saisissez le prix d'achat de ${article.name}.`)
+    // Unité de la ligne : l'unité de base du produit ou une de ses unités dérivées (§7.3).
+    const unit = l.unit_id ? unitFamily(product.unit_id).find((u) => u.id === Number(l.unit_id)) : db.units.find((u) => u.id === product.unit_id)
+    if (!unit) {
+      v.add('items', `Cette unité ne convient pas pour ${product.name}.`)
+      return []
+    }
+    // Le stock est tenu en unité de base, arrondi au millième (§7.2).
+    const base_quantity = Math.round(quantity * unitFactor(unit) * 1000) / 1000
+    return [{ product, variant: article.variant, product_id: product.id, variant_id: article.variantId, unit, unit_id: unit.id, quantity, base_quantity, cost: round2(cost), subtotal: round2(quantity * cost) }]
   })
   const subtotal = round2(items.reduce((s, i) => s + (i.subtotal || 0), 0))
   const discount = input.discount ? round2(num(input.discount)) : 0
@@ -45,6 +58,18 @@ export function purchaseState(p: MockPurchase) {
   const due = p.status === 'cancelled' ? 0 : round2(Math.max(p.total - paid, 0))
   const payment_status = due === 0 ? 'paid' : paid === 0 ? 'unpaid' : 'partial'
   return { paid, due, payment_status: payment_status as 'paid' | 'partial' | 'unpaid' }
+}
+
+/** Échéancier de la dette fournisseur : soldé par les paiements, du plus ancien au plus récent (§7.7). */
+export function purchaseInstallments(p: MockPurchase) {
+  return p.status === 'cancelled' ? [] : scheduleOf(p.installments, purchaseState(p).due)
+}
+
+export function setPurchaseInstallments(p: MockPurchase, items: { due_date?: string; amount?: string }[]) {
+  const due = purchaseState(p).due
+  if (p.status === 'cancelled' || due === 0) throw new MockHttpError(409, 'Cet approvisionnement n’a plus de reste à payer.')
+  const lastId = Math.max(0, ...db.purchases.flatMap((x) => (x.installments ?? []).map((i) => i.id)))
+  p.installments = buildSchedule(p.installments, due, items, lastId)
 }
 
 function checkPayment(amount: number, methodId: unknown, due: number, v: Validator) {
@@ -76,11 +101,18 @@ export function recordPurchase(
   const reference = `AP-${db.sequences.AP ?? 1}`
   // Entrée en stock, en unité de base (§7.2).
   applyStockChanges(
-    c.items.map((i) => ({ shopId, product: i.product, delta: i.quantity })),
+    c.items.map((i) => ({ shopId, product: i.product, variantId: i.variant_id, delta: i.base_quantity })),
     { source_type: 'purchase', source_id: id, reference, reason: supplier ? supplier.name : null, user_id: user.id, occurred_at: occurredAt },
   )
   nextReference('AP')
-  if (input.update_costs) for (const i of c.items) i.product.cost = i.cost
+  // Le prix d'achat du produit est tenu par unité de base : prix du carton ÷ 12.
+  if (input.update_costs) {
+    for (const i of c.items) {
+      const cost = round2(i.cost / unitFactor(i.unit))
+      if (i.variant) i.variant.cost = cost
+      else i.product.cost = cost
+    }
+  }
 
   const purchase: MockPurchase = {
     id,
@@ -88,7 +120,7 @@ export function recordPurchase(
     supplier_id: supplier?.id ?? null,
     reference,
     occurred_at: occurredAt,
-    items: c.items.map(({ product: _p, ...i }) => i),
+    items: c.items.map(({ product: _p, variant: _v, unit: _u, ...i }) => i),
     subtotal: c.subtotal,
     discount: c.discount,
     total: c.total,
@@ -128,7 +160,7 @@ export function addPurchasePayment(purchase: MockPurchase, user: MockUser, body:
 export function cancelPurchase(purchase: MockPurchase, user: MockUser, reason: string) {
   if (purchase.status === 'cancelled') throw new MockHttpError(409, 'Cet approvisionnement a déjà été annulé.')
   applyStockChanges(
-    purchase.items.map((i) => ({ shopId: purchase.shop_id, product: db.products.find((p) => p.id === i.product_id)!, delta: -i.quantity })),
+    purchase.items.map((i) => ({ shopId: purchase.shop_id, product: db.products.find((p) => p.id === i.product_id)!, variantId: i.variant_id ?? null, delta: -(i.base_quantity ?? i.quantity) })),
     { source_type: 'purchase_cancel', source_id: purchase.id, reference: purchase.reference, reason: `Annulation : ${reason}`, user_id: user.id, occurred_at: now() },
   )
   Object.assign(purchase, { status: 'cancelled', cancelled_at: now(), cancel_reason: reason })

@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { useCan } from '@/features/auth/hooks'
 import { SettlementChoice } from '@/features/credits/components/SettlementChoice'
 import { useCurrentShop } from '@/features/shops/hooks'
+import { articleKey } from '@/lib/articles'
 import { apiErrorMessage } from '@/lib/form-errors'
 import { formatDateTime, formatQuantity } from '@/lib/format'
 import type { CancelSettlement } from '@/types/credits'
@@ -109,7 +110,7 @@ function SaleDetail({ sale }: { sale: Sale }) {
       <FormSection title={t('sales.detail.items')}>
         <ul className="grid divide-y-2 divide-muted">
           {sale.items.map((i) => (
-            <li key={i.product.id} className="flex items-start justify-between gap-3 py-3">
+            <li key={articleKey(i.product.id, i.variant?.id)} className="flex items-start justify-between gap-3 py-3">
               <span className="grid">
                 <span className="font-bold">{i.product.name}</span>
                 <span className="text-sm text-muted-foreground">

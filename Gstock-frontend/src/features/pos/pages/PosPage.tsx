@@ -6,11 +6,13 @@ import { toast } from 'sonner'
 import { Money } from '@/components/Money'
 import { ResponsiveSheet } from '@/components/ResponsiveSheet'
 import { EmptyState, ErrorState, LoadingState } from '@/components/states'
+import { ScanButton } from '@/components/BarcodeScanner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { ShopSwitcher } from '@/features/shops/components/ShopSwitcher'
 import { useCurrentShop } from '@/features/shops/hooks'
+import { articleKey } from '@/lib/articles'
 import { ApiError } from '@/lib/api/client'
 import { apiErrorMessage } from '@/lib/form-errors'
 import { formatDateTime, formatQuantity } from '@/lib/format'
@@ -22,7 +24,7 @@ import { CartPanel } from '../components/CartPanel'
 import { CheckoutSheet } from '../components/CheckoutSheet'
 import { ProductGrid, type PosProduct } from '../components/ProductGrid'
 import { cartToInput, usePosBootstrap, useSaleQuote } from '../hooks'
-import { useCart, useHeldCarts, usePosStore } from '../store'
+import { lineKey, useCart, useHeldCarts, usePosStore } from '../store'
 import { OfflineIndicator } from '@/features/sync/components/OfflineIndicator'
 import { useAutoSync } from '@/offline/hooks'
 
@@ -46,8 +48,9 @@ export function PosPage() {
   const quote = useSaleQuote(shop?.id, cart.lines.length ? cartToInput(cart) : null, bootstrap.data)
   const quoteError = quote.error instanceof ApiError ? apiErrorMessage(quote.error) : null
 
-  const products = useMemo(() => new Map((bootstrap.data?.products ?? []).map((p) => [p.id, p])), [bootstrap.data])
-  const quantities = useMemo(() => new Map(cart.lines.map((l) => [l.productId, l.quantity])), [cart.lines])
+  // Articles : un par produit, ou un par variante (clé articleKey).
+  const products = useMemo(() => new Map((bootstrap.data?.products ?? []).map((p) => [articleKey(p.id, p.variant_id), p])), [bootstrap.data])
+  const quantities = useMemo(() => new Map(cart.lines.map((l) => [lineKey(l), l.quantity])), [cart.lines])
   const visible = useMemo(() => {
     const needle = normalizeText(search)
     return (bootstrap.data?.products ?? []).filter(
@@ -61,7 +64,7 @@ export function PosPage() {
 
   /** Ajout instantané, sans dépasser le stock disponible (§7.2). */
   const add = (p: PosProduct) => {
-    const inCart = quantities.get(p.id) ?? 0
+    const inCart = quantities.get(articleKey(p.id, p.variant_id)) ?? 0
     if (p.quantity !== null && inCart + 1 > Number(p.quantity)) {
       toast.warning(
         Number(p.quantity) <= 0
@@ -70,19 +73,21 @@ export function PosPage() {
       )
       return
     }
-    store.add(shop.id, p.id)
+    store.add(shop.id, p.id, p.variant_id)
   }
 
   /** Entrée dans la recherche : un code-barres exact ajoute directement le produit (douchette). */
-  const onSearchEnter = () => {
-    const code = search.trim()
+  const onSearchEnter = (value = search) => {
+    const code = value.trim()
     if (!code) return
     const match = bootstrap.data?.products.find((p) => p.barcode === code)
     if (match) {
       add(match)
       toast.success(t('sales.pos.barcode_added', { name: match.name }))
       setSearch('')
-    } else if (/^\d{8,14}$/.test(code)) {
+    } else if (/^\d{8,14}$/.test(code) || value !== search) {
+      // Code inconnu : on le laisse dans la recherche pour que l'on voie ce qui a été lu.
+      setSearch(code)
       toast.error(t('sales.pos.barcode_unknown'))
     }
   }
@@ -123,21 +128,24 @@ export function PosPage() {
               <span className="tabular">{held.length}</span>
             </Button>
           </div>
-          <div className="relative">
-            <label htmlFor="pos-search" className="sr-only">
-              {t('sales.pos.search')}
-            </label>
-            <Search className="pointer-events-none absolute top-3.5 left-3 size-5 text-muted-foreground" aria-hidden="true" />
-            <Input
-              id="pos-search"
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && onSearchEnter()}
-              placeholder={t('sales.pos.search')}
-              className="pl-10"
-              autoComplete="off"
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <label htmlFor="pos-search" className="sr-only">
+                {t('sales.pos.search')}
+              </label>
+              <Search className="pointer-events-none absolute top-3.5 left-3 size-5 text-muted-foreground" aria-hidden="true" />
+              <Input
+                id="pos-search"
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && onSearchEnter()}
+                placeholder={t('sales.pos.search')}
+                className="pl-10"
+                autoComplete="off"
+              />
+            </div>
+            <ScanButton onDetected={(code) => onSearchEnter(code)} />
           </div>
           {bootstrap.data && bootstrap.data.categories.length > 0 && (
             <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1" role="group" aria-label={t('products.filter_category')}>
