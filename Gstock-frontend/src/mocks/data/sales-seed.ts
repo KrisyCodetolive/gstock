@@ -203,8 +203,8 @@ export function seedHistory() {
         shopId: 1,
         subject: { type: 'sale', id: toCancel.id, label: toCancel.reference },
         reason: 'Le client a rapporté la marchandise.',
-        old: { statut: 'completed', total: toCancel.total },
-        new: { statut: 'cancelled' },
+        old: { statut: 'Validée', total: toCancel.total },
+        new: { statut: 'Annulée' },
         at: toCancel.cancelled_at ?? undefined,
       })
     } catch {

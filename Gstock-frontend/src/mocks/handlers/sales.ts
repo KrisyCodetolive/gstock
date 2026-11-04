@@ -251,8 +251,8 @@ export const salesHandlers = [
         shopId,
         subject: { type: 'sale', id: sale.id, label: sale.reference },
         reason: reason!.trim(),
-        old: { statut: 'completed', total: sale.total },
-        new: { statut: 'cancelled', ...(settlement.refund_mode ? { argent_deja_recu: settlement.refund_mode === 'credit_note' ? 'avoir' : 'rendu' } : {}) },
+        old: { statut: 'Validée', total: sale.total },
+        new: { statut: 'Annulée', ...(settlement.refund_mode ? { argent_deja_recu: settlement.refund_mode === 'credit_note' ? 'Gardé en avoir' : 'Rendu au client' } : {}) },
       })
       persist()
       return HttpResponse.json({ data: saleResource(sale) })

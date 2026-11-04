@@ -49,6 +49,7 @@ const PurchaseDetailPage = lazy(() => import('@/features/purchases/pages/Purchas
 const SuppliersListPage = lazy(() => import('@/features/purchases/pages/SuppliersListPage').then((m) => ({ default: m.SuppliersListPage })))
 const SupplierPage = lazy(() => import('@/features/purchases/pages/SupplierPage').then((m) => ({ default: m.SupplierPage })))
 const ExpensesPage = lazy(() => import('@/features/purchases/pages/ExpensesPage').then((m) => ({ default: m.ExpensesPage })))
+const AuditPage = lazy(() => import('@/features/dashboard/pages/AuditPage').then((m) => ({ default: m.AuditPage })))
 
 const ShowcasePage = lazy(() => import('./pages/ShowcasePage').then((m) => ({ default: m.ShowcasePage })))
 
@@ -96,6 +97,7 @@ const catalog: RouteObject[] = [
   guarded('/fournisseurs/nouveau', ['suppliers.manage'], <SupplierPage />),
   guarded('/fournisseurs/:id', ['suppliers.view'], <SupplierPage />),
   guarded('/depenses', ['expenses.view'], <ExpensesPage />),
+  guarded('/journal', ['audit.view'], <AuditPage />),
 ]
 
 const settings: RouteObject[] = [

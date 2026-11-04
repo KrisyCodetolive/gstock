@@ -76,7 +76,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'audit', path: '/journal', label: 'nav.audit', description: 'home.audit_text',
-    icon: BookOpenText, permissions: ['audit.view'], phase: 'F7',
+    icon: BookOpenText, permissions: ['audit.view'],
   },
   {
     id: 'settings', path: '/parametres', label: 'nav.settings', description: 'home.settings_text',

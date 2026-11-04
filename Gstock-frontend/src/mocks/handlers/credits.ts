@@ -298,7 +298,7 @@ export const creditsHandlers = [
       v.required(reason, 'reason', 'Indiquez pourquoi vous annulez ce crédit.')
       v.done()
       cancelCredit(credit, user, reason!.trim(), settlement)
-      audit(user, 'credit.cancelled', { shopId, subject: { type: 'credit', id: credit.id, label: credit.reference }, reason: reason!.trim(), new: { argent_deja_recu: credit.cancel_settlement ? credit.cancel_settlement : null } })
+      audit(user, 'credit.cancelled', { shopId, subject: { type: 'credit', id: credit.id, label: credit.reference }, reason: reason!.trim(), new: { argent_deja_recu: credit.cancel_settlement ? `${credit.cancel_settlement.amount.toLocaleString('fr-FR')} FCFA ${credit.cancel_settlement.mode === 'credit_note' ? 'gardés en avoir' : 'rendus au client'}` : null } })
       persist()
       return HttpResponse.json({ data: creditDetail(credit) })
     }),

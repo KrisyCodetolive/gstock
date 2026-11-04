@@ -42,11 +42,12 @@ export function ExpensesPage() {
   const { t } = useTranslation()
   const can = useCan()
   const { shop } = useCurrentShop()
-  const list = useListParams(['periode', 'categorie'])
+  const list = useListParams(['periode', 'categorie', 'ajouter'])
   const period: Period = (PERIODS as string[]).includes(list.filter.periode ?? '') ? (list.filter.periode as Period) : 'month'
   const expenses = useExpenses(shop?.id, { page: list.page, search: list.params.search, filter: { from: periodFrom(period), expense_category_id: list.filter.categorie } })
   const categories = useReferentialList('expense-categories', { per_page: 100, sort: 'name' })
-  const [creating, setCreating] = useState(false)
+  // Action rapide de l'accueil : /depenses?ajouter=1 ouvre directement la saisie.
+  const [creating, setCreating] = useState(list.filter.ajouter === '1')
   const [selected, setSelected] = useState<Expense | null>(null)
 
   const amount = (e: Expense) => <Money value={e.amount} className={e.status === 'cancelled' ? 'line-through opacity-60' : undefined} />
@@ -166,7 +167,14 @@ export function ExpensesPage() {
         </>
       )}
 
-      {creating && <ExpenseForm onClose={() => setCreating(false)} />}
+      {creating && (
+        <ExpenseForm
+          onClose={() => {
+            setCreating(false)
+            list.setFilter('ajouter', undefined)
+          }}
+        />
+      )}
       {selected && <ExpenseDetail expense={selected} onClose={() => setSelected(null)} />}
     </div>
   )

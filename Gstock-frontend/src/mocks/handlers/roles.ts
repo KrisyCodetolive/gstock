@@ -8,6 +8,9 @@ import type { MockRole } from '../data/users'
 import { db, nextId, persist } from '../db'
 import { API, findOr404, handle, MockHttpError, normalize, nullable, paginate, requirePermission, Validator } from '../http'
 
+/** Libellés français des permissions, pour le journal. */
+const labels = (names: string[]) => names.map((n) => permissionDefinitions.find((d) => d.name === n)?.label ?? n)
+
 const usersCount = (roleId: number) => db.users.filter((u) => u.role_id === roleId).length
 
 const toResource = (role: MockRole): RoleDetail => ({ ...role, users_count: usersCount(role.id) })
@@ -72,7 +75,7 @@ export const rolesHandlers = [
         permissions: [...new Set(body.permissions)] as Permission[],
       }
       db.roles.push(role)
-      audit(user, 'role.created', { subject: { type: 'role', id: role.id, label: role.name }, new: { permissions: role.permissions } })
+      audit(user, 'role.created', { subject: { type: 'role', id: role.id, label: role.name }, new: { permissions: labels(role.permissions) } })
       persist()
       return HttpResponse.json({ data: toResource(role) }, { status: 201 })
     }),
@@ -93,7 +96,12 @@ export const rolesHandlers = [
         description: nullable(body.description),
         permissions: [...new Set(body.permissions)],
       })
-      audit(user, 'role.updated', { subject: { type: 'role', id: role.id, label: role.name }, old, new: { nom: role.name, permissions: role.permissions } })
+      // Dans le journal : les permissions ajoutées et retirées, en français (jamais de codes techniques).
+      audit(user, 'role.updated', {
+        subject: { type: 'role', id: role.id, label: role.name },
+        old: { nom: old.nom, permissions_retirees: labels(old.permissions.filter((x) => !role.permissions.includes(x))) },
+        new: { nom: role.name, permissions_ajoutees: labels(role.permissions.filter((x) => !old.permissions.includes(x))) },
+      })
       persist()
       return HttpResponse.json({ data: toResource(role) })
     }),
@@ -113,7 +121,7 @@ export const rolesHandlers = [
         )
       }
       db.roles.splice(db.roles.indexOf(role), 1)
-      audit(user, 'role.deleted', { subject: { type: 'role', id: role.id, label: role.name }, old: { permissions: role.permissions } })
+      audit(user, 'role.deleted', { subject: { type: 'role', id: role.id, label: role.name }, old: { permissions: labels(role.permissions) } })
       persist()
       return new HttpResponse(null, { status: 204 })
     }),

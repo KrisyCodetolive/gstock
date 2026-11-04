@@ -252,7 +252,7 @@ export const stockHandlers = [
         shopId,
         subject: { type: 'adjustment', id, label: reference },
         reason: adjustment.reason,
-        new: { kind, items: valid.map((l) => ({ produit: l.product.name, quantite: l.delta })) },
+        new: { type: { entry: 'Ajout', exit: 'Retrait', inventory: 'Inventaire' }[kind], produits: valid.map((l) => ({ produit: l.product.name, quantite: l.delta })) },
       })
       persist()
       return HttpResponse.json({ data: adjustmentResource(adjustment) }, { status: 201 })
