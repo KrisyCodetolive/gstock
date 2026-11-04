@@ -6,6 +6,7 @@ import { db, nextId, persist } from '../db'
 import { API, findOr404, handle, MockHttpError, normalize, nullable, paginate, permissionsOf, readImage, requirePermission, requireUser, Validator } from '../http'
 import { alertOf, applyStockChanges, money, qty, requireShopAccess, stockRow, stockState } from '../stock'
 import { currentPlan } from '../platform'
+import { unitFamily, unitOption } from '../units'
 
 function refs(p: MockProduct) {
   const category = db.categories.find((c) => c.id === p.category_id)
@@ -15,7 +16,14 @@ function refs(p: MockProduct) {
     category: category ? { id: category.id, name: category.name, color: category.color } : null,
     brand: brand ? { id: brand.id, name: brand.name } : null,
     unit: { id: unit.id, name: unit.name, short_name: unit.short_name },
+    units: unitFamily(unit.id).map(unitOption),
+    purchase_unit: purchaseUnitOf(p),
   }
+}
+
+function purchaseUnitOf(p: MockProduct) {
+  const unit = p.purchase_unit_id ? db.units.find((u) => u.id === p.purchase_unit_id && u.base_unit_id === p.unit_id) : undefined
+  return unit ? unitOption(unit) : null
 }
 
 function level(p: MockProduct, shopId: number | null) {
@@ -67,6 +75,16 @@ function validate(body: Partial<ProductCreatePayload>, current?: MockProduct) {
   if (barcode) v.check(!db.products.some((p) => p.id !== current?.id && p.barcode === barcode), 'barcode', 'Ce code-barres est déjà utilisé par un autre produit.')
   if (body.category_id) v.check(db.categories.some((c) => c.id === Number(body.category_id)), 'category_id', 'Cette catégorie n’existe pas.')
   if (body.unit_id) v.check(db.units.some((u) => u.id === Number(body.unit_id)), 'unit_id', 'Cette unité n’existe pas.')
+  const unitId = body.unit_id ? Number(body.unit_id) : (db.units.find((u) => u.base_unit_id === null)?.id ?? 1)
+  // Unité d'achat : dérivée de l'unité de base du produit (Carton = Unité × 12).
+  const purchaseUnitId = body.purchase_unit_id ? Number(body.purchase_unit_id) : null
+  if (purchaseUnitId !== null) {
+    v.check(
+      db.units.some((u) => u.id === purchaseUnitId && u.base_unit_id === unitId),
+      'purchase_unit_id',
+      "L'unité d'achat doit être une unité dérivée de l'unité du produit (par exemple Carton pour Unité).",
+    )
+  }
 
   const initial = num(body.initial_quantity)
   if (!current) v.check(initial === null || (!Number.isNaN(initial) && initial >= 0), 'initial_quantity', 'La quantité doit être un nombre positif.')
@@ -79,7 +97,8 @@ function validate(body: Partial<ProductCreatePayload>, current?: MockProduct) {
     barcode,
     category_id: body.category_id ? Number(body.category_id) : null,
     brand_id: body.brand_id ? Number(body.brand_id) : null,
-    unit_id: body.unit_id ? Number(body.unit_id) : (db.units.find((u) => u.base_unit_id === null)?.id ?? 1),
+    unit_id: unitId,
+    purchase_unit_id: type === 'service' ? null : purchaseUnitId,
     cost,
     price: price!,
     tax_rate: num(body.tax_rate),
@@ -170,6 +189,8 @@ export const productsHandlers = [
           price: r.price,
           cost: r.cost,
           unit: r.unit,
+          purchase_unit_id: r.purchase_unit?.id ?? null,
+          units: r.units,
           category: r.category,
           image_url: r.image_url,
           quantity: r.stock?.quantity ?? null,

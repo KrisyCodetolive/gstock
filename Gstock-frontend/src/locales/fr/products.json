@@ -61,7 +61,12 @@
       "created": "Produit ajouté.",
       "unit_default": "Unité (par défaut)",
       "photo": "Photo",
-      "photo_failed": "Le produit est créé, mais la photo n'a pas pu être envoyée : {{reason}}"
+      "photo_failed": "Le produit est créé, mais la photo n'a pas pu être envoyée : {{reason}}",
+      "purchase_unit": "Unité d'achat",
+      "purchase_unit_none": "La même que l'unité du produit",
+      "purchase_unit_hint": "Proposée par défaut quand vous ajoutez du stock acheté chez un fournisseur.",
+      "purchase_unit_empty": "Créez d'abord une unité dérivée de l'unité du produit (Paramètres › Unités), par exemple Carton = Unité × 12.",
+      "purchase_unit_option": "{{name}} ({{qty}} {{base}})"
     },
     "stock_by_shop": "Stock par boutique",
     "stock_by_shop_service": "Un service n'a pas de stock.",

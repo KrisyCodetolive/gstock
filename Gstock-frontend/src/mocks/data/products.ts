@@ -13,6 +13,8 @@ export interface MockProduct {
   category_id: number | null
   brand_id: number | null
   unit_id: number
+  /** Unité d'achat (mode avancé) ; absente dans les bases créées avant son ajout. */
+  purchase_unit_id?: number | null
   cost: number | null
   price: number
   tax_rate: number | null
@@ -153,6 +155,8 @@ function ean13(code: string): string {
   return code.slice(0, 12) + String((10 - (sum % 10)) % 10)
 }
 
+const CARTON = new Set(['Coca-Cola 33 cl', 'Fanta orange 33 cl', 'Savon de Marseille', 'Savon Lux'])
+
 export const products: MockProduct[] = ROWS.map(([name, category, unit, cost, price, alert, barcode], i) => ({
   id: i + 1,
   type: 'simple',
@@ -162,6 +166,8 @@ export const products: MockProduct[] = ROWS.map(([name, category, unit, cost, pr
   category_id: category,
   brand_id: name.startsWith('Huile Dinor') ? 1 : null,
   unit_id: unit,
+  // Boissons et savons s'achètent au carton de 12 (unité 3).
+  purchase_unit_id: CARTON.has(name) ? 3 : null,
   cost,
   price,
   tax_rate: null,

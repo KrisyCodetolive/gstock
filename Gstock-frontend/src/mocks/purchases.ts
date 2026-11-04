@@ -5,6 +5,7 @@ import type { MockUser } from './data/users'
 import { db, nextReference } from './db'
 import { MockHttpError, Validator } from './http'
 import { applyStockChanges } from './stock'
+import { unitFactor, unitFamily } from './units'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 const num = (v: unknown) => (v === undefined || v === null || v === '' ? NaN : Number(String(v).replace(',', '.')))
@@ -27,7 +28,15 @@ export function computePurchase(input: PurchaseQuoteInput) {
     const cost = num(l.cost)
     if (!(quantity > 0)) v.add('items', `Saisissez une quantité supérieure à 0 pour ${product.name}.`)
     if (!(cost >= 0)) v.add('items', `Saisissez le prix d'achat de ${product.name}.`)
-    return [{ product, product_id: product.id, quantity, cost: round2(cost), subtotal: round2(quantity * cost) }]
+    // Unité de la ligne : l'unité de base du produit ou une de ses unités dérivées (§7.3).
+    const unit = l.unit_id ? unitFamily(product.unit_id).find((u) => u.id === Number(l.unit_id)) : db.units.find((u) => u.id === product.unit_id)
+    if (!unit) {
+      v.add('items', `Cette unité ne convient pas pour ${product.name}.`)
+      return []
+    }
+    // Le stock est tenu en unité de base, arrondi au millième (§7.2).
+    const base_quantity = Math.round(quantity * unitFactor(unit) * 1000) / 1000
+    return [{ product, product_id: product.id, unit, unit_id: unit.id, quantity, base_quantity, cost: round2(cost), subtotal: round2(quantity * cost) }]
   })
   const subtotal = round2(items.reduce((s, i) => s + (i.subtotal || 0), 0))
   const discount = input.discount ? round2(num(input.discount)) : 0
@@ -76,11 +85,12 @@ export function recordPurchase(
   const reference = `AP-${db.sequences.AP ?? 1}`
   // Entrée en stock, en unité de base (§7.2).
   applyStockChanges(
-    c.items.map((i) => ({ shopId, product: i.product, delta: i.quantity })),
+    c.items.map((i) => ({ shopId, product: i.product, delta: i.base_quantity })),
     { source_type: 'purchase', source_id: id, reference, reason: supplier ? supplier.name : null, user_id: user.id, occurred_at: occurredAt },
   )
   nextReference('AP')
-  if (input.update_costs) for (const i of c.items) i.product.cost = i.cost
+  // Le prix d'achat du produit est tenu par unité de base : prix du carton ÷ 12.
+  if (input.update_costs) for (const i of c.items) i.product.cost = round2(i.cost / unitFactor(i.unit))
 
   const purchase: MockPurchase = {
     id,
@@ -88,7 +98,7 @@ export function recordPurchase(
     supplier_id: supplier?.id ?? null,
     reference,
     occurred_at: occurredAt,
-    items: c.items.map(({ product: _p, ...i }) => i),
+    items: c.items.map(({ product: _p, unit: _u, ...i }) => i),
     subtotal: c.subtotal,
     discount: c.discount,
     total: c.total,
@@ -128,7 +138,7 @@ export function addPurchasePayment(purchase: MockPurchase, user: MockUser, body:
 export function cancelPurchase(purchase: MockPurchase, user: MockUser, reason: string) {
   if (purchase.status === 'cancelled') throw new MockHttpError(409, 'Cet approvisionnement a déjà été annulé.')
   applyStockChanges(
-    purchase.items.map((i) => ({ shopId: purchase.shop_id, product: db.products.find((p) => p.id === i.product_id)!, delta: -i.quantity })),
+    purchase.items.map((i) => ({ shopId: purchase.shop_id, product: db.products.find((p) => p.id === i.product_id)!, delta: -(i.base_quantity ?? i.quantity) })),
     { source_type: 'purchase_cancel', source_id: purchase.id, reference: purchase.reference, reason: `Annulation : ${reason}`, user_id: user.id, occurred_at: now() },
   )
   Object.assign(purchase, { status: 'cancelled', cancelled_at: now(), cancel_reason: reason })

@@ -37,9 +37,12 @@ function purchaseResource(p: MockPurchase): Purchase {
     items: p.items.map((i) => {
       const product = db.products.find((x) => x.id === i.product_id)!
       const unit = db.units.find((u) => u.id === product.unit_id) ?? db.units[0]!
+      const lineUnit = db.units.find((u) => u.id === i.unit_id) ?? unit
       return {
         product: { id: product.id, name: product.name, unit: { id: unit.id, name: unit.name, short_name: unit.short_name } },
+        unit: { id: lineUnit.id, name: lineUnit.name, short_name: lineUnit.short_name },
         quantity: qty(i.quantity),
+        base_quantity: qty(i.base_quantity ?? i.quantity),
         cost: money(i.cost)!,
         subtotal: money(i.subtotal)!,
       }
@@ -147,7 +150,14 @@ export const purchasesHandlers = [
       const c = computePurchase((await request.json()) as never)
       return HttpResponse.json({
         data: {
-          items: c.items.map((i) => ({ product_id: i.product_id, quantity: qty(i.quantity), cost: money(i.cost), subtotal: money(i.subtotal) })),
+          items: c.items.map((i) => ({
+            product_id: i.product_id,
+            unit: { id: i.unit.id, name: i.unit.name, short_name: i.unit.short_name },
+            quantity: qty(i.quantity),
+            base_quantity: qty(i.base_quantity),
+            cost: money(i.cost),
+            subtotal: money(i.subtotal),
+          })),
           subtotal: money(c.subtotal),
           discount: money(c.discount),
           total: money(c.total),

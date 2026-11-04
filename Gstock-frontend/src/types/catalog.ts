@@ -20,6 +20,12 @@ export interface ProductUnitRef {
   short_name: string
 }
 
+/** Unité utilisable pour un produit, avec sa conversion (§7.3). */
+export interface ProductUnitOption extends ProductUnitRef {
+  /** Nombre d'unités de base dans cette unité (Carton = 12 unités → "12.000"). */
+  factor: string
+}
+
 /** Ressource /products */
 export interface Product {
   id: Id
@@ -30,6 +36,11 @@ export interface Product {
   category: ProductCategoryRef | null
   brand: { id: Id; name: string } | null
   unit: ProductUnitRef
+  /** Unité d'achat (mode avancé), null : on achète dans l'unité de base. */
+  purchase_unit: ProductUnitOption | null
+  /** Unité de base puis unités dérivées : celles proposées à l'approvisionnement. */
+  units: ProductUnitOption[]
+  /** Prix d'achat, par unité de base. */
   cost: Money | null
   price: Money
   tax_rate: string | null
@@ -55,6 +66,8 @@ export interface ProductPayload {
   category_id: Id | null
   brand_id: Id | null
   unit_id: Id | null
+  /** Unité d'achat : une unité dérivée de l'unité de base, ou null. */
+  purchase_unit_id: Id | null
   cost: Money | null
   price: Money
   tax_rate: string | null
@@ -86,6 +99,8 @@ export interface ProductSearchResult {
   price: Money
   cost: Money | null
   unit: ProductUnitRef
+  purchase_unit_id: Id | null
+  units: ProductUnitOption[]
   category: ProductCategoryRef | null
   image_url: string | null
   quantity: string | null

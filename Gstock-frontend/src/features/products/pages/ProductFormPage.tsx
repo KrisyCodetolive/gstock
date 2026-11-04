@@ -91,6 +91,10 @@ function ProductFormBody({ product }: { product?: Product }) {
   const form = useForm<ProductForm>({ resolver: zodResolver(productSchema), defaultValues: productToForm(product) })
   const { errors, isDirty } = form.formState
   const type = useWatch({ control: form.control, name: 'type' })
+  const unitId = useWatch({ control: form.control, name: 'unit_id' })
+  // Unités d'achat possibles : celles dérivées de l'unité du produit (Carton = Unité × 12).
+  const baseUnitId = unitId ? Number(unitId) : units.data?.data.find((u) => u.base_unit_id === null)?.id
+  const purchaseUnits = units.data?.data.filter((u) => u.base_unit_id !== null && u.base_unit_id === baseUnitId) ?? []
 
   const submit = form.handleSubmit((values) => {
     setFormError(null)
@@ -212,6 +216,24 @@ function ProductFormBody({ product }: { product?: Product }) {
 
           {tenant.advanced_mode && showMore && (
             <FormSection title={t('products.form.advanced')} description={t('products.form.variants_soon')}>
+              {type !== 'service' && (
+                <SelectField
+                  control={form.control}
+                  name="purchase_unit_id"
+                  label={t('products.form.purchase_unit')}
+                  noneLabel={t('products.form.purchase_unit_none')}
+                  hint={purchaseUnits.length ? t('products.form.purchase_unit_hint') : t('products.form.purchase_unit_empty')}
+                  options={purchaseUnits.map((u) => ({
+                    value: String(u.id),
+                    label: t('products.form.purchase_unit_option', {
+                      name: u.name,
+                      qty: (u.operator === '/' ? 1 / Number(u.operator_value) : Number(u.operator_value)).toLocaleString('fr-FR'),
+                      base: units.data?.data.find((b) => b.id === u.base_unit_id)?.short_name ?? '',
+                    }),
+                  }))}
+                  error={errors.purchase_unit_id?.message}
+                />
+              )}
               <div className="grid gap-4 sm:grid-cols-3">
                 <SelectField
                   control={form.control}

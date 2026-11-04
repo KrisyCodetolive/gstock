@@ -30,9 +30,12 @@ export type PurchaseStatus = 'received' | 'cancelled'
 
 export interface PurchaseLineInput {
   product_id: Id
+  /** Quantité dans l'unité choisie (`unit_id`). */
   quantity: string
-  /** Prix d'achat unitaire. */
+  /** Prix d'achat d'une unité choisie (un carton, par exemple). */
   cost: string
+  /** Unité de la ligne, parmi `units` du produit ; absente : l'unité de base. */
+  unit_id?: Id | null
 }
 
 /** POST /shops/{shop_id}/purchases/quote : total calculé par le serveur. */
@@ -42,7 +45,7 @@ export interface PurchaseQuoteInput {
 }
 
 export interface PurchaseQuote {
-  items: { product_id: Id; quantity: string; cost: Money; subtotal: Money }[]
+  items: { product_id: Id; unit: ProductUnitRef; quantity: string; base_quantity: string; cost: Money; subtotal: Money }[]
   subtotal: Money
   discount: Money
   total: Money
@@ -76,7 +79,8 @@ export interface Purchase {
   shop: { id: Id; name: string }
   supplier: { id: Id; name: string; phone: string | null } | null
   occurred_at: IsoDate
-  items: { product: { id: Id; name: string; unit: ProductUnitRef }; quantity: string; cost: Money; subtotal: Money }[]
+  /** `unit` : unité d'achat de la ligne ; `base_quantity` : ce qui est entré en stock, en unité de base. */
+  items: { product: { id: Id; name: string; unit: ProductUnitRef }; unit: ProductUnitRef; quantity: string; base_quantity: string; cost: Money; subtotal: Money }[]
   subtotal: Money
   discount: Money
   total: Money

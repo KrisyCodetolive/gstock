@@ -83,8 +83,13 @@ function PurchaseDetail({ purchase: p }: { purchase: Purchase }) {
                 <span className="grid">
                   <span className="font-bold">{i.product.name}</span>
                   <span className="text-sm text-muted-foreground">
-                    {t('purchases.detail.unit', { qty: `${formatQuantity(i.quantity)} ${i.product.unit.short_name}`, cost: Number(i.cost).toLocaleString('fr-FR') })}
+                    {t('purchases.detail.unit', { qty: `${formatQuantity(i.quantity)} ${i.unit.short_name}`, cost: Number(i.cost).toLocaleString('fr-FR') })}
                   </span>
+                  {i.unit.id !== i.product.unit.id && (
+                    <span className="text-sm text-muted-foreground">
+                      {t('purchases.form.base_quantity', { qty: formatQuantity(i.base_quantity), unit: i.product.unit.short_name })}
+                    </span>
+                  )}
                 </span>
                 <Money value={i.subtotal} />
               </Link>

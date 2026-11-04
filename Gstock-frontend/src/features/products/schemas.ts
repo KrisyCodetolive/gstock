@@ -15,6 +15,7 @@ export const productSchema = z.object({
   category_id: z.string(),
   cost: decimal(false, i18n.t('products.form.invalid_number')),
   unit_id: z.string(),
+  purchase_unit_id: z.string(),
   barcode: z.string().trim(),
   code: z.string().trim(),
   stock_alert: decimal(false, i18n.t('products.form.invalid_number')),
@@ -27,7 +28,7 @@ export const productSchema = z.object({
 export type ProductForm = z.infer<typeof productSchema>
 
 export const PRODUCT_FIELDS = [
-  'name', 'price', 'category_id', 'cost', 'unit_id', 'barcode', 'code', 'stock_alert', 'initial_quantity', 'type', 'tax_rate', 'brand_id',
+  'name', 'price', 'category_id', 'cost', 'unit_id', 'purchase_unit_id', 'barcode', 'code', 'stock_alert', 'initial_quantity', 'type', 'tax_rate', 'brand_id',
 ] as const
 
 const trimNumber = (v: string | null) => (v === null ? '' : String(Number(v)))
@@ -39,6 +40,7 @@ export function productToForm(p?: Product): ProductForm {
     category_id: p?.category ? String(p.category.id) : '',
     cost: p ? trimNumber(p.cost) : '',
     unit_id: p ? String(p.unit.id) : '',
+    purchase_unit_id: p?.purchase_unit ? String(p.purchase_unit.id) : '',
     barcode: p?.barcode ?? '',
     code: p?.code ?? '',
     stock_alert: p ? trimNumber(p.stock_alert) : '',
@@ -61,6 +63,7 @@ export function formToPayload(v: ProductForm, product?: Product, shopId?: number
     category_id: id(v.category_id),
     brand_id: id(v.brand_id),
     unit_id: id(v.unit_id),
+    purchase_unit_id: v.type === 'service' ? null : id(v.purchase_unit_id),
     cost: dec(v.cost),
     price: dec(v.price)!,
     tax_rate: dec(v.tax_rate),
