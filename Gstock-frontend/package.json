@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "vite --mode api",
     "build": "tsc && tsc -p tsconfig.sw.json && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
