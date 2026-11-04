@@ -1,11 +1,15 @@
 // Endpoints simulés des rôles et permissions (M04, ADR-014).
 import { delay, http, HttpResponse } from 'msw'
+import { audit } from '../audit'
 import { ALL_PERMISSIONS, type Permission } from '@/types/auth'
 import type { RoleDetail, RolePayload } from '@/types/users'
 import { permissionDefinitions } from '../data/permissions'
 import type { MockRole } from '../data/users'
 import { db, nextId, persist } from '../db'
 import { API, findOr404, handle, MockHttpError, normalize, nullable, paginate, requirePermission, Validator } from '../http'
+
+/** Libellés français des permissions, pour le journal. */
+const labels = (names: string[]) => names.map((n) => permissionDefinitions.find((d) => d.name === n)?.label ?? n)
 
 const usersCount = (roleId: number) => db.users.filter((u) => u.role_id === roleId).length
 
@@ -60,7 +64,7 @@ export const rolesHandlers = [
   http.post(`${API}/roles`, ({ request }) =>
     handle(async () => {
       await delay(400)
-      requirePermission('roles.manage')
+      const user = requirePermission('roles.manage')
       const body = (await request.json()) as Partial<RolePayload>
       validate(body)
       const role: MockRole = {
@@ -71,6 +75,7 @@ export const rolesHandlers = [
         permissions: [...new Set(body.permissions)] as Permission[],
       }
       db.roles.push(role)
+      audit(user, 'role.created', { subject: { type: 'role', id: role.id, label: role.name }, new: { permissions: labels(role.permissions) } })
       persist()
       return HttpResponse.json({ data: toResource(role) }, { status: 201 })
     }),
@@ -79,16 +84,23 @@ export const rolesHandlers = [
   http.put(`${API}/roles/:id`, ({ request, params }) =>
     handle(async () => {
       await delay(400)
-      requirePermission('roles.manage')
+      const user = requirePermission('roles.manage')
       const role = findOr404(db.roles, params.id)
       refuseOwner(role)
       const body = (await request.json()) as Partial<RolePayload>
       validate(body, role)
+      const old = { nom: role.name, permissions: [...role.permissions] }
       // S'applique immédiatement à tous les utilisateurs du rôle (M04).
       Object.assign(role, {
         name: body.name!.trim(),
         description: nullable(body.description),
         permissions: [...new Set(body.permissions)],
+      })
+      // Dans le journal : les permissions ajoutées et retirées, en français (jamais de codes techniques).
+      audit(user, 'role.updated', {
+        subject: { type: 'role', id: role.id, label: role.name },
+        old: { nom: old.nom, permissions_retirees: labels(old.permissions.filter((x) => !role.permissions.includes(x))) },
+        new: { nom: role.name, permissions_ajoutees: labels(role.permissions.filter((x) => !old.permissions.includes(x))) },
       })
       persist()
       return HttpResponse.json({ data: toResource(role) })
@@ -98,7 +110,7 @@ export const rolesHandlers = [
   http.delete(`${API}/roles/:id`, ({ params }) =>
     handle(async () => {
       await delay(350)
-      requirePermission('roles.manage')
+      const user = requirePermission('roles.manage')
       const role = findOr404(db.roles, params.id)
       refuseOwner(role)
       const count = usersCount(role.id)
@@ -109,6 +121,7 @@ export const rolesHandlers = [
         )
       }
       db.roles.splice(db.roles.indexOf(role), 1)
+      audit(user, 'role.deleted', { subject: { type: 'role', id: role.id, label: role.name }, old: { permissions: labels(role.permissions) } })
       persist()
       return new HttpResponse(null, { status: 204 })
     }),

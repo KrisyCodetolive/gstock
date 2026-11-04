@@ -1,5 +1,6 @@
 // Endpoints simulés des utilisateurs (M04), mêmes règles que le serveur.
 import { delay, http, HttpResponse } from 'msw'
+import { audit } from '../audit'
 import type { UserDetail, UserPayload } from '@/types/users'
 import type { MockUser } from '../data/users'
 import { db, nextId, persist } from '../db'
@@ -134,12 +135,17 @@ export const usersHandlers = [
       refuseOwnerTarget(user, actor)
       const body = (await request.json()) as Partial<UserPayload>
       const clean = validate(body, user)
+      const oldRole = user.role_id
       Object.assign(user, {
         firstname: body.firstname!.trim(),
         lastname: body.lastname!.trim(),
         ...clean,
         ...(body.password ? { password: body.password } : {}),
       })
+      if (oldRole !== user.role_id) {
+        const name = (id: number) => db.roles.find((r) => r.id === id)?.name ?? null
+        audit(actor, 'user.role_changed', { subject: { type: 'user', id: user.id, label: `${user.firstname} ${user.lastname}` }, old: { role: name(oldRole) }, new: { role: name(user.role_id) } })
+      }
       persist()
       return HttpResponse.json({ data: toResource(user) })
     }),
@@ -155,6 +161,7 @@ export const usersHandlers = [
       const { is_active } = (await request.json()) as { is_active: boolean }
       // Désactivé : ses sessions sont révoquées (currentUser() le refuse).
       user.is_active = Boolean(is_active)
+      audit(actor, user.is_active ? 'user.activated' : 'user.deactivated', { subject: { type: 'user', id: user.id, label: `${user.firstname} ${user.lastname}` } })
       persist()
       return HttpResponse.json({ data: toResource(user) })
     }),
@@ -170,7 +177,12 @@ export const usersHandlers = [
       const v = new Validator()
       v.check(shop_ids.every((id) => db.shops.some((s) => s.id === id)), 'shop_ids', 'Une boutique choisie n’existe pas.')
       v.done()
+      const shopNames = (ids: number[]) => ids.map((id) => db.shops.find((s) => s.id === id)?.name)
+      const oldShops = shopNames(user.shop_ids)
       user.shop_ids = [...new Set(shop_ids)]
+      if (JSON.stringify(oldShops) !== JSON.stringify(shopNames(user.shop_ids))) {
+        audit(actor, 'user.shops_changed', { subject: { type: 'user', id: user.id, label: `${user.firstname} ${user.lastname}` }, old: { boutiques: oldShops }, new: { boutiques: shopNames(user.shop_ids) } })
+      }
       persist()
       return HttpResponse.json({ data: toResource(user) })
     }),

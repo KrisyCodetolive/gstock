@@ -2,6 +2,7 @@
 // de départ dans chaque boutique. Le stock est créé par des mouvements « stock
 // initial », pour que quantité = somme des mouvements (§7.2).
 import type { ProductType } from '@/types/catalog'
+import { daysAgo } from './dates'
 
 export interface MockProduct {
   id: number
@@ -180,7 +181,8 @@ products.push({
   is_active: true,
 })
 
-const OPENING_DATE = '2026-10-01T08:00:00.000Z'
+// Stock de départ saisi un peu plus d'un mois avant aujourd'hui.
+const OPENING_DATE = daysAgo(34, 8)
 
 export const shopStock: MockShopStock[] = []
 export const movements: MockMovement[] = []

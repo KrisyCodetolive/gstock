@@ -4,9 +4,11 @@
 import { db, persist } from '../db'
 import { recordRepayment, setInstallments } from '../credits'
 import { recordExpense, recordPurchase } from '../purchases'
-import { recordSale } from '../sales'
+import { audit } from '../audit'
+import { cancelSale, recordSale } from '../sales'
 import { stockRow } from '../stock'
 import { openingBalances } from './customers'
+import { dayFromToday, daysAgo, DEMO_START } from './dates'
 import { STOCK_FIXED } from './products'
 
 /** Générateur pseudo-aléatoire déterministe : la même démo à chaque remise à zéro. */
@@ -38,7 +40,7 @@ export function seedHistory() {
       customer_id: ob.customer_id,
       sale_id: null,
       reference: `CR-${n}`,
-      occurred_at: '2026-10-01T09:00:00.000Z',
+      occurred_at: daysAgo(33),
       amount: ob.amount,
       remaining_amount: ob.amount,
       is_opening_balance: true,
@@ -51,13 +53,21 @@ export function seedHistory() {
   const sellable = db.products.filter((p) => p.is_active && p.type !== 'service' && !(p.name in STOCK_FIXED))
   const creditCustomers = [1, 2, 3, 5, 6, 7, 9, 11, 13, 14, 17, 21]
 
-  const start = Date.UTC(2026, 9, 4, 8)
-  const days = 30
+  // Les 30 derniers jours, aujourd'hui compris (jamais dans le futur).
+  const days = 31
+  const start = DEMO_START - 30 * 86_400_000 + 8 * 3_600_000
   for (let d = 0; d < days; d++) {
     for (const shopId of [1, 2]) {
       const count = 4 + Math.floor(rand() * 4)
       for (let k = 0; k < count; k++) {
-        const at = new Date(start + d * 86_400_000 + (1 + k * 2 + rand()) * 3_600_000).toISOString()
+        // Aujourd'hui : ventes réparties entre minuit et maintenant, pour que la démo ait
+        // toujours une activité du jour, quelle que soit l'heure d'ouverture.
+        const isToday = d === days - 1
+        const atMs = isToday
+          ? DEMO_START + ((k + rand()) / count) * (Date.now() - DEMO_START)
+          : start + d * 86_400_000 + (1 + k * 2 + rand()) * 3_600_000
+        if (atMs > Date.now()) continue
+        const at = new Date(atMs).toISOString()
         const sellerId = pick(SELLERS[shopId]!)
         let user = db.users.find((u) => u.id === sellerId)!
         const items = []
@@ -100,7 +110,7 @@ export function seedHistory() {
   }
   // Remboursements partiels quelques jours après le crédit (§11.3), par un utilisateur
   // qui en a le droit (Ibrahim, gérant), en espèces ou Mobile Money.
-  const lastDay = Date.UTC(2026, 10, 3, 18)
+  const lastDay = Date.now()
   const manager = db.users.find((u) => u.id === 2)!
   for (const credit of [...db.credits].sort((a, b) => a.occurred_at.localeCompare(b.occurred_at))) {
     if (rand() > 0.55) continue
@@ -127,8 +137,8 @@ export function seedHistory() {
     const half = Math.round(credit.remaining_amount / 2 / 50) * 50
     try {
       setInstallments(credit, [
-        { due_date: i % 2 === 0 ? '2026-10-30' : '2026-11-06', amount: String(half) },
-        { due_date: '2026-11-15', amount: String(credit.remaining_amount - half) },
+        { due_date: i % 2 === 0 ? dayFromToday(-5) : dayFromToday(2), amount: String(half) },
+        { due_date: dayFromToday(11), amount: String(credit.remaining_amount - half) },
       ])
     } catch {
       // Reste invalide pour un échéancier : on passe.
@@ -137,6 +147,7 @@ export function seedHistory() {
 
   // Approvisionnements (M11) : arrivages réguliers, une partie payée plus tard.
   const stockKeeper = db.users.find((u) => u.id === 5)!
+  // `day` : jour du mois de démo (34 = aujourd'hui).
   const arrivals: { day: number; shop: number; supplier: number; items: [string, number][]; paid: number }[] = [
     { day: 8, shop: 1, supplier: 1, items: [['Riz local 1 kg', 20], ['Spaghetti 500 g', 24], ['Couscous 1 kg', 10]], paid: 1 },
     { day: 12, shop: 2, supplier: 2, items: [['Huile de palme 1 L', 12], ['Huile d’arachide 1 L', 6]], paid: 0.5 },
@@ -156,7 +167,7 @@ export function seedHistory() {
       recordPurchase(a.shop, stockKeeper, {
         items,
         supplier_id: a.supplier,
-        occurred_at: new Date(Date.UTC(2026, 9, a.day, 9)).toISOString(),
+        occurred_at: daysAgo(34 - a.day),
         ...(paid > 0 ? { paid_amount: String(paid), payment_method_id: 1 } : {}),
       })
     } catch {
@@ -167,7 +178,7 @@ export function seedHistory() {
   // Dépenses (M12) : loyer, électricité, transport, personnel…
   const spender = db.users.find((u) => u.id === 1)!
   const expenses: [number, number, number, number, string | null][] = [
-    // [jour d'octobre, boutique, catégorie, montant, note]
+    // [jour du mois de démo (34 = aujourd'hui), boutique, catégorie, montant, note]
     [5, 1, 3, 75000, 'Loyer d’octobre'], [5, 2, 3, 60000, 'Loyer d’octobre'],
     [9, 1, 1, 3000, 'Taxi pour le marché'], [11, 2, 1, 2500, null],
     [14, 1, 2, 18500, 'Facture CIE'], [14, 2, 2, 15200, 'Facture CIE'],
@@ -177,9 +188,27 @@ export function seedHistory() {
   ]
   for (const [day, shop, category, amount, note] of expenses) {
     try {
-      recordExpense(shop, spender, { expense_category_id: category, amount: String(amount), payment_method_id: 1, occurred_at: new Date(Date.UTC(2026, 9, day, 17)).toISOString(), note })
+      recordExpense(shop, spender, { expense_category_id: category, amount: String(amount), payment_method_id: 1, occurred_at: daysAgo(34 - day, 17), note })
     } catch {
       // Date future, etc. : on passe.
+    }
+  }
+
+  // Une vente annulée par le gérant, journalisée comme le ferait le serveur (M14).
+  const toCancel = db.sales.find((x) => x.shop_id === 1 && x.payment_status === 'paid' && x.occurred_at.slice(0, 10) === dayFromToday(-10))
+  if (toCancel) {
+    try {
+      cancelSale(toCancel, manager, 'Le client a rapporté la marchandise.')
+      audit(manager, 'sale.cancelled', {
+        shopId: 1,
+        subject: { type: 'sale', id: toCancel.id, label: toCancel.reference },
+        reason: 'Le client a rapporté la marchandise.',
+        old: { statut: 'Validée', total: toCancel.total },
+        new: { statut: 'Annulée' },
+        at: toCancel.cancelled_at ?? undefined,
+      })
+    } catch {
+      // Stock ou crédit incompatible : on passe.
     }
   }
 

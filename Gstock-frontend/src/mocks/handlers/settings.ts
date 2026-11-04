@@ -1,5 +1,6 @@
 // Endpoints simulés du module M03 : paramètres et clés GeniusPay.
 import { delay, http, HttpResponse } from 'msw'
+import { audit } from '../audit'
 import type { PaymentSettings, PaymentSettingsPayload, TenantSettingsPayload } from '@/types/settings'
 import { db, persist } from '../db'
 import { API, handle, nullable, requirePermission, Validator } from '../http'
@@ -67,7 +68,7 @@ export const settingsHandlers = [
   http.put(`${API}/settings/payment`, ({ request }) =>
     handle(async () => {
       await delay(400)
-      requirePermission('payment_settings.manage')
+      const user = requirePermission('payment_settings.manage')
       const body = (await request.json()) as PaymentSettingsPayload
       const s = db.paymentSettings
 
@@ -87,6 +88,10 @@ export const settingsHandlers = [
         is_sandbox: Boolean(body.is_sandbox),
         is_active: Boolean(body.is_active),
         updated_at: new Date().toISOString(),
+      })
+      // Jamais les clés elles-mêmes dans le journal : seulement ce qui a changé.
+      audit(user, 'payment_settings.updated', {
+        new: { cle_api_changee: Boolean(nullable(body.api_key)), cle_secrete_changee: Boolean(nullable(body.api_secret)), mode_test: s.is_sandbox, actif: s.is_active },
       })
       persist()
       return HttpResponse.json({ data: paymentResource() })

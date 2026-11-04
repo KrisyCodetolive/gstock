@@ -1,6 +1,7 @@
 // Endpoints simulés du module M09 : crédits clients, remboursements, échéances,
 // avoirs (décision P3), et reçus publics (ventes et remboursements).
 import { delay, http, HttpResponse } from 'msw'
+import { audit } from '../audit'
 import type { CreditDetail, CreditListItem, CustomerCreditFile, CustomerRefund, Debtor, Repayment, RepaymentReceipt } from '@/types/credits'
 import type { MockCredit, MockRepayment } from '../data/customers'
 import type { MockUser } from '../data/users'
@@ -280,6 +281,7 @@ export const creditsHandlers = [
         note: body.note?.trim() || null,
       }
       db.credits.push(credit)
+      audit(user, 'credit.opening_balance', { shopId, subject: { type: 'credit', id: credit.id, label: credit.reference }, reason: credit.note ?? null, new: { client: customer!.name, montant: amount } })
       persist()
       return HttpResponse.json({ data: creditDetail(credit) }, { status: 201 })
     }),
@@ -296,6 +298,7 @@ export const creditsHandlers = [
       v.required(reason, 'reason', 'Indiquez pourquoi vous annulez ce crédit.')
       v.done()
       cancelCredit(credit, user, reason!.trim(), settlement)
+      audit(user, 'credit.cancelled', { shopId, subject: { type: 'credit', id: credit.id, label: credit.reference }, reason: reason!.trim(), new: { argent_deja_recu: credit.cancel_settlement ? `${credit.cancel_settlement.amount.toLocaleString('fr-FR')} FCFA ${credit.cancel_settlement.mode === 'credit_note' ? 'gardés en avoir' : 'rendus au client'}` : null } })
       persist()
       return HttpResponse.json({ data: creditDetail(credit) })
     }),
@@ -308,7 +311,9 @@ export const creditsHandlers = [
       const shopId = requireShopAccess(user, params.shopId).id
       const credit = findOr404(db.credits.filter((c) => c.shop_id === shopId), params.id)
       const body = (await request.json()) as { amount?: string; reason?: string }
+      const before = credit.remaining_amount
       adjustCredit(credit, user, body.amount, body.reason)
+      audit(user, 'credit.adjusted', { shopId, subject: { type: 'credit', id: credit.id, label: credit.reference }, reason: body.reason ?? null, old: { reste: before }, new: { reste: credit.remaining_amount } })
       persist()
       return HttpResponse.json({ data: creditDetail(credit) })
     }),
@@ -417,6 +422,7 @@ export const creditsHandlers = [
       v.required(reason, 'reason', 'Indiquez pourquoi vous annulez ce paiement.')
       v.done()
       cancelRepayment(r, reason!.trim())
+      audit(user, 'repayment.cancelled', { shopId, subject: { type: 'repayment', id: r.id, label: r.reference }, reason: reason!.trim(), old: { montant: r.amount } })
       persist()
       return HttpResponse.json({ data: repaymentResource(r) })
     }),

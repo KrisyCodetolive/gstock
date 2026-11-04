@@ -1,5 +1,6 @@
 // Endpoints simulés du module M07 : stock, mouvements, ajustements (MS-N).
 import { delay, http, HttpResponse } from 'msw'
+import { audit } from '../audit'
 import type { Permission } from '@/types/auth'
 import type { Adjustment, AdjustmentPayload, StockItem, StockMovement, StockOverviewItem } from '@/types/stock'
 import type { MockAdjustment, MockProduct } from '../data/products'
@@ -247,6 +248,12 @@ export const stockHandlers = [
         cancel_reason: null,
       }
       db.adjustments.push(adjustment)
+      audit(user, 'stock.adjusted', {
+        shopId,
+        subject: { type: 'adjustment', id, label: reference },
+        reason: adjustment.reason,
+        new: { type: { entry: 'Ajout', exit: 'Retrait', inventory: 'Inventaire' }[kind], produits: valid.map((l) => ({ produit: l.product.name, quantite: l.delta })) },
+      })
       persist()
       return HttpResponse.json({ data: adjustmentResource(adjustment) }, { status: 201 })
     }),
@@ -282,6 +289,7 @@ export const stockHandlers = [
         },
       )
       Object.assign(adjustment, { status: 'cancelled', cancelled_at: new Date().toISOString(), cancel_reason: reason!.trim() })
+      audit(user, 'stock.adjustment_cancelled', { shopId, subject: { type: 'adjustment', id: adjustment.id, label: adjustment.reference }, reason: reason!.trim() })
       persist()
       return HttpResponse.json({ data: adjustmentResource(adjustment) })
     }),
