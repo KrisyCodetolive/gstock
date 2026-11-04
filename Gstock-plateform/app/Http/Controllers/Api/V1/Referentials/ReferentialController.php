@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Referentials;
 use App\Http\Controllers\Controller;
 use App\Support\ApiException;
 use App\Support\ListQuery;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,6 +29,12 @@ abstract class ReferentialController extends Controller
         return [];
     }
 
+    /** Requête de base (ex. avec le nombre de produits). */
+    protected function query(): Builder
+    {
+        return $this->model()::query();
+    }
+
     protected function present(Model $row): array
     {
         return $row->only(['id', 'name', ...array_diff($row->getFillable(), ['name'])]);
@@ -37,7 +44,7 @@ abstract class ReferentialController extends Controller
     {
         return ListQuery::respond(
             $request,
-            $this->model()::query(),
+            $this->query(),
             fn (Model $row) => $this->present($row),
             searchIn: ['name'],
             filters: ['is_active' => ListQuery::boolean('is_active')],
@@ -50,7 +57,7 @@ abstract class ReferentialController extends Controller
     {
         $row = $this->model()::create($this->validated($request));
 
-        return response()->json(['data' => $this->present($row->fresh())], 201);
+        return response()->json(['data' => $this->present($this->query()->findOrFail($row->getKey()))], 201);
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -58,7 +65,7 @@ abstract class ReferentialController extends Controller
         $row = $this->model()::query()->findOrFail($id);
         $row->update($this->validated($request, $row));
 
-        return response()->json(['data' => $this->present($row->fresh())]);
+        return response()->json(['data' => $this->present($this->query()->findOrFail($row->getKey()))]);
     }
 
     private function validated(Request $request, ?Model $current = null): array

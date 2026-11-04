@@ -11,7 +11,7 @@ class DatabaseSeeder extends Seeder
         $this->call(PlanSeeder::class);
         // Données de démonstration : jamais en production.
         if (! app()->isProduction()) {
-            $this->call(DemoTenantSeeder::class);
+            $this->call([DemoTenantSeeder::class, DemoCatalogSeeder::class]);
         }
     }
 }

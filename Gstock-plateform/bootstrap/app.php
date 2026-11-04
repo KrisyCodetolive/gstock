@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureTenantIsWritable;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\RequirePermission;
+use App\Http\Middleware\RequireShopAccess;
 use App\Support\ApiException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => RequirePermission::class,
             'active' => EnsureUserIsActive::class,
             'writable' => EnsureTenantIsWritable::class,
+            'shop' => RequireShopAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Referentials;
 
 use App\Domain\Catalog\Models\Category;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
@@ -25,7 +26,11 @@ class CategoryController extends ReferentialController
         return ['color' => in_array($color, Category::COLORS, true) ? $color : 'lavender'];
     }
 
-    /** `products_count` : renseigné avec le module Produits (B3). */
+    protected function query(): Builder
+    {
+        return Category::query()->withCount('products');
+    }
+
     protected function present(Model $row): array
     {
         return [...$row->only(['id', 'name', 'color', 'is_active']), 'products_count' => (int) ($row->products_count ?? 0)];
