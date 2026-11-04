@@ -9,13 +9,19 @@ import { DEMO_SLUG, platform, PLATFORM_DOMAIN, switchCurrentTenant } from '@/moc
 import { roleLabel } from '@/lib/roles'
 import { shops } from '@/mocks/data/tenant'
 import { DEMO_PASSWORD, roles, users } from '@/mocks/data/users'
+import { idbStorage } from '@/offline/storage'
 import type { LoginForm } from '../schemas'
 import { UserAvatar } from './UserAvatar'
 
 /** Ouvre un autre espace simulé, comme si l'on allait sur son sous-domaine. */
 function openSpace(slug: string) {
   switchCurrentTenant(slug)
-  window.location.reload()
+  // Le cache de l'appareil appartient à l'espace quitté (en vrai, chaque sous-domaine a le sien).
+  void clearDeviceData().then(() => window.location.reload())
+}
+
+function clearDeviceData() {
+  return Promise.all([idbStorage.removeItem('gstock.query.cache'), idbStorage.removeItem('gstock.offline.queue')])
 }
 
 export function DemoAccounts({ onPick, disabled }: { onPick: (account: LoginForm) => void; disabled?: boolean }) {
@@ -65,7 +71,7 @@ export function DemoAccounts({ onPick, disabled }: { onPick: (account: LoginForm
         onClick={() => {
           resetAllMocks()
           toast.success(t('auth.demo_reset_done'))
-          setTimeout(() => window.location.reload(), 600)
+          void clearDeviceData().then(() => setTimeout(() => window.location.reload(), 600))
         }}
       >
         <RotateCcw aria-hidden="true" />

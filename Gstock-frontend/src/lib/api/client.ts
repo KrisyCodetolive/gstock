@@ -47,6 +47,12 @@ function defaultMessage(status: number): string {
 }
 
 let onUnauthorized: (() => void) | undefined
+let onReachability: ((reachable: boolean) => void) | undefined
+
+/** Appelé après chaque requête : le serveur a répondu (true) ou est injoignable (false). */
+export function setReachabilityHandler(handler: (reachable: boolean) => void) {
+  onReachability = handler
+}
 
 /** Appelé quand le serveur répond 401 (session expirée), hors connexion. */
 export function setUnauthorizedHandler(handler: () => void) {
@@ -102,8 +108,10 @@ async function request<T>(method: string, path: string, options: RequestOptions 
     })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error
+    onReachability?.(false)
     throw new ApiError(0, {})
   }
+  onReachability?.(true)
 
   if (response.status === 204) return undefined as T
 

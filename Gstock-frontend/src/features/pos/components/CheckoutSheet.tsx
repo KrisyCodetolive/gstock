@@ -1,4 +1,4 @@
-import { CheckCircle2, CreditCard, Loader2, Plus, ReceiptText, Smartphone, Trash2, UserRound, Wallet } from 'lucide-react'
+import { CheckCircle2, CloudOff, CreditCard, Loader2, Plus, ReceiptText, Smartphone, Trash2, UserRound, Wallet } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -9,16 +9,17 @@ import { ResponsiveSheet } from '@/components/ResponsiveSheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useCan } from '@/features/auth/hooks'
+import { useCan, useSession } from '@/features/auth/hooks'
 import { ApiError } from '@/lib/api/client'
 import { apiErrorMessage } from '@/lib/form-errors'
 import type { Id } from '@/types/api'
+import { useOnline } from '@/offline/network'
+import type { OfflineOperation } from '@/offline/queue'
+import type { ProvisionalQuote } from '@/offline/quote'
 import type { PosBootstrap, Sale, SalePaymentInput } from '@/types/sales'
 import { cartToInput, useCreateSale, useSaleConfirmation, useSaleQuote } from '../hooks'
 import { usePosStore, type Cart } from '../store'
 import { CustomerPicker } from './CustomerPicker'
-
-type Method = PosBootstrap['payment_methods'][number]
 
 interface PaymentRow {
   key: string
@@ -46,18 +47,24 @@ export function CheckoutSheet({
   cart,
   initialMode,
   total,
-  methods,
+  bootstrap,
+  shopName,
   onClose,
 }: {
   shopId: Id
   cart: Cart
   initialMode: 'paid' | 'credit'
   total: string
-  methods: Method[]
+  bootstrap: PosBootstrap
+  shopName: string
   onClose: () => void
 }) {
   const { t } = useTranslation()
   const can = useCan()
+  const me = useSession()
+  const online = useOnline()
+  // Pas de paiement GeniusPay sans réseau (ADR-005).
+  const methods = online ? bootstrap.payment_methods : bootstrap.payment_methods.filter((m) => !m.uses_geniuspay)
   const store = usePosStore()
   const create = useCreateSale(shopId)
   const [mode, setMode] = useState(initialMode)
@@ -70,6 +77,7 @@ export function CheckoutSheet({
   const [pickerOpen, setPickerOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sale, setSale] = useState<Sale | null>(null)
+  const [offlineSale, setOfflineSale] = useState<{ operation: OfflineOperation; quote: ProvisionalQuote } | null>(null)
 
   const payments: SalePaymentInput[] = rows
     .filter((r) => Number(clean(r.amount)) > 0)
@@ -82,12 +90,13 @@ export function CheckoutSheet({
         ...(method?.type === 'cash' && r.cashGiven ? { cash_given: clean(r.cashGiven) } : {}),
       }
     })
-  const quote = useSaleQuote(sale ? undefined : shopId, cartToInput(cart, payments))
+  const quote = useSaleQuote(sale || offlineSale ? undefined : shopId, cartToInput(cart, payments), bootstrap)
   const q = quote.data
   const quoteError = quote.error instanceof ApiError ? apiErrorMessage(quote.error) : null
   const missing = q ? Number(q.credit_amount) : 0
   const needsCustomer = missing > 0 && !cart.customer
-  const creditNote = Number(cart.customer?.creditNote ?? 0)
+  // L'avoir est vérifié par le serveur : il s'utilise avec le réseau.
+  const creditNote = online ? Number(cart.customer?.creditNote ?? 0) : 0
 
   const update = (key: string, changes: Partial<PaymentRow>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...changes } : r)))
 
@@ -98,10 +107,14 @@ export function CheckoutSheet({
       return
     }
     create.mutate(
-      { ...cartToInput(cart, payments), customer_id: cart.customer?.id ?? null, offline_uuid: offlineUuid },
       {
-        onSuccess: (s) => {
-          setSale(s)
+        payload: { ...cartToInput(cart, payments), customer_id: cart.customer?.id ?? null, offline_uuid: offlineUuid },
+        context: { bootstrap, shopName, userId: me.user.id, customerName: cart.customer?.name ?? null },
+      },
+      {
+        onSuccess: (result) => {
+          if (result.kind === 'online') setSale(result.sale)
+          else setOfflineSale(result)
           store.clear(shopId)
         },
         onError: (e) => setError(apiErrorMessage(e)),
@@ -110,6 +123,7 @@ export function CheckoutSheet({
   }
 
   if (sale) return <SaleDone shopId={shopId} sale={sale} onClose={onClose} />
+  if (offlineSale) return <OfflineSaleDone {...offlineSale} customer={cart.customer?.name ?? null} onClose={onClose} />
 
   const canConfirm = q && !quote.isFetching && !quoteError && (mode === 'credit' ? Boolean(cart.customer) : missing === 0)
 
@@ -120,6 +134,12 @@ export function CheckoutSheet({
           <span className="font-semibold">{t('sales.pos.to_pay')}</span>
           <Money value={q?.total ?? total} size="lg" />
         </div>
+        {!online && (
+          <p className="flex gap-2 rounded-md border-2 border-warn bg-warn-bg p-3 text-sm font-semibold text-warn" role="status">
+            <CloudOff className="size-5 shrink-0" aria-hidden="true" />
+            {t('offline.provisional')}. {bootstrap.payment_methods.some((m) => m.uses_geniuspay) && t('offline.geniuspay_unavailable')}
+          </p>
+        )}
 
         <section className="grid gap-2" aria-labelledby="checkout-customer">
           <h3 id="checkout-customer" className="text-sm font-semibold">
@@ -293,7 +313,7 @@ export function CheckoutSheet({
         </div>
       </div>
 
-      <CustomerPicker open={pickerOpen} onOpenChange={setPickerOpen} onPick={(c) => store.setCustomer(shopId, c)} />
+      <CustomerPicker open={pickerOpen} onOpenChange={setPickerOpen} onPick={(c) => store.setCustomer(shopId, c)} offlineCustomers={bootstrap.customers} />
     </ResponsiveSheet>
   )
 }
@@ -342,6 +362,34 @@ function SaleDone({ shopId, sale, onClose }: { shopId: Id; sale: Sale; onClose: 
             {t('sales.pos.new_sale')}
           </Button>
         </div>
+      </div>
+    </ResponsiveSheet>
+  )
+}
+
+/** Fin de vente sans réseau : la vente est gardée sur l'appareil avec une référence provisoire (ADR-005). */
+function OfflineSaleDone({ operation, quote, customer, onClose }: { operation: OfflineOperation; quote: ProvisionalQuote; customer: string | null; onClose: () => void }) {
+  const { t } = useTranslation()
+  const change = Number(quote.change)
+  return (
+    <ResponsiveSheet open onOpenChange={(o) => !o && onClose()} title={t('offline.sale_done_title', { reference: operation.provisional_reference })}>
+      <div className="grid gap-5 text-center">
+        <CloudOff className="mx-auto size-16 text-warn" aria-hidden="true" />
+        <Money value={quote.total} size="lg" className="justify-self-center" />
+        {change > 0 && (
+          <p className="rounded-lg border-2 border-foreground bg-tint-mint p-4 text-xl font-extrabold">
+            {t('sales.pos.done_change', { amount: change.toLocaleString('fr-FR') })}
+          </p>
+        )}
+        {Number(quote.credit_amount) > 0 && customer && (
+          <p className="rounded-lg border-2 border-foreground bg-destructive-bg p-4 font-bold text-destructive">
+            {t('sales.pos.done_credit', { amount: Number(quote.credit_amount).toLocaleString('fr-FR'), name: customer })}
+          </p>
+        )}
+        <p className="rounded-md border-2 border-warn bg-warn-bg p-3 text-sm font-semibold text-warn">{t('offline.sale_done_text')}</p>
+        <Button variant="action" size="lg" onClick={onClose} autoFocus>
+          {t('sales.pos.new_sale')}
+        </Button>
       </div>
     </ResponsiveSheet>
   )

@@ -17,6 +17,8 @@ import {
 } from '@/lib/api/purchases'
 import type { Id, ListParams } from '@/types/api'
 import type { ExpensePayload, PurchasePayload, PurchaseQuoteInput, SupplierPayload } from '@/types/purchases'
+import { sendOrKeep } from '@/offline/send'
+import type { OfflineContext } from '@/offline/queue'
 
 export function useSuppliers(params: ListParams, enabled = true) {
   return useQuery({ queryKey: ['suppliers', 'list', params], queryFn: () => listSuppliers(params), placeholderData: keepPreviousData, enabled })
@@ -97,11 +99,25 @@ export function useExpenses(shopId: Id | undefined, params: ListParams) {
   })
 }
 
+/** Sans réseau, la dépense est gardée sur l'appareil et envoyée plus tard (ADR-005). */
 export function useCreateExpense(shopId: Id | undefined) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: ExpensePayload) => createExpense(shopId!, payload),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['expenses'] }),
+    mutationFn: ({ payload, context }: { payload: ExpensePayload; context: OfflineContext }) =>
+      sendOrKeep(() => createExpense(shopId!, payload), {
+        type: 'expense',
+        offline_uuid: payload.offline_uuid,
+        shop_id: shopId!,
+        shop_name: context.shopName,
+        user_id: context.userId,
+        occurred_at: payload.occurred_at ?? new Date().toISOString(),
+        amount: Number(payload.amount).toFixed(2),
+        label: context.label,
+        payload,
+      }),
+    onSuccess: (result) => {
+      if (result.kind === 'online') void queryClient.invalidateQueries({ queryKey: ['expenses'] })
+    },
   })
 }
 

@@ -70,7 +70,8 @@
       "cancelled_on": "Annulée le {{date}} : {{reason}}",
       "unit_price": "{{qty}} × {{price}} FCFA",
       "with_discount": "remise {{amount}} FCFA",
-      "credit_note": "Avoir du client"
+      "credit_note": "Avoir du client",
+      "to_review": "Vente faite sans réseau, à vérifier : un écart a été constaté à la synchronisation."
     },
     "cancel": {
       "title": "Annuler la vente",

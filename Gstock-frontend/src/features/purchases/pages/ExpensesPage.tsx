@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { useCan } from '@/features/auth/hooks'
+import { useCan, useSession } from '@/features/auth/hooks'
 import { useReferentialList } from '@/features/referentials/hooks'
 import { useCurrentShop } from '@/features/shops/hooks'
 import { ApiError } from '@/lib/api/client'
@@ -184,6 +184,7 @@ function ExpenseForm({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()
   const { shop } = useCurrentShop()
   const create = useCreateExpense(shop?.id)
+  const me = useSession()
   const categories = useReferentialList('expense-categories', { per_page: 100, sort: 'name', filter: { is_active: 'true' } })
   const methods = useReferentialList('payment-methods', { per_page: 100, filter: { is_active: 'true' } })
   // Idempotence : réessayer après une coupure n'enregistre pas deux dépenses (ADR-005).
@@ -207,16 +208,23 @@ function ExpenseForm({ onClose }: { onClose: () => void }) {
     if (next.category || next.amount || next.method) return
     create.mutate(
       {
+        context: { shopName: shop?.name ?? '', userId: me.user.id, label: categories.data?.data.find((c) => String(c.id) === category)?.name ?? null },
+        payload: {
         expense_category_id: Number(category),
         amount: value,
         payment_method_id: Number(method),
         occurred_at: date ? new Date(`${date}T12:00:00Z`).toISOString() : undefined,
         note: note || null,
         offline_uuid: offlineUuid,
+        },
       },
       {
-        onSuccess: (x) => {
-          toast.success(t('expenses.form.done', { reference: x.reference }))
+        onSuccess: (result) => {
+          toast.success(
+            result.kind === 'offline'
+              ? t('offline.saved_offline', { reference: result.operation.provisional_reference })
+              : t('expenses.form.done', { reference: result.data.reference }),
+          )
           onClose()
         },
         onError: (err) => setErrors(err instanceof ApiError && Object.keys(err.errors).length === 0 ? { form: err.message } : { form: apiErrorMessage(err) }),

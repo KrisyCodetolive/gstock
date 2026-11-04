@@ -23,6 +23,8 @@ import { CheckoutSheet } from '../components/CheckoutSheet'
 import { ProductGrid, type PosProduct } from '../components/ProductGrid'
 import { cartToInput, usePosBootstrap, useSaleQuote } from '../hooks'
 import { useCart, useHeldCarts, usePosStore } from '../store'
+import { OfflineIndicator } from '@/features/sync/components/OfflineIndicator'
+import { useAutoSync } from '@/offline/hooks'
 
 /** Écran de vente plein écran (M08) : « Vendre » en quelques secondes. */
 export function PosPage() {
@@ -30,6 +32,8 @@ export function PosPage() {
   const { shop } = useCurrentShop()
   const desktop = useIsDesktop()
   const bootstrap = usePosBootstrap(shop?.id)
+  // La caisse est hors de la mise en page habituelle : elle lance aussi la synchronisation.
+  useAutoSync()
   const cart = useCart(shop?.id)
   const held = useHeldCarts(shop?.id)
   const store = usePosStore()
@@ -39,7 +43,7 @@ export function PosPage() {
   const [heldOpen, setHeldOpen] = useState(false)
   const [checkout, setCheckout] = useState<'paid' | 'credit' | null>(null)
 
-  const quote = useSaleQuote(shop?.id, cart.lines.length ? cartToInput(cart) : null)
+  const quote = useSaleQuote(shop?.id, cart.lines.length ? cartToInput(cart) : null, bootstrap.data)
   const quoteError = quote.error instanceof ApiError ? apiErrorMessage(quote.error) : null
 
   const products = useMemo(() => new Map((bootstrap.data?.products ?? []).map((p) => [p.id, p])), [bootstrap.data])
@@ -113,6 +117,7 @@ export function PosPage() {
               </Link>
             </Button>
             <ShopSwitcher className="min-w-0 flex-1" variant={desktop ? 'menu' : 'sheet'} />
+            <OfflineIndicator />
             <Button variant="outline" size="sm" onClick={() => setHeldOpen(true)} aria-label={t('sales.pos.held_carts')}>
               <Clock aria-hidden="true" />
               <span className="tabular">{held.length}</span>
@@ -239,7 +244,8 @@ export function PosPage() {
           cart={cart}
           initialMode={checkout}
           total={quote.data.total}
-          methods={bootstrap.data.payment_methods}
+          bootstrap={bootstrap.data}
+          shopName={shop.name}
           onClose={() => setCheckout(null)}
         />
       )}

@@ -11,7 +11,8 @@ import { salesHandlers } from './sales'
 import { settingsHandlers } from './settings'
 import { shopsHandlers } from './shops'
 import { stockHandlers } from './stock'
+import { syncHandlers } from './sync'
 import { usersHandlers } from './users'
 
 // La garde « lecture seule » de platformHandlers doit passer avant tous les autres.
-export const handlers = [...platformHandlers, ...authHandlers, ...settingsHandlers, ...shopsHandlers, ...rolesHandlers, ...usersHandlers, ...referentialsHandlers, ...productsHandlers, ...stockHandlers, ...customersHandlers, ...salesHandlers, ...creditsHandlers, ...purchasesHandlers, ...dashboardHandlers]
+export const handlers = [...platformHandlers, ...authHandlers, ...settingsHandlers, ...shopsHandlers, ...rolesHandlers, ...usersHandlers, ...referentialsHandlers, ...productsHandlers, ...stockHandlers, ...customersHandlers, ...salesHandlers, ...creditsHandlers, ...purchasesHandlers, ...dashboardHandlers, ...syncHandlers]

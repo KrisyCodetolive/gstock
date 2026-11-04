@@ -11,7 +11,11 @@ export const API = '/api/v1'
 /** Réponse d'erreur, levée par les gardes et attrapée par `handle`. */
 export class MockHttpError {
   readonly response: Response
+  readonly message: string
+  readonly errors: Record<string, string[]>
   constructor(status: number, message: string, errors?: Record<string, string[]>) {
+    this.message = message
+    this.errors = errors ?? {}
     this.response = HttpResponse.json(errors ? { message, errors } : { message }, { status })
   }
 }

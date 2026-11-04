@@ -68,6 +68,16 @@ function SaleDetail({ sale }: { sale: Sale }) {
         subtitle={t('sales.detail.by', { name: sale.user?.name ?? '—', date: formatDateTime(sale.occurred_at) })}
         actions={<PaymentStatusBadge status={sale.payment_status} saleStatus={sale.status} />}
       />
+      {sale.sync_status === 'to_review' && (
+        <div className="grid gap-1 rounded-sm border-2 border-warn bg-warn-bg p-3 text-warn" role="status">
+          <p className="font-bold">{t('sales.detail.to_review')}</p>
+          <ul className="grid list-disc gap-0.5 pl-5 text-sm font-semibold">
+            {sale.review_reasons.map((r) => (
+              <li key={r}>{r}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       {cancelled && sale.cancelled_at && (
         <p className="rounded-sm border-2 border-destructive bg-destructive-bg p-3 font-semibold text-destructive">
           {t('sales.detail.cancelled_on', { date: formatDateTime(sale.cancelled_at), reason: sale.cancel_reason })}

@@ -53,6 +53,9 @@ export interface MockSale {
   note: string | null
   cancelled_at: string | null
   cancel_reason: string | null
+  /** Vente synchronisée avec un écart (stock, prix) : à vérifier par le gérant (P2). */
+  sync_status?: 'ok' | 'to_review'
+  review_reasons?: string[]
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100
@@ -69,6 +72,8 @@ interface Computed {
   change: number
   credit_amount: number
   payment_status: PaymentStatus
+  /** Vente hors ligne : prix de l'appareil différents du prix actuel. */
+  priceChanges: string[]
 }
 
 /**
@@ -76,8 +81,9 @@ interface Computed {
  * remise globale, paiements, rendu sur les espèces, reste à crédit.
  * `user` sert à vérifier les droits de remise et de changement de prix.
  */
-export function computeSale(input: SaleQuoteInput, user: MockUser): Computed {
+export function computeSale(input: SaleQuoteInput, user: MockUser, options: { offline?: boolean } = {}): Computed {
   const perms = permissionsOf(user)
+  const priceChanges: string[] = []
   const v = new Validator()
   const lines = input.items ?? []
   v.check(lines.length > 0, 'items', 'Le panier est vide.')
@@ -92,7 +98,11 @@ export function computeSale(input: SaleQuoteInput, user: MockUser): Computed {
     if (!(quantity > 0)) v.add('items', `Quantité invalide pour ${product.name}.`)
 
     let price = product.price
-    if (line.price !== undefined && num(line.price) !== product.price) {
+    if (options.offline && line.price !== undefined && num(line.price) !== product.price) {
+      // Vente faite hors ligne au prix connu de l'appareil : on garde ce prix, l'écart est signalé (ADR-005).
+      price = num(line.price)
+      priceChanges.push(`Prix de ${product.name} : ${price.toLocaleString('fr-FR')} FCFA sur l'appareil, ${product.price.toLocaleString('fr-FR')} FCFA aujourd'hui.`)
+    } else if (line.price !== undefined && num(line.price) !== product.price) {
       if (!perms.includes('sales.edit_price')) throw new MockHttpError(403, "Vous n'avez pas le droit de modifier un prix.")
       price = num(line.price)
       if (!(price >= 0)) v.add('items', `Prix invalide pour ${product.name}.`)
@@ -162,6 +172,7 @@ export function computeSale(input: SaleQuoteInput, user: MockUser): Computed {
     change: round2(payments.reduce((s, p) => s + (p.change ?? 0), 0)),
     credit_amount: credit,
     payment_status: credit === 0 ? 'paid' : paidNow === 0 ? 'credit' : 'partial',
+    priceChanges,
   }
 }
 
@@ -194,8 +205,9 @@ export function recordSale(
   user: MockUser,
   input: SaleQuoteInput & { customer_id?: number | null; note?: string | null; offline_uuid?: string | null },
   occurredAt = new Date().toISOString(),
+  options: { offline?: boolean } = {},
 ): MockSale {
-  const c = computeSale(input, user)
+  const c = computeSale(input, user, options)
   const customerId = input.customer_id ? Number(input.customer_id) : null
   const customer = customerId ? db.customers.find((x) => x.id === customerId && x.is_active) : null
   if (customerId && !customer) throw new MockHttpError(422, 'Ce client n’existe pas.', { customer_id: ['Ce client n’existe pas.'] })
@@ -215,10 +227,18 @@ export function recordSale(
   const id = db.sales.length ? Math.max(...db.sales.map((s) => s.id)) + 1 : 1
   const reference = `V-${db.sequences.V ?? 1}`
   // Le stock diminue dès la validation, payée ou à crédit (§7.1).
-  applyStockChanges(
-    c.items.map((i) => ({ shopId, product: i.product, delta: -i.quantity })),
-    { source_type: 'sale', source_id: id, reference, reason: null, user_id: user.id, occurred_at: occurredAt },
-  )
+  // Vente synchronisée (P2) : elle est enregistrée même si le stock a baissé entre-temps,
+  // mais le stock ne descend jamais sous 0 ; l'écart est marqué « à vérifier ».
+  const reasons = [...c.priceChanges]
+  const changes = c.items.map((i) => {
+    if (!options.offline || i.product.type === 'service') return { shopId, product: i.product, delta: -i.quantity }
+    const available = stockRow(shopId, i.product.id).quantity
+    if (available >= i.quantity) return { shopId, product: i.product, delta: -i.quantity }
+    const unit = db.units.find((u) => u.id === i.product.unit_id)?.short_name ?? ''
+    reasons.push(`Stock insuffisant pour ${i.product.name} : ${i.quantity} ${unit} vendus, ${available} ${unit} en stock à la synchronisation. Faites un inventaire.`)
+    return { shopId, product: i.product, delta: -available }
+  })
+  applyStockChanges(changes, { source_type: 'sale', source_id: id, reference, reason: null, user_id: user.id, occurred_at: occurredAt })
   nextReference('V')
 
   const geniuspay = db.paymentSettings.is_active
@@ -248,6 +268,7 @@ export function recordSale(
     note: input.note?.trim() || null,
     cancelled_at: null,
     cancel_reason: null,
+    ...(options.offline ? { sync_status: reasons.length ? 'to_review' : 'ok', review_reasons: reasons } : {}),
   }
   db.sales.push(sale)
   if (fromNote > 0 && customer) {

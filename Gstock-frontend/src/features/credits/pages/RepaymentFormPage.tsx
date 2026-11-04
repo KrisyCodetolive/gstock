@@ -14,7 +14,9 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useReferentialList } from '@/features/referentials/hooks'
+import { useSession } from '@/features/auth/hooks'
 import { useCurrentShop } from '@/features/shops/hooks'
+import { useOnline } from '@/offline/network'
 import { apiErrorMessage } from '@/lib/form-errors'
 import { formatShortDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -62,13 +64,17 @@ function RepaymentForm({ file }: { file: CustomerCreditFile }) {
   const navigate = useNavigate()
   const { shop } = useCurrentShop()
   const create = useCreateRepayment(shop?.id)
-  const methods = useReferentialList('payment-methods', { per_page: 100, filter: { is_active: 'true' } })
+  const me = useSession()
+  const online = useOnline()
+  const allMethods = useReferentialList('payment-methods', { per_page: 100, filter: { is_active: 'true' } })
+  // Sans réseau : espèces seulement (pas de GeniusPay ni d'avoir, vérifiés par le serveur).
+  const methodList = allMethods.data?.data.filter((m) => online || m.type === 'cash')
   const [offlineUuid] = useState(() => crypto.randomUUID())
   const credits = file.credits
     .filter((c) => c.shop.id === shop?.id && c.status !== 'cancelled' && Number(c.remaining_amount) > 0)
     .sort((a, b) => a.occurred_at.localeCompare(b.occurred_at) || a.id - b.id)
   const due = credits.reduce((s, c) => s + Number(c.remaining_amount), 0)
-  const note = Number(file.credit_note_balance)
+  const note = online ? Number(file.credit_note_balance) : 0
 
   const [amount, setAmount] = useState('')
   const [method, setMethod] = useState<string>('')
@@ -85,7 +91,7 @@ function RepaymentForm({ file }: { file: CustomerCreditFile }) {
     if (!manual) setSplit(proposeAllocation(Number(clean(v)) || 0, credits))
   }
   const allocated = credits.reduce((s, c) => s + (Number(clean(split[c.id] ?? '')) || 0), 0)
-  const selectedMethod = methods.data?.data.find((m) => String(m.id) === method)
+  const selectedMethod = methodList?.find((m) => String(m.id) === method)
 
   const errors = {
     amount: !(value > 0) ? t('credits.repayment.required_amount') : value > due ? t('credits.repayment.too_much', { amount: due.toLocaleString('fr-FR') }) : null,
@@ -102,6 +108,8 @@ function RepaymentForm({ file }: { file: CustomerCreditFile }) {
     if (errors.amount || errors.method || errors.split) return
     create.mutate(
       {
+        context: { shopName: shop.name, userId: me.user.id, label: file.customer.name },
+        payload: {
         customer_id: file.customer.id,
         amount: String(value),
         payment_method_id: method === NOTE ? null : Number(method),
@@ -110,11 +118,17 @@ function RepaymentForm({ file }: { file: CustomerCreditFile }) {
         note: comment || null,
         allocations: credits.filter((c) => Number(clean(split[c.id] ?? '')) > 0).map((c) => ({ credit_id: c.id, amount: clean(split[c.id]!) })),
         offline_uuid: offlineUuid,
+        },
       },
       {
-        onSuccess: (r) => {
-          toast.success(t('credits.repayment.done', { reference: r.reference }))
-          navigate(`/credits/paiements/${r.id}`, { replace: true })
+        onSuccess: (result) => {
+          if (result.kind === 'offline') {
+            toast.success(t('offline.saved_offline', { reference: result.operation.provisional_reference }))
+            navigate(`/credits/clients/${file.customer.id}`, { replace: true })
+            return
+          }
+          toast.success(t('credits.repayment.done', { reference: result.data.reference }))
+          navigate(`/credits/paiements/${result.data.id}`, { replace: true })
         },
         onError: (err) => setServerError(apiErrorMessage(err)),
       },
@@ -143,7 +157,7 @@ function RepaymentForm({ file }: { file: CustomerCreditFile }) {
               <SelectValue placeholder={t('sales.pos.method')} />
             </SelectTrigger>
             <SelectContent>
-              {methods.data?.data.map((m) => (
+              {methodList?.map((m) => (
                 <SelectItem key={m.id} value={String(m.id)}>
                   {m.name}
                 </SelectItem>
@@ -152,6 +166,7 @@ function RepaymentForm({ file }: { file: CustomerCreditFile }) {
             </SelectContent>
           </Select>
           {submitted && errors.method && <FieldError>{errors.method}</FieldError>}
+          {!online && <p className="text-sm font-semibold text-warn">{t('offline.repayment_cash_only')}</p>}
           {selectedMethod?.uses_geniuspay && (
             <p className="flex gap-2 text-sm text-muted-foreground">
               <Smartphone className="size-5 shrink-0 text-primary" aria-hidden="true" />

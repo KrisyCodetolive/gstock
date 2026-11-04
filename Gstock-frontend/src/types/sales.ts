@@ -106,12 +106,18 @@ export interface Sale {
   note: string | null
   cancelled_at: IsoDate | null
   cancel_reason: string | null
+  /** Vente faite hors ligne et synchronisée avec un écart : à vérifier (ADR-005, P2). */
+  sync_status: SyncStatus
+  /** Écarts constatés à la synchronisation (stock, prix), en français. */
+  review_reasons: string[]
 }
+
+export type SyncStatus = 'ok' | 'to_review'
 
 /** Ligne de l'historique des ventes. */
 export type SaleListItem = Pick<
   Sale,
-  'id' | 'reference' | 'customer' | 'user' | 'occurred_at' | 'total' | 'paid_now' | 'credit_amount' | 'payment_status' | 'status'
+  'id' | 'reference' | 'customer' | 'user' | 'occurred_at' | 'total' | 'paid_now' | 'credit_amount' | 'payment_status' | 'status' | 'sync_status'
 > & { items_count: number }
 
 /** Totaux de la liste filtrée (pas seulement de la page). */
@@ -137,6 +143,8 @@ export interface PosBootstrap {
     code: string
     barcode: string | null
     price: Money
+    /** Taxe en %, pour le calcul provisoire hors ligne (mode avancé). */
+    tax_rate: string | null
     unit: ProductUnitRef
     category: ProductCategoryRef | null
     quantity: string | null
@@ -146,6 +154,9 @@ export interface PosBootstrap {
   payment_methods: { id: Id; name: string; type: PaymentMethodType; uses_geniuspay: boolean }[]
   /** GeniusPay actif et configuré pour l'espace. */
   geniuspay_enabled: boolean
+  /** Clients actifs et leurs soldes dans la boutique, pour vendre à crédit hors ligne (ADR-005). */
+  customers: { id: Id; name: string; phone: string | null; balance: Money; credit_note: Money }[]
+  generated_at: IsoDate
 }
 
 /** Reçu prêt à imprimer ou à partager (ADR-013). */

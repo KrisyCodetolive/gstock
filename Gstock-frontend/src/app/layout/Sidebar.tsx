@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { UserMenu } from '@/features/auth/components/UserMenu'
 import { useSession } from '@/features/auth/hooks'
 import { ShopSwitcher } from '@/features/shops/components/ShopSwitcher'
+import { OfflineIndicator } from '@/features/sync/components/OfflineIndicator'
 import { roleLabel } from '@/lib/roles'
 import { useAllowedNav } from './useAllowedNav'
 
@@ -25,6 +26,7 @@ export function Sidebar() {
         <span className="text-xs font-bold tracking-wide text-muted-foreground uppercase">{tenant.name}</span>
         <ShopSwitcher variant="menu" className="w-full" />
       </div>
+      <OfflineIndicator className="justify-self-start" />
 
       {sell && (
         <Button asChild size="lg">

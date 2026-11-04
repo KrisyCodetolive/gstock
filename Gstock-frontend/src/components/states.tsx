@@ -1,14 +1,18 @@
 // États communs à tous les écrans : chargement, erreur, vide (§3.5).
-import { CircleAlert, Inbox, type LucideIcon } from 'lucide-react'
+import { CircleAlert, CloudOff, Inbox, type LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ApiError } from '@/lib/api/client'
+import { useOnline } from '@/offline/network'
 
 /** Squelettes aux mêmes formes que les cartes de liste. */
 export function LoadingState({ rows = 3 }: { rows?: number }) {
   const { t } = useTranslation()
+  // Sans réseau, une donnée jamais reçue ne viendra pas : on le dit au lieu de charger sans fin.
+  const online = useOnline()
+  if (!online) return <MessageBlock icon={CloudOff} title={t('offline.no_cache_title')} text={t('offline.no_cache_text')} />
   return (
     <div className="grid gap-3" role="status" aria-label={t('states.loading')}>
       {Array.from({ length: rows }, (_, i) => (
