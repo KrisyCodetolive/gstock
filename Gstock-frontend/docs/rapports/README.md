@@ -29,6 +29,8 @@
 
 Hors phase : [comparaison-ancien-gstock.md](comparaison-ancien-gstock.md) confronte l'inventaire de l'ancien GStock (Stocky v5.0) avec le nouveau, pour décider de ce qu'il faut reprendre.
 
+Hors phase également, branche `demo-images-produits` : chaque produit de démonstration a une illustration SVG d'emballage dans le style « Marché » (`src/mocks/data/product-images.ts`, données simulées seulement, absentes du build de production ; base simulée v9), et les tuiles de la caisse sont plus compactes (3 colonnes sur mobile, 5 sur grand écran).
+
 Le **backend** (`Gstock-plateform/`) n'a pas de rapport : rien n'y a encore été fait.
 
 **À la fin de chaque phase** : ajouter son rapport sur le même modèle sur le modèle des précédents, et mettre à jour ce sommaire et l'état dans `CLAUDE.md`.
