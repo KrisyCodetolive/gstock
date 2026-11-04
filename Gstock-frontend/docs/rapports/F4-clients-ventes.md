@@ -61,7 +61,7 @@
 
 - `computeSale(input, user)` : calcul du §7.4 (prix ou prix modifié, remise par ligne en `%` ou montant par unité, taxe exclusive en mode avancé, remise globale, paiements, rendu sur les espèces, `crédit = total − payé`, statut `paid` / `partial` / `credit`). Vérifie les permissions de remise et de prix.
 - `recordSale(shopId, user, input, date?)` : refuse un reste sans client ou sans `credits.create` ; sort le stock via `applyStockChanges` ; référence `V-N` ; paiements `pending` si GeniusPay est actif ; **crédit client créé automatiquement** (référence = celle de la vente).
-- `cancelSale(sale, user, reason)` : stock restitué, paiements et crédit annulés ; **refusée (409) si le crédit a déjà reçu un remboursement** (en attendant la décision P3, voir F5).
+- `cancelSale(sale, user, reason)` : stock restitué, paiements et crédit annulés ; **refusée (409) si le crédit a déjà reçu un remboursement** (en attendant la décision sur le point ouvert P3 du cahier).
 - `customerBalance(customerId, shopIds?)` : Σ des restes des crédits non annulés (§7.6).
 
 ## Règles appliquées
