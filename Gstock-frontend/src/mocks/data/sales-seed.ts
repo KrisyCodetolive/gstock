@@ -3,6 +3,7 @@
 // (recordSale) : stock, mouvements et crédits restent cohérents.
 import { db, persist } from '../db'
 import { recordRepayment, setInstallments } from '../credits'
+import { recordExpense, recordPurchase } from '../purchases'
 import { recordSale } from '../sales'
 import { stockRow } from '../stock'
 import { openingBalances } from './customers'
@@ -133,6 +134,54 @@ export function seedHistory() {
       // Reste invalide pour un échéancier : on passe.
     }
   })
+
+  // Approvisionnements (M11) : arrivages réguliers, une partie payée plus tard.
+  const stockKeeper = db.users.find((u) => u.id === 5)!
+  const arrivals: { day: number; shop: number; supplier: number; items: [string, number][]; paid: number }[] = [
+    { day: 8, shop: 1, supplier: 1, items: [['Riz local 1 kg', 20], ['Spaghetti 500 g', 24], ['Couscous 1 kg', 10]], paid: 1 },
+    { day: 12, shop: 2, supplier: 2, items: [['Huile de palme 1 L', 12], ['Huile d’arachide 1 L', 6]], paid: 0.5 },
+    { day: 16, shop: 1, supplier: 3, items: [['Eau minérale 1,5 L', 48], ['Fanta orange 33 cl', 24], ['Jus de bissap 1 L', 12]], paid: 1 },
+    { day: 21, shop: 2, supplier: 4, items: [['Sucre en poudre 1 kg', 20], ['Farine de blé 1 kg', 15], ['Lait concentré sucré', 24]], paid: 0 },
+    { day: 25, shop: 1, supplier: 5, items: [['Dentifrice 75 ml', 12], ['Papier toilette (4 rouleaux)', 10], ['Savon Lux', 24]], paid: 0.4 },
+    { day: 28, shop: 2, supplier: 1, items: [['Riz local 1 kg', 15], ['Tomate concentrée 70 g', 40]], paid: 1 },
+  ]
+  for (const a of arrivals) {
+    const items = a.items.flatMap(([name, quantity]) => {
+      const p = db.products.find((x) => x.name === name)
+      return p ? [{ product_id: p.id, quantity: String(quantity), cost: String(p.cost ?? 0) }] : []
+    })
+    const total = items.reduce((sum, i) => sum + Number(i.quantity) * Number(i.cost), 0)
+    const paid = Math.round((total * a.paid) / 50) * 50
+    try {
+      recordPurchase(a.shop, stockKeeper, {
+        items,
+        supplier_id: a.supplier,
+        occurred_at: new Date(Date.UTC(2026, 9, a.day, 9)).toISOString(),
+        ...(paid > 0 ? { paid_amount: String(paid), payment_method_id: 1 } : {}),
+      })
+    } catch {
+      // Données incohérentes : on passe.
+    }
+  }
+
+  // Dépenses (M12) : loyer, électricité, transport, personnel…
+  const spender = db.users.find((u) => u.id === 1)!
+  const expenses: [number, number, number, number, string | null][] = [
+    // [jour d'octobre, boutique, catégorie, montant, note]
+    [5, 1, 3, 75000, 'Loyer d’octobre'], [5, 2, 3, 60000, 'Loyer d’octobre'],
+    [9, 1, 1, 3000, 'Taxi pour le marché'], [11, 2, 1, 2500, null],
+    [14, 1, 2, 18500, 'Facture CIE'], [14, 2, 2, 15200, 'Facture CIE'],
+    [18, 1, 4, 10000, 'Forfait internet'], [22, 2, 1, 4000, 'Livraison'],
+    [30, 1, 5, 40000, 'Aide de Fatou'], [30, 2, 5, 35000, null],
+    [31, 1, 6, 1500, 'Sacs plastiques'], [32, 2, 6, 2000, 'Balai et seau'],
+  ]
+  for (const [day, shop, category, amount, note] of expenses) {
+    try {
+      recordExpense(shop, spender, { expense_category_id: category, amount: String(amount), payment_method_id: 1, occurred_at: new Date(Date.UTC(2026, 9, day, 17)).toISOString(), note })
+    } catch {
+      // Date future, etc. : on passe.
+    }
+  }
 
   db.seeded = true
   persist()

@@ -43,6 +43,12 @@ const CreditsPage = lazy(() => import('@/features/credits/pages/CreditsPage').th
 const CustomerCreditsPage = lazy(() => import('@/features/credits/pages/CustomerCreditsPage').then((m) => ({ default: m.CustomerCreditsPage })))
 const RepaymentFormPage = lazy(() => import('@/features/credits/pages/RepaymentFormPage').then((m) => ({ default: m.RepaymentFormPage })))
 const RepaymentPage = lazy(() => import('@/features/credits/pages/RepaymentPage').then((m) => ({ default: m.RepaymentPage })))
+const PurchasesListPage = lazy(() => import('@/features/purchases/pages/PurchasesListPage').then((m) => ({ default: m.PurchasesListPage })))
+const PurchaseFormPage = lazy(() => import('@/features/purchases/pages/PurchaseFormPage').then((m) => ({ default: m.PurchaseFormPage })))
+const PurchaseDetailPage = lazy(() => import('@/features/purchases/pages/PurchaseDetailPage').then((m) => ({ default: m.PurchaseDetailPage })))
+const SuppliersListPage = lazy(() => import('@/features/purchases/pages/SuppliersListPage').then((m) => ({ default: m.SuppliersListPage })))
+const SupplierPage = lazy(() => import('@/features/purchases/pages/SupplierPage').then((m) => ({ default: m.SupplierPage })))
+const ExpensesPage = lazy(() => import('@/features/purchases/pages/ExpensesPage').then((m) => ({ default: m.ExpensesPage })))
 
 const ShowcasePage = lazy(() => import('./pages/ShowcasePage').then((m) => ({ default: m.ShowcasePage })))
 
@@ -83,6 +89,13 @@ const catalog: RouteObject[] = [
   guarded('/credits/clients/:id', ['credits.view'], <CustomerCreditsPage />),
   guarded('/credits/clients/:id/paiement', ['repayments.create'], <RepaymentFormPage />),
   guarded('/credits/paiements/:id', ['credits.view', 'repayments.create'], <RepaymentPage />),
+  guarded('/approvisionnements', ['purchases.view'], <PurchasesListPage />),
+  guarded('/approvisionnements/nouveau', ['purchases.create'], <PurchaseFormPage />),
+  guarded('/approvisionnements/:id', ['purchases.view'], <PurchaseDetailPage />),
+  guarded('/fournisseurs', ['suppliers.view'], <SuppliersListPage />),
+  guarded('/fournisseurs/nouveau', ['suppliers.manage'], <SupplierPage />),
+  guarded('/fournisseurs/:id', ['suppliers.view'], <SupplierPage />),
+  guarded('/depenses', ['expenses.view'], <ExpensesPage />),
 ]
 
 const settings: RouteObject[] = [

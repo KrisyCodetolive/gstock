@@ -6,6 +6,7 @@ import common from '@/locales/fr/common.json'
 import credits from '@/locales/fr/credits.json'
 import customers from '@/locales/fr/customers.json'
 import products from '@/locales/fr/products.json'
+import purchases from '@/locales/fr/purchases.json'
 import referentials from '@/locales/fr/referentials.json'
 import roles from '@/locales/fr/roles.json'
 import sales from '@/locales/fr/sales.json'
@@ -15,7 +16,7 @@ import stock from '@/locales/fr/stock.json'
 import users from '@/locales/fr/users.json'
 
 export const defaultNS = 'common'
-export const resources = { fr: { common: { ...common, ...settings, ...shops, ...roles, ...users, ...referentials, ...products, ...stock, ...customers, ...sales, ...credits } } } as const
+export const resources = { fr: { common: { ...common, ...settings, ...shops, ...roles, ...users, ...referentials, ...products, ...stock, ...customers, ...sales, ...credits, ...purchases } } } as const
 
 void i18n.use(initReactI18next).init({
   lng: 'fr',

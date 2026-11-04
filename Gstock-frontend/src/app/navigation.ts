@@ -64,15 +64,15 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'purchases', path: '/approvisionnements', label: 'nav.purchases', description: 'home.purchases_text',
-    icon: Truck, permissions: ['purchases.view'], phase: 'F6', tint: 'mint',
+    icon: Truck, permissions: ['purchases.view'], tint: 'mint',
   },
   {
     id: 'suppliers', path: '/fournisseurs', label: 'nav.suppliers',
-    icon: ClipboardList, permissions: ['suppliers.view'], phase: 'F6',
+    icon: ClipboardList, permissions: ['suppliers.view'],
   },
   {
     id: 'expenses', path: '/depenses', label: 'nav.expenses', description: 'home.expenses_text',
-    icon: Wallet, permissions: ['expenses.view'], phase: 'F6', tint: 'lavender',
+    icon: Wallet, permissions: ['expenses.view'], tint: 'lavender',
   },
   {
     id: 'audit', path: '/journal', label: 'nav.audit', description: 'home.audit_text',
