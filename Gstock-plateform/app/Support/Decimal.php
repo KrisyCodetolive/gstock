@@ -27,6 +27,16 @@ final class Decimal
         return self::round(bcmul(self::of($a), self::of($b), $scale + 4), $scale);
     }
 
+    public static function div(string $a, string $b, int $scale = self::QTY): string
+    {
+        return self::round(bcdiv(self::of($a), self::of($b), $scale + 4), $scale);
+    }
+
+    public static function min(string $a, string $b): string
+    {
+        return self::cmp($a, $b) <= 0 ? $a : $b;
+    }
+
     public static function cmp(string $a, string $b): int
     {
         return bccomp(self::of($a), self::of($b), 6);

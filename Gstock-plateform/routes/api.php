@@ -3,14 +3,17 @@
 use App\Http\Controllers\Api\V1\AdjustmentController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\PublicReceiptController;
 use App\Http\Controllers\Api\V1\Referentials\BrandController;
 use App\Http\Controllers\Api\V1\Referentials\CategoryController;
 use App\Http\Controllers\Api\V1\Referentials\ExpenseCategoryController;
 use App\Http\Controllers\Api\V1\Referentials\PaymentMethodController;
 use App\Http\Controllers\Api\V1\Referentials\UnitController;
 use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\SaleController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\ShopController;
 use App\Http\Controllers\Api\V1\StockController;
@@ -23,6 +26,9 @@ use Illuminate\Support\Facades\Route;
  * Permissions contrôlées sur chaque endpoint (§6.2) ; espace suspendu en lecture seule (M00).
  */
 Route::middleware('tenant')->group(function () {
+    // Reçu partagé par WhatsApp : public, lien signé et expirant (ADR-013).
+    Route::get('public/receipts/{token}', [PublicReceiptController::class, 'show'])->middleware('throttle:60,1');
+
     Route::prefix('auth')->middleware('throttle:auth')->group(function () {
         Route::post('login', [AuthController::class, 'login']);
         Route::post('logout', [AuthController::class, 'logout']);
@@ -96,6 +102,13 @@ Route::middleware('tenant')->group(function () {
         Route::post('products/{product}/image', [ProductController::class, 'uploadImage'])->middleware('permission:products.update,products.create');
         Route::delete('products/{product}/image', [ProductController::class, 'deleteImage'])->middleware('permission:products.update');
         Route::get('products/{product}/stock', [ProductController::class, 'stock'])->middleware('permission:products.view');
+        // Mes clients (M10) : communs à l'espace ; la caisse peut les lire et en créer.
+        Route::get('customers', [CustomerController::class, 'index'])->middleware('permission:customers.view,sales.create');
+        Route::get('customers/{customer}', [CustomerController::class, 'show'])->middleware('permission:customers.view,sales.create');
+        Route::get('customers/{customer}/summary', [CustomerController::class, 'summary'])->middleware('permission:customers.view');
+        Route::post('customers', [CustomerController::class, 'store'])->middleware('permission:customers.create');
+        Route::put('customers/{customer}', [CustomerController::class, 'update'])->middleware('permission:customers.update');
+
         // Mon stock, vue « Toutes mes boutiques » (M07).
         Route::get('stock', [StockController::class, 'overview'])->middleware('permission:stock.view');
 
@@ -111,6 +124,20 @@ Route::middleware('tenant')->group(function () {
             // Le type de mouvement (entrée, sortie, inventaire) demande sa propre permission : vérifié dans le service.
             Route::post('adjustments', [AdjustmentController::class, 'store'])->middleware('permission:stock.entry,stock.exit,stock.adjust');
             Route::post('adjustments/{id}/cancel', [AdjustmentController::class, 'cancel'])->middleware('permission:stock.adjust')->whereNumber('id');
+
+            // Caisse et ventes (M08).
+            Route::middleware('permission:sales.create')->group(function () {
+                Route::get('pos/bootstrap', [SaleController::class, 'bootstrap']);
+                Route::post('sales/quote', [SaleController::class, 'quote']);
+                Route::post('sales', [SaleController::class, 'store']);
+            });
+            Route::get('sales', [SaleController::class, 'index'])->middleware('permission:sales.view');
+            Route::middleware('permission:sales.view,sales.create')->group(function () {
+                Route::get('sales/{id}', [SaleController::class, 'show'])->whereNumber('id');
+                Route::get('sales/{id}/receipt', [SaleController::class, 'receipt'])->whereNumber('id');
+                Route::post('sales/{id}/share-link', [SaleController::class, 'shareLink'])->whereNumber('id');
+            });
+            Route::post('sales/{id}/cancel', [SaleController::class, 'cancel'])->middleware('permission:sales.cancel')->whereNumber('id');
         });
     });
 });
