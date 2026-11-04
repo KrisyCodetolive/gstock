@@ -20,6 +20,7 @@ function productRef(p: MockProduct) {
     code: p.code,
     category: category ? { id: category.id, name: category.name, color: category.color } : null,
     unit: { id: unit.id, name: unit.name, short_name: unit.short_name },
+    image_url: p.image_url,
     is_active: p.is_active,
   }
 }

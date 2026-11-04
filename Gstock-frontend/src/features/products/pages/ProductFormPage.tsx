@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronDown, Eye, EyeOff, History } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'
@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { FormAlert, FormField } from '@/components/FormField'
 import { FormActions, FormSection } from '@/components/FormLayout'
 import { PageHeader } from '@/components/PageHeader'
+import { PhotoPicker } from '@/components/PhotoPicker'
 import { SelectField } from '@/components/SelectField'
 import { StatusBadge } from '@/components/StatusBadge'
 import { ErrorState, LoadingState } from '@/components/states'
@@ -25,7 +26,7 @@ import { cn } from '@/lib/utils'
 import type { Product } from '@/types/catalog'
 import { ProductThumb } from '../components/ProductThumb'
 import { StockStateBadge } from '../components/StockStateBadge'
-import { useProduct, useProductStock, useSaveProduct } from '../hooks'
+import { useProduct, useProductImage, useProductStock, useSaveProduct } from '../hooks'
 import { formToPayload, PRODUCT_FIELDS, productSchema, productToForm, type ProductForm } from '../schemas'
 
 /** Création rapide (/produits/nouveau) et fiche produit (/produits/:id). */
@@ -75,6 +76,9 @@ function ProductFormBody({ product }: { product?: Product }) {
   const { tenant } = useSession()
   const { shop } = useCurrentShop()
   const save = useSaveProduct(product?.id)
+  const image = useProductImage()
+  // Création : la photo choisie est envoyée juste après l'enregistrement du produit.
+  const [pendingPhoto, setPendingPhoto] = usePendingPhoto()
   const categories = useReferentialList('categories', { per_page: 100, sort: 'name', filter: { is_active: 'true' } })
   const units = useReferentialList('units', { per_page: 100, sort: 'name', filter: { is_active: 'true' } })
   const brands = useReferentialList('brands', { per_page: 100, sort: 'name', filter: { is_active: 'true' } })
@@ -95,8 +99,13 @@ function ProductFormBody({ product }: { product?: Product }) {
           form.reset(productToForm(saved))
           toast.success(t('common.saved'))
         } else {
+          const open = () => navigate(`/produits/${saved.id}`, { replace: true })
           toast.success(t('products.form.created'))
-          navigate(`/produits/${saved.id}`, { replace: true })
+          if (!pendingPhoto) return void open()
+          image.upload.mutate(
+            { id: saved.id, file: pendingPhoto.file },
+            { onError: (error) => toast.error(t('products.form.photo_failed', { reason: apiErrorMessage(error) })), onSettled: open },
+          )
         }
       },
       onError: (error) => setFormError(applyApiErrors(error, form.setError, PRODUCT_FIELDS)),
@@ -134,6 +143,21 @@ function ProductFormBody({ product }: { product?: Product }) {
               <ChevronDown className={cn('transition-transform', showMore && 'rotate-180')} aria-hidden="true" />
               {t('products.form.more')}
             </Button>
+          )}
+
+          {showMore && (
+            <FormSection title={t('products.form.photo')}>
+              <PhotoPicker
+                id="product-photo"
+                imageUrl={product ? product.image_url : (pendingPhoto?.url ?? null)}
+                fallback={<ProductThumb name={form.getValues('name')} type={type} className="size-full border-0" />}
+                onPick={async (file) => (product ? image.upload.mutateAsync({ id: product.id, file }) : setPendingPhoto(file))}
+                onRemove={async () => (product ? image.remove.mutateAsync(product.id) : setPendingPhoto(null))}
+                pending={image.upload.isPending || image.remove.isPending}
+                disabled={!editable}
+                maxSize={400}
+              />
+            </FormSection>
           )}
 
           {showMore && (
@@ -210,8 +234,8 @@ function ProductFormBody({ product }: { product?: Product }) {
             <Button type="button" variant="outline" disabled={save.isPending} onClick={() => (product ? form.reset() : navigate('/produits'))}>
               {t('common.cancel')}
             </Button>
-            <Button type="submit" variant="action" size="lg" disabled={save.isPending || (product && !isDirty)}>
-              {save.isPending ? t('common.saving') : product ? t('common.save') : t('products.add')}
+            <Button type="submit" variant="action" size="lg" disabled={save.isPending || image.upload.isPending || (product && !isDirty)}>
+              {save.isPending || image.upload.isPending ? t('common.saving') : product ? t('common.save') : t('products.add')}
             </Button>
           </FormActions>
         )}
@@ -314,4 +338,18 @@ function AvailabilitySection({ product }: { product: Product }) {
       />
     </FormSection>
   )
+}
+
+/** Photo choisie avant la création du produit, avec son adresse locale pour l'aperçu. */
+function usePendingPhoto() {
+  const [photo, setPhoto] = useState<{ file: File; url: string } | null>(null)
+  const current = useRef<typeof photo>(null)
+  // L'adresse locale est libérée quand on change de photo ou qu'on quitte la page.
+  useEffect(() => () => void (current.current && URL.revokeObjectURL(current.current.url)), [])
+  const set = (file: File | null) => {
+    if (current.current) URL.revokeObjectURL(current.current.url)
+    current.current = file ? { file, url: URL.createObjectURL(file) } : null
+    setPhoto(current.current)
+  }
+  return [photo, set] as const
 }

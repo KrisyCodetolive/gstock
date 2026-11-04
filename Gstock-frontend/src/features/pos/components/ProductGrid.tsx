@@ -44,7 +44,13 @@ export function ProductGrid({
                   {formatQuantity(inCart)}
                 </span>
               )}
-              <ProductThumb name={p.name} color={p.category?.color} type={p.type} className="h-10 w-full rounded-sm" />
+              <ProductThumb
+                name={p.name}
+                color={p.category?.color}
+                imageUrl={p.image_url}
+                type={p.type}
+                className={cn('w-full rounded-sm', p.image_url ? 'aspect-[3/2] h-auto' : 'h-10')}
+              />
               <span className="line-clamp-2 text-sm leading-tight font-bold">{p.name}</span>
               <Money value={p.price} />
               {p.quantity !== null && (

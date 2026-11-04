@@ -3,7 +3,7 @@ import { delay, http, HttpResponse } from 'msw'
 import type { Product, ProductCreatePayload, ProductSearchResult, ProductShopStock } from '@/types/catalog'
 import type { MockProduct } from '../data/products'
 import { db, nextId, persist } from '../db'
-import { API, findOr404, handle, MockHttpError, normalize, nullable, paginate, permissionsOf, requirePermission, requireUser, Validator } from '../http'
+import { API, findOr404, handle, MockHttpError, normalize, nullable, paginate, permissionsOf, readImage, requirePermission, requireUser, Validator } from '../http'
 import { alertOf, applyStockChanges, money, qty, requireShopAccess, stockRow, stockState } from '../stock'
 import { currentPlan } from '../platform'
 
@@ -171,6 +171,7 @@ export const productsHandlers = [
           cost: r.cost,
           unit: r.unit,
           category: r.category,
+          image_url: r.image_url,
           quantity: r.stock?.quantity ?? null,
           state: r.stock?.state ?? null,
         }
@@ -241,6 +242,29 @@ export const productsHandlers = [
       persist()
       const shopParam = new URL(request.url).searchParams.get('shop_id')
       return HttpResponse.json({ data: productResource(product, shopParam ? requireShopAccess(user, shopParam).id : null) })
+    }),
+  ),
+
+  // Photo du produit (multipart `image`), déjà réduite par l'application.
+  http.post(`${API}/products/:id/image`, ({ request, params }) =>
+    handle(async () => {
+      await delay(400)
+      requirePermission('products.update', 'products.create')
+      const product = findOr404(db.products, params.id)
+      product.image_url = await readImage(request, 'image')
+      persist()
+      return HttpResponse.json({ data: productResource(product) })
+    }),
+  ),
+
+  http.delete(`${API}/products/:id/image`, ({ params }) =>
+    handle(async () => {
+      await delay(200)
+      requirePermission('products.update')
+      const product = findOr404(db.products, params.id)
+      product.image_url = null
+      persist()
+      return HttpResponse.json({ data: productResource(product) })
     }),
   ),
 ]

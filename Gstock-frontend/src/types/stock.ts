@@ -10,6 +10,7 @@ export interface StockItem {
     code: string
     category: ProductCategoryRef | null
     unit: ProductUnitRef
+    image_url: string | null
     is_active: boolean
   }
   quantity: string

@@ -128,7 +128,7 @@ export function PurchaseFormPage() {
                 return (
                   <li key={l.product.id} className="grid gap-3 rounded-md border-2 border-foreground p-3">
                     <div className="flex items-center gap-3">
-                      <ProductThumb name={l.product.name} color={l.product.category?.color} className="size-10" />
+                      <ProductThumb name={l.product.name} color={l.product.category?.color} imageUrl={l.product.image_url} className="size-10" />
                       <span className="min-w-0 flex-1 truncate font-bold">{l.product.name}</span>
                       <Button type="button" variant="ghost" size="icon-sm" onClick={() => setLines((ls) => ls.filter((x) => x.product.id !== l.product.id))} aria-label={t('purchases.form.remove', { name: l.product.name })}>
                         <Trash2 aria-hidden="true" />

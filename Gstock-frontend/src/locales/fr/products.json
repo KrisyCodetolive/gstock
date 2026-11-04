@@ -59,7 +59,9 @@
       "required_price": "Saisissez le prix de vente.",
       "invalid_number": "Saisissez un nombre positif.",
       "created": "Produit ajouté.",
-      "unit_default": "Unité (par défaut)"
+      "unit_default": "Unité (par défaut)",
+      "photo": "Photo",
+      "photo_failed": "Le produit est créé, mais la photo n'a pas pu être envoyée : {{reason}}"
     },
     "stock_by_shop": "Stock par boutique",
     "stock_by_shop_service": "Un service n'a pas de stock.",

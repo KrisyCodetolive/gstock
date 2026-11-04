@@ -89,7 +89,7 @@ export function ProductPicker({
                     }}
                     className="pressable flex min-h-16 w-full items-center gap-3 rounded-md bg-card px-3 py-2 text-left disabled:opacity-50"
                   >
-                    <ProductThumb name={p.name} color={p.category?.color} type={p.type} className="size-10" />
+                    <ProductThumb name={p.name} color={p.category?.color} imageUrl={p.image_url} type={p.type} className="size-10" />
                     <span className="grid min-w-0 flex-1">
                       <span className="truncate font-bold">{p.name}</span>
                       <span className="flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground">

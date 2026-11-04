@@ -116,7 +116,7 @@ export function AdjustmentFormPage({ kind }: { kind: AdjustmentKind }) {
                 return (
                   <li key={line.product.id} className="grid gap-3 rounded-md border-2 border-foreground p-3 sm:grid-cols-[1fr_auto] sm:items-center">
                     <div className="flex items-center gap-3">
-                      <ProductThumb name={line.product.name} color={line.product.category?.color} className="size-10" />
+                      <ProductThumb name={line.product.name} color={line.product.category?.color} imageUrl={line.product.image_url} className="size-10" />
                       <div className="grid min-w-0 flex-1">
                         <span className="truncate font-bold">{line.product.name}</span>
                         <span className="text-sm text-muted-foreground">

@@ -121,6 +121,7 @@ export const salesHandlers = [
               tax_rate: p.tax_rate === null ? null : String(p.tax_rate),
               unit: { id: unit.id, name: unit.name, short_name: unit.short_name },
               category: category ? { id: category.id, name: category.name, color: category.color } : null,
+              image_url: p.image_url,
               quantity: q === null ? null : qty(q),
               state: q === null ? null : stockState(q, alertOf(p, shopId)),
             }

@@ -87,6 +87,7 @@ export interface ProductSearchResult {
   cost: Money | null
   unit: ProductUnitRef
   category: ProductCategoryRef | null
+  image_url: string | null
   quantity: string | null
   state: StockState | null
 }

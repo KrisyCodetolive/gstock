@@ -197,7 +197,7 @@ function ShopStockList({ state, onState }: { state: StateFilter; onState: (s: St
             ]}
             card={(i) => (
               <div className="flex items-center gap-3">
-                <ProductThumb name={i.product.name} color={i.product.category?.color} />
+                <ProductThumb name={i.product.name} color={i.product.category?.color} imageUrl={i.product.image_url} />
                 <div className="grid min-w-0 flex-1 gap-0.5">
                   <span className="truncate text-base font-bold">{i.product.name}</span>
                   <span className="flex flex-wrap items-center gap-x-3 text-sm">
