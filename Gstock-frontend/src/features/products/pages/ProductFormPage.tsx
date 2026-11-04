@@ -1,0 +1,317 @@
+import { zodResolver } from '@hookform/resolvers/zod'
+import { ChevronDown, Eye, EyeOff, History } from 'lucide-react'
+import { useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
+import { useTranslation } from 'react-i18next'
+import { Link, useNavigate, useParams } from 'react-router'
+import { toast } from 'sonner'
+import { BackLink } from '@/components/BackLink'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { FormAlert, FormField } from '@/components/FormField'
+import { FormActions, FormSection } from '@/components/FormLayout'
+import { PageHeader } from '@/components/PageHeader'
+import { SelectField } from '@/components/SelectField'
+import { StatusBadge } from '@/components/StatusBadge'
+import { ErrorState, LoadingState } from '@/components/states'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { useCan, useSession } from '@/features/auth/hooks'
+import { useReferentialList } from '@/features/referentials/hooks'
+import { useCurrentShop } from '@/features/shops/hooks'
+import { MovementsPreview } from '@/features/stock/components/MovementsPreview'
+import { apiErrorMessage, applyApiErrors } from '@/lib/form-errors'
+import { formatQuantity } from '@/lib/format'
+import { cn } from '@/lib/utils'
+import type { Product } from '@/types/catalog'
+import { ProductThumb } from '../components/ProductThumb'
+import { StockStateBadge } from '../components/StockStateBadge'
+import { useProduct, useProductStock, useSaveProduct } from '../hooks'
+import { formToPayload, PRODUCT_FIELDS, productSchema, productToForm, type ProductForm } from '../schemas'
+
+/** Création rapide (/produits/nouveau) et fiche produit (/produits/:id). */
+export function ProductFormPage() {
+  const { t } = useTranslation()
+  const { id } = useParams()
+  const productId = id ? Number(id) : undefined
+  const { shop } = useCurrentShop()
+  const product = useProduct(productId, shop?.id)
+
+  return (
+    <div className="grid gap-6">
+      <BackLink to="/produits" label={t('products.back')} />
+      {productId === undefined ? (
+        <>
+          <PageHeader title={t('products.new_title')} />
+          <ProductFormBody />
+        </>
+      ) : product.isPending ? (
+        <LoadingState rows={4} />
+      ) : product.isError ? (
+        <ErrorState error={product.error} onRetry={() => void product.refetch()} />
+      ) : (
+        <>
+          <header className="flex flex-wrap items-center gap-3">
+            <ProductThumb name={product.data.name} color={product.data.category?.color} imageUrl={product.data.image_url} type={product.data.type} className="size-14" />
+            <div className="grid min-w-0 flex-1 gap-1">
+              <h1 className="text-[26px] leading-tight font-extrabold tracking-[-0.02em] uppercase">{product.data.name}</h1>
+              <span className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                {product.data.code}
+                {product.data.stock && <StockStateBadge state={product.data.stock.state} />}
+                {!product.data.is_active && <StatusBadge>{t('products.inactive')}</StatusBadge>}
+              </span>
+            </div>
+          </header>
+          <ProductFormBody key={product.data.id} product={product.data} />
+        </>
+      )}
+    </div>
+  )
+}
+
+function ProductFormBody({ product }: { product?: Product }) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const can = useCan()
+  const { tenant } = useSession()
+  const { shop } = useCurrentShop()
+  const save = useSaveProduct(product?.id)
+  const categories = useReferentialList('categories', { per_page: 100, sort: 'name', filter: { is_active: 'true' } })
+  const units = useReferentialList('units', { per_page: 100, sort: 'name', filter: { is_active: 'true' } })
+  const brands = useReferentialList('brands', { per_page: 100, sort: 'name', filter: { is_active: 'true' } })
+  const [formError, setFormError] = useState<string | null>(null)
+  // Création rapide : les détails sont repliés (§3.1) ; sur une fiche, tout est visible.
+  const [showMore, setShowMore] = useState(Boolean(product))
+  const editable = product ? can('products.update') : can('products.create')
+
+  const form = useForm<ProductForm>({ resolver: zodResolver(productSchema), defaultValues: productToForm(product) })
+  const { errors, isDirty } = form.formState
+  const type = useWatch({ control: form.control, name: 'type' })
+
+  const submit = form.handleSubmit((values) => {
+    setFormError(null)
+    save.mutate(formToPayload(values, product, shop?.id), {
+      onSuccess: (saved) => {
+        if (product) {
+          form.reset(productToForm(saved))
+          toast.success(t('common.saved'))
+        } else {
+          toast.success(t('products.form.created'))
+          navigate(`/produits/${saved.id}`, { replace: true })
+        }
+      },
+      onError: (error) => setFormError(applyApiErrors(error, form.setError, PRODUCT_FIELDS)),
+    })
+  })
+
+  const options = (rows: { id: number; name: string }[] | undefined) => rows?.map((r) => ({ value: String(r.id), label: r.name })) ?? []
+
+  return (
+    <div className="grid gap-5">
+      <form onSubmit={submit} noValidate className="grid gap-5">
+        {formError && <FormAlert>{formError}</FormAlert>}
+        <fieldset disabled={!editable} className="grid gap-5">
+          <FormSection title={t('products.form.essentials')} description={product ? undefined : t('products.form.essentials_hint')}>
+            <FormField id="name" label={t('products.form.name')} error={errors.name?.message}>
+              <Input placeholder={t('products.form.name_placeholder')} autoFocus={!product} {...form.register('name')} />
+            </FormField>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField id="price" label={`${t('products.form.price')} (FCFA)`} error={errors.price?.message}>
+                <Input inputMode="numeric" className="tabular text-lg font-bold" {...form.register('price')} />
+              </FormField>
+              <SelectField
+                control={form.control}
+                name="category_id"
+                label={t('products.form.category')}
+                noneLabel={t('products.form.category_none')}
+                options={options(categories.data?.data)}
+                error={errors.category_id?.message}
+              />
+            </div>
+          </FormSection>
+
+          {!product && (
+            <Button type="button" variant="ghost" className="justify-self-start" onClick={() => setShowMore((v) => !v)} aria-expanded={showMore}>
+              <ChevronDown className={cn('transition-transform', showMore && 'rotate-180')} aria-hidden="true" />
+              {t('products.form.more')}
+            </Button>
+          )}
+
+          {showMore && (
+            <FormSection title={t('products.form.more')}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField id="cost" label={`${t('products.form.cost')} (FCFA)`} optional hint={t('products.form.cost_hint')} error={errors.cost?.message}>
+                  <Input inputMode="numeric" className="tabular" {...form.register('cost')} />
+                </FormField>
+                <SelectField
+                  control={form.control}
+                  name="unit_id"
+                  label={t('products.form.unit')}
+                  placeholder={t('products.form.unit_default')}
+                  hint={t('products.form.unit_hint')}
+                  options={units.data?.data.filter((u) => u.base_unit_id === null).map((u) => ({ value: String(u.id), label: `${u.name} (${u.short_name})` })) ?? []}
+                  error={errors.unit_id?.message}
+                />
+                <FormField id="barcode" label={t('products.form.barcode')} optional error={errors.barcode?.message}>
+                  <Input inputMode="numeric" className="tabular" {...form.register('barcode')} />
+                </FormField>
+                <FormField id="code" label={t('products.form.code')} optional hint={t('products.form.code_hint')} error={errors.code?.message}>
+                  <Input {...form.register('code')} />
+                </FormField>
+                {type !== 'service' && (
+                  <FormField id="stock_alert" label={t('products.form.stock_alert')} optional hint={t('products.form.stock_alert_hint')} error={errors.stock_alert?.message}>
+                    <Input inputMode="decimal" className="tabular" {...form.register('stock_alert')} />
+                  </FormField>
+                )}
+                {!product && type !== 'service' && shop && can('stock.entry') && (
+                  <FormField
+                    id="initial_quantity"
+                    label={t('products.form.initial_quantity')}
+                    optional
+                    hint={t('products.form.initial_quantity_hint', { shop: shop.name })}
+                    error={errors.initial_quantity?.message}
+                  >
+                    <Input inputMode="decimal" className="tabular" {...form.register('initial_quantity')} />
+                  </FormField>
+                )}
+              </div>
+            </FormSection>
+          )}
+
+          {tenant.advanced_mode && showMore && (
+            <FormSection title={t('products.form.advanced')} description={t('products.form.variants_soon')}>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <SelectField
+                  control={form.control}
+                  name="type"
+                  label={t('products.form.type')}
+                  options={[
+                    { value: 'simple', label: t('products.form.type_simple') },
+                    { value: 'service', label: t('products.form.type_service') },
+                  ]}
+                  error={errors.type?.message}
+                />
+                <SelectField
+                  control={form.control}
+                  name="brand_id"
+                  label={t('products.form.brand')}
+                  noneLabel={t('products.form.brand_none')}
+                  options={options(brands.data?.data)}
+                />
+                <FormField id="tax_rate" label={t('products.form.tax_rate')} optional error={errors.tax_rate?.message}>
+                  <Input inputMode="decimal" className="tabular" {...form.register('tax_rate')} />
+                </FormField>
+              </div>
+            </FormSection>
+          )}
+        </fieldset>
+
+        {editable && (
+          <FormActions>
+            <Button type="button" variant="outline" disabled={save.isPending} onClick={() => (product ? form.reset() : navigate('/produits'))}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="submit" variant="action" size="lg" disabled={save.isPending || (product && !isDirty)}>
+              {save.isPending ? t('common.saving') : product ? t('common.save') : t('products.add')}
+            </Button>
+          </FormActions>
+        )}
+      </form>
+
+      {product && (
+        <>
+          <ShopStockSection product={product} />
+          {product.type !== 'service' && can('stock.view') && shop && (
+            <FormSection title={t('products.recent_movements', { shop: shop.name })}>
+              <MovementsPreview productId={product.id} />
+              <Button asChild variant="outline" className="justify-self-start">
+                <Link to={`/stock/mouvements?product_id=${product.id}`}>
+                  <History aria-hidden="true" />
+                  {t('products.see_movements')}
+                </Link>
+              </Button>
+            </FormSection>
+          )}
+          {can('products.disable') && can('products.update') && <AvailabilitySection product={product} />}
+        </>
+      )}
+    </div>
+  )
+}
+
+function ShopStockSection({ product }: { product: Product }) {
+  const { t } = useTranslation()
+  const stock = useProductStock(product.id, product.type !== 'service')
+  return (
+    <FormSection title={t('products.stock_by_shop')}>
+      {product.type === 'service' ? (
+        <p className="text-muted-foreground">{t('products.stock_by_shop_service')}</p>
+      ) : stock.isPending ? (
+        <LoadingState rows={2} />
+      ) : stock.isError ? (
+        <ErrorState error={stock.error} onRetry={() => void stock.refetch()} />
+      ) : (
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {stock.data.map((s) => (
+            <li key={s.shop.id} className="flex items-center justify-between gap-3 rounded-md border-2 border-foreground px-3 py-2">
+              <span className="grid">
+                <span className="font-bold">{s.shop.name}</span>
+                <span className="tabular text-lg font-bold">
+                  {formatQuantity(s.quantity)} <span className="text-sm font-semibold text-muted-foreground">{product.unit.short_name}</span>
+                </span>
+              </span>
+              <StockStateBadge state={s.state} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </FormSection>
+  )
+}
+
+function AvailabilitySection({ product }: { product: Product }) {
+  const { t } = useTranslation()
+  const { shop } = useCurrentShop()
+  const save = useSaveProduct(product.id)
+  const [confirm, setConfirm] = useState(false)
+
+  const setActive = (is_active: boolean) =>
+    save.mutate(
+      { ...formToPayload(productToForm(product), product, shop?.id), is_active },
+      {
+        onSuccess: () => {
+          setConfirm(false)
+          toast.success(is_active ? t('products.status.enabled') : t('products.status.disabled'))
+        },
+        onError: (error) => {
+          setConfirm(false)
+          toast.error(apiErrorMessage(error))
+        },
+      },
+    )
+
+  return (
+    <FormSection title={t('products.status.title')} description={product.is_active ? t('products.status.active_text') : t('products.status.inactive_text')}>
+      {product.is_active ? (
+        <Button variant="destructive" className="justify-self-start" onClick={() => setConfirm(true)}>
+          <EyeOff aria-hidden="true" />
+          {t('products.status.disable')}
+        </Button>
+      ) : (
+        <Button variant="outline" className="justify-self-start" disabled={save.isPending} onClick={() => setActive(true)}>
+          <Eye aria-hidden="true" />
+          {t('products.status.enable')}
+        </Button>
+      )}
+      <ConfirmDialog
+        open={confirm}
+        onOpenChange={setConfirm}
+        title={t('products.status.disable_title', { name: product.name })}
+        description={t('products.status.disable_text')}
+        confirmLabel={t('products.status.disable')}
+        destructive
+        pending={save.isPending}
+        onConfirm={() => setActive(false)}
+      />
+    </FormSection>
+  )
+}

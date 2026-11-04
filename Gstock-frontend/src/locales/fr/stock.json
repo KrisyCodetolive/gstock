@@ -1,0 +1,135 @@
+{
+  "stock": {
+    "title": "Mon stock",
+    "subtitle": "Ce qui reste dans {{shop}}",
+    "subtitle_all": "Toutes mes boutiques",
+    "search": "Chercher un produit",
+    "back": "Mon stock",
+    "view_shop": "Cette boutique",
+    "view_all": "Toutes mes boutiques",
+    "view_label": "Boutiques affichées",
+    "empty_title": "Aucun produit en stock",
+    "empty_text": "Ajoutez des produits dans « Mes produits » pour suivre leur stock.",
+    "alerts_empty_title": "Rien à racheter",
+    "alerts_empty_text": "Aucun produit n'est en stock faible ou en rupture.",
+    "summary": {
+      "value": "Valeur du stock",
+      "value_hint": "Au prix d'achat",
+      "products_one": "{{count}} produit suivi",
+      "products_other": "{{count}} produits suivis",
+      "low": "Stock faible",
+      "out": "En rupture",
+      "see": "Voir la liste"
+    },
+    "filters": {
+      "all": "Tout",
+      "low": "Stock faible",
+      "out": "Rupture"
+    },
+    "columns": {
+      "product": "Produit",
+      "quantity": "Quantité",
+      "alert": "Seuil",
+      "cost": "Prix d'achat",
+      "value": "Valeur",
+      "state": "État",
+      "total": "Total"
+    },
+    "alert_value": "Seuil : {{value}}",
+    "actions": {
+      "entry": "Ajouter du stock",
+      "exit": "Retirer du stock",
+      "inventory": "Faire l'inventaire",
+      "movements": "Mouvements"
+    },
+    "movements": {
+      "title": "Mouvements de stock",
+      "subtitle": "Toutes les entrées et sorties dans {{shop}}",
+      "for_product": "Mouvements de « {{name}} »",
+      "all_products": "Tous les produits",
+      "empty_title": "Aucun mouvement",
+      "empty_text": "Les ventes, arrivées de marchandise et corrections de stock apparaîtront ici.",
+      "own_only": "Vous voyez seulement les mouvements que vous avez enregistrés.",
+      "balance": "Reste : {{value}}",
+      "by": "par {{name}}",
+      "sources": {
+        "opening": "Stock initial",
+        "adjustment": "Mouvement manuel",
+        "adjustment_cancel": "Annulation",
+        "sale": "Vente",
+        "sale_cancel": "Vente annulée",
+        "purchase": "Approvisionnement",
+        "purchase_cancel": "Approvisionnement annulé"
+      }
+    },
+    "form": {
+      "entry_title": "Ajouter du stock",
+      "entry_intro": "Pour une marchandise reçue hors approvisionnement, un retour, un don…",
+      "exit_title": "Retirer du stock",
+      "exit_intro": "Pour une perte, de la casse, des produits périmés ou consommés.",
+      "inventory_title": "Faire l'inventaire",
+      "inventory_intro": "Comptez ce qu'il y a vraiment en boutique : GStock corrige l'écart.",
+      "reason": "Motif",
+      "reason_other": "Précisez le motif",
+      "reasons": {
+        "entry_received": "Marchandise reçue",
+        "entry_return": "Retour d'un client",
+        "entry_found": "Produit retrouvé",
+        "exit_loss": "Perte",
+        "exit_broken": "Casse",
+        "exit_expired": "Produit périmé",
+        "exit_used": "Consommé en boutique",
+        "inventory_count": "Inventaire",
+        "other": "Autre"
+      },
+      "products": "Produits",
+      "add_product": "Ajouter un produit",
+      "no_lines": "Ajoutez au moins un produit.",
+      "quantity": "Quantité",
+      "counted": "Quantité comptée",
+      "in_stock": "En stock : {{value}}",
+      "gap": "Écart : {{value}}",
+      "gap_none": "Pas d'écart",
+      "remove_line": "Retirer {{name}}",
+      "decrease": "Diminuer la quantité",
+      "increase": "Augmenter la quantité",
+      "required_reason": "Indiquez le motif du mouvement.",
+      "invalid_quantity": "Saisissez une quantité supérieure à 0.",
+      "invalid_counted": "Saisissez la quantité comptée.",
+      "exceeds": "Il n'en reste que {{value}}.",
+      "submit_entry": "Ajouter au stock",
+      "submit_exit": "Retirer du stock",
+      "submit_inventory": "Corriger le stock",
+      "done": "{{reference}} enregistré.",
+      "lines_one": "{{count}} produit",
+      "lines_other": "{{count}} produits"
+    },
+    "picker": {
+      "title": "Choisir un produit",
+      "search": "Nom, code ou code-barres",
+      "empty": "Aucun produit trouvé.",
+      "already": "Déjà ajouté",
+      "stock": "Stock : {{value}}"
+    },
+    "adjustment": {
+      "title": "Mouvement {{reference}}",
+      "kinds": {
+        "entry": "Ajout de stock",
+        "exit": "Retrait de stock",
+        "inventory": "Inventaire"
+      },
+      "status_completed": "Enregistré",
+      "status_cancelled": "Annulé",
+      "reason": "Motif : {{reason}}",
+      "by": "Enregistré par {{name}} le {{date}}",
+      "cancelled_on": "Annulé le {{date}} : {{reason}}",
+      "items": "Produits",
+      "cancel": "Annuler ce mouvement",
+      "cancel_title": "Annuler le mouvement {{reference}} ?",
+      "cancel_text": "Le stock reviendra à son état d'avant. Le mouvement reste visible dans l'historique, marqué « Annulé ».",
+      "cancel_reason": "Pourquoi l'annulez-vous ?",
+      "cancel_reason_required": "Le motif est obligatoire.",
+      "cancelled": "Mouvement annulé."
+    }
+  }
+}

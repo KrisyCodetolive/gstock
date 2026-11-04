@@ -82,8 +82,7 @@ export const referentialsHandlers = [
     write: ['categories.manage'],
     nameMessage: 'Donnez un nom à la catégorie.',
     fields: (body) => ({ color: (['peach', 'yellow', 'mint', 'lavender'].includes(String(body.color)) ? body.color : 'lavender') as never }),
-    // Les produits arrivent en F3 : aucune catégorie n'est encore utilisée.
-    toResource: (row) => ({ ...row, products_count: 0 }),
+    toResource: (row) => ({ ...row, products_count: db.products.filter((p) => p.category_id === row.id).length }),
   }),
   ...crud({
     path: 'units',
@@ -112,7 +111,7 @@ export const referentialsHandlers = [
         operator_value: String(value),
       }
     },
-    toResource: (row) => ({ ...row, products_count: 0 }),
+    toResource: (row) => ({ ...row, products_count: db.products.filter((p) => p.unit_id === row.id).length }),
   }),
   ...crud({
     path: 'payment-methods',

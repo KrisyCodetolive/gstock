@@ -81,6 +81,8 @@ export interface TenantSummary {
   name: string
   currency: 'XOF'
   timezone: string
+  /** Variantes, taxes, unités multiples, marques : masqués si faux (§3.1). */
+  advanced_mode: boolean
 }
 
 /** Réponse de GET /me : tout ce qu'il faut au chargement (menu, sélecteur). */

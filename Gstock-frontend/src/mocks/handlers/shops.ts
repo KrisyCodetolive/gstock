@@ -2,6 +2,7 @@
 import { delay, http, HttpResponse } from 'msw'
 import type { Shop, ShopPayload } from '@/types/settings'
 import { db, nextId, persist } from '../db'
+import { stockRow } from '../stock'
 import { API, findOr404, handle, normalize, nullable, paginate, requirePermission, Validator } from '../http'
 
 type ShopRow = (typeof db.shops)[number]
@@ -75,9 +76,10 @@ export const shopsHandlers = [
       requirePermission('shops.manage')
       const body = (await request.json()) as Partial<ShopPayload>
       validate(body)
-      // La création initialise le stock à 0 pour tous les produits (géré en F3).
       const shop: ShopRow = { id: nextId(db.shops), ...fromBody(body) }
       db.shops.push(shop)
+      // La création d'une boutique crée une ligne de stock à 0 pour chaque produit (§7.2).
+      for (const p of db.products) if (p.type !== 'service') stockRow(shop.id, p.id)
       persist()
       return HttpResponse.json({ data: toResource(shop) }, { status: 201 })
     }),

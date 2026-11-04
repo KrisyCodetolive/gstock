@@ -43,6 +43,11 @@ export function toMe(user: MockUser): Me {
       city: s.city,
       district: s.district,
     })),
-    tenant: { name: db.settings.name, currency: db.settings.currency, timezone: db.settings.timezone },
+    tenant: {
+      name: db.settings.name,
+      currency: db.settings.currency,
+      timezone: db.settings.timezone,
+      advanced_mode: db.settings.advanced_mode,
+    },
   }
 }

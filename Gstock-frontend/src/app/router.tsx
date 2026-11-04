@@ -12,6 +12,12 @@ import { CategoriesPage } from '@/features/referentials/pages/CategoriesPage'
 import { PaymentMethodsPage } from '@/features/referentials/pages/PaymentMethodsPage'
 import { BrandsPage, ExpenseCategoriesPage } from '@/features/referentials/pages/SimpleReferentialPages'
 import { UnitsPage } from '@/features/referentials/pages/UnitsPage'
+import { ProductFormPage } from '@/features/products/pages/ProductFormPage'
+import { ProductsListPage } from '@/features/products/pages/ProductsListPage'
+import { AdjustmentDetailPage } from '@/features/stock/pages/AdjustmentDetailPage'
+import { AdjustmentFormPage } from '@/features/stock/pages/AdjustmentFormPage'
+import { MovementsPage } from '@/features/stock/pages/MovementsPage'
+import { StockPage } from '@/features/stock/pages/StockPage'
 import { PaymentSettingsPage } from '@/features/settings/pages/PaymentSettingsPage'
 import { SettingsHubPage } from '@/features/settings/pages/SettingsHubPage'
 import { TenantSettingsPage } from '@/features/settings/pages/TenantSettingsPage'
@@ -40,6 +46,18 @@ const section = (id: string, element: ReactNode, subpath = ''): RouteObject => {
 const upcoming: RouteObject[] = NAV_ITEMS.filter((item) => item.phase).map((item) =>
   guarded(item.path, item.permissions ?? [], <ComingSoonPage item={item} />),
 )
+
+const catalog: RouteObject[] = [
+  guarded('/produits', ['products.view'], <ProductsListPage />),
+  guarded('/produits/nouveau', ['products.create'], <ProductFormPage />),
+  guarded('/produits/:id', ['products.view'], <ProductFormPage />),
+  guarded('/stock', ['stock.view'], <StockPage />),
+  guarded('/stock/entree', ['stock.entry'], <AdjustmentFormPage key="entry" kind="entry" />),
+  guarded('/stock/sortie', ['stock.exit'], <AdjustmentFormPage key="exit" kind="exit" />),
+  guarded('/stock/inventaire', ['stock.adjust'], <AdjustmentFormPage key="inventory" kind="inventory" />),
+  guarded('/stock/mouvements', ['stock.view'], <MovementsPage />),
+  guarded('/stock/operations/:id', ['stock.view'], <AdjustmentDetailPage />),
+]
 
 const settings: RouteObject[] = [
   guarded('/parametres', ANY_SETTINGS_PERMISSION, <SettingsHubPage />),
@@ -74,6 +92,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       ...upcoming,
+      ...catalog,
       ...settings,
       ...(import.meta.env.DEV ? [{ path: '/vitrine', element: <ShowcasePage /> }] : []),
       { path: '*', element: <NotFoundPage /> },

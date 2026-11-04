@@ -24,3 +24,23 @@ export function formatShortDate(iso: string): string {
 export function initials(firstname: string, lastname: string): string {
   return `${firstname.charAt(0)}${lastname.charAt(0)}`.toUpperCase()
 }
+
+const quantityFormatter = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 3 })
+
+/** "12.000" → "12", "2.500" → "2,5". Les quantités sont en unité de base (§7.2). */
+export function formatQuantity(value: string | number): string {
+  return quantityFormatter.format(typeof value === 'number' ? value : Number(value))
+}
+
+const dateTimeFormatter = new Intl.DateTimeFormat('fr-FR', {
+  day: 'numeric',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'Africa/Abidjan',
+})
+
+/** "2026-10-28T10:05:00Z" → "28 oct., 10:05" */
+export function formatDateTime(iso: string): string {
+  return dateTimeFormatter.format(new Date(iso))
+}

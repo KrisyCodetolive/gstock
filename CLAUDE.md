@@ -10,7 +10,7 @@ GStock : SaaS multi-tenant de gestion de stock, de point de vente (POS) et de cr
 
 ## État actuel
 
-- `Gstock-frontend/` : **phases F1 (socle) et F2 (espace) livrées**. On y trouve TypeScript, React Router, TanStack Query, Tailwind v4 + shadcn/ui (base Radix, rhabillé « Marché »), React Hook Form + Zod, Zustand, MSW et react-i18next. F1 apporte la connexion simulée avec 5 profils, les permissions, le sélecteur de boutique et les mises en page mobile et desktop. F2 apporte les paramètres de l'espace, GeniusPay, les boutiques, les rôles, les utilisateurs et les référentiels, sous `/parametres`. Les autres rubriques affichent « Bientôt disponible » jusqu'à leur phase. vite-plugin-pwa (F9) n'est pas encore installé.
+- `Gstock-frontend/` : **phases F1 (socle), F2 (espace) et F3 (produits et stock) livrées**. On y trouve TypeScript, React Router, TanStack Query, Tailwind v4 + shadcn/ui (base Radix, rhabillé « Marché »), React Hook Form + Zod, Zustand, MSW et react-i18next. F1 apporte la connexion simulée avec 5 profils, les permissions, le sélecteur de boutique et les mises en page mobile et desktop. F2 apporte les paramètres de l'espace, GeniusPay, les boutiques, les rôles, les utilisateurs et les référentiels, sous `/parametres`. F3 apporte « Mes produits » (création rapide, fiche avec stock par boutique) et « Mon stock » (vue par boutique ou toutes boutiques, entrées, sorties, inventaires `MS-N` annulables, mouvements). Le moteur de stock simulé (`src/mocks/stock.ts`) garantit que la quantité est égale à la somme des mouvements et ne devient jamais négative. Les autres rubriques affichent « Bientôt disponible » jusqu'à leur phase. vite-plugin-pwa (F9) n'est pas encore installé.
 - `Gstock-plateform/` : Laravel 12 (PHP ≥ 8.2) avec la configuration par défaut (SQLite, `routes/web.php` uniquement). Le cahier prévoit PostgreSQL, stancl/tenancy, Sanctum, Filament et GeniusPay, mais rien de tout cela n'est encore installé. Il n'y a pas encore de `routes/api.php`.
 
 ## Commandes
@@ -39,7 +39,7 @@ npm run preview
 ```
 
 - Comptes de démonstration (mot de passe `demo1234`) : ils sont listés sur l'écran de connexion quand les mocks sont actifs, et définis dans `src/mocks/data/users.ts`.
-- Données simulées : `src/mocks/db.ts` part des jeux de `src/mocks/data/` et garde les modifications dans le `localStorage` (`gstock.mock.db.v1`). Si la forme des données change, incrémentez la clé. L'écran de connexion propose de remettre les données à zéro. Les handlers (`src/mocks/handlers/`) appliquent les règles du serveur (permissions, validation 422 en français, unicité, limites du plan) à l'aide de `src/mocks/http.ts`.
+- Données simulées : `src/mocks/db.ts` part des jeux de `src/mocks/data/` et garde les modifications dans le `localStorage` (`gstock.mock.db.v2`). Si la forme des données change, incrémentez la clé. L'écran de connexion propose de remettre les données à zéro. Les handlers (`src/mocks/handlers/`) appliquent les règles du serveur (permissions, validation 422 en français, unicité, limites du plan) à l'aide de `src/mocks/http.ts`.
 - Textes : un fichier JSON par partie dans `src/locales/fr/`, réunis dans `src/lib/i18n.ts`. Les clés sont typées et les pluriels utilisent `_one` / `_other`.
 - La vitrine des composants est accessible en développement sur `/vitrine`.
 - Composants shadcn : `npx shadcn add <composant>`. Il faut ensuite les rhabiller selon `MASTER.md` et remplacer l'import `cn` par `@/lib/utils`. Attention : la commande propose d'écraser `button.tsx`, qui est personnalisé. Il faut refuser.
