@@ -1,6 +1,7 @@
 import { createBrowserRouter, type RouteObject } from 'react-router'
 import { RequireAuth, SplashScreen } from '@/features/auth/components/RequireAuth'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
+import { RequireWritable } from '@/features/onboarding/components/SubscriptionBanner'
 import { HomePage } from '@/features/dashboard/pages/HomePage'
 import { ANY_SETTINGS_PERMISSION, settingsSection } from '@/features/settings/sections'
 import { lazy, Suspense, type ReactNode } from 'react'
@@ -49,6 +50,15 @@ const PurchaseDetailPage = lazy(() => import('@/features/purchases/pages/Purchas
 const SuppliersListPage = lazy(() => import('@/features/purchases/pages/SuppliersListPage').then((m) => ({ default: m.SuppliersListPage })))
 const SupplierPage = lazy(() => import('@/features/purchases/pages/SupplierPage').then((m) => ({ default: m.SupplierPage })))
 const ExpensesPage = lazy(() => import('@/features/purchases/pages/ExpensesPage').then((m) => ({ default: m.ExpensesPage })))
+const RegisterPage = lazy(() => import('@/features/onboarding/pages/RegisterPage').then((m) => ({ default: m.RegisterPage })))
+const TokenLoginPage = lazy(() => import('@/features/onboarding/pages/TokenLoginPage').then((m) => ({ default: m.TokenLoginPage })))
+const OnboardingPage = lazy(() => import('@/features/onboarding/pages/OnboardingPage').then((m) => ({ default: m.OnboardingPage })))
+const SubscriptionPage = lazy(() => import('@/features/onboarding/pages/SubscriptionPage').then((m) => ({ default: m.SubscriptionPage })))
+// Page de paiement GeniusPay simulée : seulement avec les données simulées.
+const GeniusPaySimulatorPage =
+  import.meta.env.VITE_USE_MOCKS === 'true'
+    ? lazy(() => import('@/mocks/components/GeniusPaySimulatorPage').then((m) => ({ default: m.GeniusPaySimulatorPage })))
+    : null
 const AuditPage = lazy(() => import('@/features/dashboard/pages/AuditPage').then((m) => ({ default: m.AuditPage })))
 
 const ShowcasePage = lazy(() => import('./pages/ShowcasePage').then((m) => ({ default: m.ShowcasePage })))
@@ -98,11 +108,14 @@ const catalog: RouteObject[] = [
   guarded('/fournisseurs/:id', ['suppliers.view'], <SupplierPage />),
   guarded('/depenses', ['expenses.view'], <ExpensesPage />),
   guarded('/journal', ['audit.view'], <AuditPage />),
+  // Assistant de démarrage : réservé au propriétaire (le serveur refuse les autres).
+  guarded('/demarrage', ['subscription.manage'], <OnboardingPage />),
 ]
 
 const settings: RouteObject[] = [
   guarded('/parametres', ANY_SETTINGS_PERMISSION, <SettingsHubPage />),
   section('tenant', <TenantSettingsPage />),
+  section('subscription', <SubscriptionPage />),
   section('payment', <PaymentSettingsPage />),
   section('shops', <ShopsListPage />),
   section('shops', <ShopFormPage />, '/nouvelle'),
@@ -122,6 +135,13 @@ const settings: RouteObject[] = [
 
 export const router = createBrowserRouter([
   { path: '/connexion', element: <LoginPage />, errorElement: <RouteErrorPage /> },
+  // Domaine principal : inscription d'un nouveau commerçant (M00).
+  { path: '/inscription', element: <Suspense fallback={<SplashScreen />}><RegisterPage /></Suspense>, errorElement: <RouteErrorPage /> },
+  // Lien de connexion à usage unique, reçu à l'inscription.
+  { path: '/connexion/lien', element: <Suspense fallback={<SplashScreen />}><TokenLoginPage /></Suspense>, errorElement: <RouteErrorPage /> },
+  ...(GeniusPaySimulatorPage
+    ? [{ path: '/simulation/geniuspay/:invoiceId', element: <Suspense fallback={<SplashScreen />}><GeniusPaySimulatorPage /></Suspense>, errorElement: <RouteErrorPage /> }]
+    : []),
   // Reçu partagé par WhatsApp : public, protégé par un lien signé et expirant (ADR-013).
   {
     path: '/recu/:token',
@@ -138,9 +158,11 @@ export const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <RequirePermission permissions={['sales.create']}>
-          <Suspense fallback={<SplashScreen />}>
-            <PosPage />
-          </Suspense>
+          <RequireWritable>
+            <Suspense fallback={<SplashScreen />}>
+              <PosPage />
+            </Suspense>
+          </RequireWritable>
         </RequirePermission>
       </RequireAuth>
     ),

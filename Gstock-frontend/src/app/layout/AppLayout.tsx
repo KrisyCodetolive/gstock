@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { Outlet } from 'react-router'
 import { LoadingState } from '@/components/states'
 import { UserMenu } from '@/features/auth/components/UserMenu'
+import { SubscriptionBanner } from '@/features/onboarding/components/SubscriptionBanner'
 import { ShopSwitcher } from '@/features/shops/components/ShopSwitcher'
 import { BottomNav } from './BottomNav'
 import { Sidebar } from './Sidebar'
@@ -15,6 +16,7 @@ export function AppLayout() {
           <ShopSwitcher className="max-w-[70vw]" />
           <UserMenu />
         </header>
+        <SubscriptionBanner />
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-5 pb-32 lg:px-8 lg:pt-8 lg:pb-12">
           <Suspense fallback={<LoadingState rows={4} />}>
             <Outlet />

@@ -4,6 +4,7 @@ import type { Shop, ShopPayload } from '@/types/settings'
 import { db, nextId, persist } from '../db'
 import { stockRow } from '../stock'
 import { API, findOr404, handle, normalize, nullable, paginate, requirePermission, Validator } from '../http'
+import { currentPlan } from '../platform'
 
 type ShopRow = (typeof db.shops)[number]
 
@@ -25,8 +26,8 @@ function validate(body: Partial<ShopPayload>, current?: ShopRow) {
   }
   // Une boutique désactivée n'est plus comptée dans la limite du plan.
   const activeOthers = db.shops.filter((s) => s.is_active && s.id !== current?.id).length
-  if (body.is_active !== false && (!current || !current.is_active) && activeOthers >= db.planLimits.max_shops) {
-    v.add('name', `Votre abonnement permet ${db.planLimits.max_shops} boutiques ouvertes au maximum.`)
+  if (body.is_active !== false && (!current || !current.is_active) && activeOthers >= currentPlan().max_shops) {
+    v.add('name', `Votre abonnement permet ${currentPlan().max_shops} boutiques ouvertes au maximum.`)
   }
   if (current?.is_active && body.is_active === false && activeOthers === 0) {
     v.add('is_active', 'Gardez au moins une boutique ouverte.')

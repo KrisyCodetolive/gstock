@@ -1,5 +1,6 @@
 // Contrat d'API du module M02 (authentification) et permissions du §6.3.
 import type { Id } from './api'
+import type { SubscriptionSummary } from './subscription'
 
 /** Permissions d'espace : données communes à toutes les boutiques. */
 export const TENANT_PERMISSIONS = [
@@ -83,6 +84,8 @@ export interface TenantSummary {
   timezone: string
   /** Variantes, taxes, unités multiples, marques : masqués si faux (§3.1). */
   advanced_mode: boolean
+  /** État de l'abonnement : bandeau et lecture seule (M00). */
+  subscription: SubscriptionSummary
 }
 
 /** Réponse de GET /me : tout ce qu'il faut au chargement (menu, sélecteur). */

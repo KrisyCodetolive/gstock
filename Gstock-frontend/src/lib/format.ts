@@ -44,3 +44,15 @@ const dateTimeFormatter = new Intl.DateTimeFormat('fr-FR', {
 export function formatDateTime(iso: string): string {
   return dateTimeFormatter.format(new Date(iso))
 }
+
+const longDateFormatter = new Intl.DateTimeFormat('fr-FR', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'Africa/Abidjan',
+})
+
+/** "2026-11-18T08:00:00Z" → "18 novembre 2026" */
+export function formatLongDate(iso: string): string {
+  return longDateFormatter.format(new Date(iso))
+}
