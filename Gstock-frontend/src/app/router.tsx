@@ -2,33 +2,38 @@ import { createBrowserRouter, type RouteObject } from 'react-router'
 import { RequireAuth } from '@/features/auth/components/RequireAuth'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { HomePage } from '@/features/dashboard/pages/HomePage'
-import { ShopFormPage } from '@/features/shops/pages/ShopFormPage'
-import { ShopsListPage } from '@/features/shops/pages/ShopsListPage'
-import { RoleFormPage } from '@/features/roles/pages/RoleFormPage'
-import { RolesListPage } from '@/features/roles/pages/RolesListPage'
-import { UserFormPage } from '@/features/users/pages/UserFormPage'
-import { UsersListPage } from '@/features/users/pages/UsersListPage'
-import { CategoriesPage } from '@/features/referentials/pages/CategoriesPage'
-import { PaymentMethodsPage } from '@/features/referentials/pages/PaymentMethodsPage'
-import { BrandsPage, ExpenseCategoriesPage } from '@/features/referentials/pages/SimpleReferentialPages'
-import { UnitsPage } from '@/features/referentials/pages/UnitsPage'
-import { ProductFormPage } from '@/features/products/pages/ProductFormPage'
-import { ProductsListPage } from '@/features/products/pages/ProductsListPage'
-import { AdjustmentDetailPage } from '@/features/stock/pages/AdjustmentDetailPage'
-import { AdjustmentFormPage } from '@/features/stock/pages/AdjustmentFormPage'
-import { MovementsPage } from '@/features/stock/pages/MovementsPage'
-import { StockPage } from '@/features/stock/pages/StockPage'
-import { PaymentSettingsPage } from '@/features/settings/pages/PaymentSettingsPage'
-import { SettingsHubPage } from '@/features/settings/pages/SettingsHubPage'
-import { TenantSettingsPage } from '@/features/settings/pages/TenantSettingsPage'
 import { ANY_SETTINGS_PERMISSION, settingsSection } from '@/features/settings/sections'
-import type { ReactNode } from 'react'
+import { lazy, type ReactNode } from 'react'
 import type { Permission } from '@/types/auth'
 import { AppLayout } from './layout/AppLayout'
 import { NAV_ITEMS } from './navigation'
 import { ComingSoonPage, NotFoundPage, RouteErrorPage } from './pages/StatusPages'
-import { ShowcasePage } from './pages/ShowcasePage'
 import { RequirePermission } from './RequirePermission'
+
+
+// Pages chargées à la demande : chaque rubrique est un fichier séparé.
+const ShopFormPage = lazy(() => import('@/features/shops/pages/ShopFormPage').then((m) => ({ default: m.ShopFormPage })))
+const ShopsListPage = lazy(() => import('@/features/shops/pages/ShopsListPage').then((m) => ({ default: m.ShopsListPage })))
+const RoleFormPage = lazy(() => import('@/features/roles/pages/RoleFormPage').then((m) => ({ default: m.RoleFormPage })))
+const RolesListPage = lazy(() => import('@/features/roles/pages/RolesListPage').then((m) => ({ default: m.RolesListPage })))
+const UserFormPage = lazy(() => import('@/features/users/pages/UserFormPage').then((m) => ({ default: m.UserFormPage })))
+const UsersListPage = lazy(() => import('@/features/users/pages/UsersListPage').then((m) => ({ default: m.UsersListPage })))
+const CategoriesPage = lazy(() => import('@/features/referentials/pages/CategoriesPage').then((m) => ({ default: m.CategoriesPage })))
+const PaymentMethodsPage = lazy(() => import('@/features/referentials/pages/PaymentMethodsPage').then((m) => ({ default: m.PaymentMethodsPage })))
+const BrandsPage = lazy(() => import('@/features/referentials/pages/SimpleReferentialPages').then((m) => ({ default: m.BrandsPage })))
+const ExpenseCategoriesPage = lazy(() => import('@/features/referentials/pages/SimpleReferentialPages').then((m) => ({ default: m.ExpenseCategoriesPage })))
+const UnitsPage = lazy(() => import('@/features/referentials/pages/UnitsPage').then((m) => ({ default: m.UnitsPage })))
+const ProductFormPage = lazy(() => import('@/features/products/pages/ProductFormPage').then((m) => ({ default: m.ProductFormPage })))
+const ProductsListPage = lazy(() => import('@/features/products/pages/ProductsListPage').then((m) => ({ default: m.ProductsListPage })))
+const AdjustmentDetailPage = lazy(() => import('@/features/stock/pages/AdjustmentDetailPage').then((m) => ({ default: m.AdjustmentDetailPage })))
+const AdjustmentFormPage = lazy(() => import('@/features/stock/pages/AdjustmentFormPage').then((m) => ({ default: m.AdjustmentFormPage })))
+const MovementsPage = lazy(() => import('@/features/stock/pages/MovementsPage').then((m) => ({ default: m.MovementsPage })))
+const StockPage = lazy(() => import('@/features/stock/pages/StockPage').then((m) => ({ default: m.StockPage })))
+const PaymentSettingsPage = lazy(() => import('@/features/settings/pages/PaymentSettingsPage').then((m) => ({ default: m.PaymentSettingsPage })))
+const SettingsHubPage = lazy(() => import('@/features/settings/pages/SettingsHubPage').then((m) => ({ default: m.SettingsHubPage })))
+const TenantSettingsPage = lazy(() => import('@/features/settings/pages/TenantSettingsPage').then((m) => ({ default: m.TenantSettingsPage })))
+
+const ShowcasePage = lazy(() => import('./pages/ShowcasePage').then((m) => ({ default: m.ShowcasePage })))
 
 const guarded = (path: string, permissions: readonly Permission[], element: ReactNode): RouteObject => ({
   path,
