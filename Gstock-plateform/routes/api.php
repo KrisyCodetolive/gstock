@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CreditController;
 use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\ExpenseController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\ProductController;
@@ -83,6 +84,9 @@ Route::middleware('tenant')->group(function () {
             Route::put('users/{user}/shops', [UserController::class, 'shops']);
         });
 
+        // Tableau de bord de toutes les boutiques (M13) : propriétaire seulement, vérifié dans le contrôleur.
+        Route::get('dashboard', [DashboardController::class, 'all'])->middleware('permission:dashboard.view');
+
         Route::get('audit-logs', [AuditLogController::class, 'index'])->middleware('permission:audit.view');
 
         // Référentiels (M05) : lecture pour les écrans qui en ont besoin, écriture pour qui les gère. Pas de suppression.
@@ -128,6 +132,7 @@ Route::middleware('tenant')->group(function () {
         // Ressources de boutique : affectation vérifiée sur chaque requête (§6.2).
         Route::prefix('shops/{shop}')->middleware('shop')->group(function () {
             Route::get('products/search', [ProductController::class, 'search']);
+            Route::get('dashboard', [DashboardController::class, 'shop'])->middleware('permission:dashboard.view');
             Route::middleware('permission:stock.view')->group(function () {
                 Route::get('stock', [StockController::class, 'index']);
                 Route::get('stock/alerts', [StockController::class, 'alerts']);

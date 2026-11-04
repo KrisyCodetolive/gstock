@@ -144,6 +144,23 @@ class DemoSalesSeeder extends Seeder
                     'allocations' => [['credit_id' => $credit->id, 'amount' => (string) $part]],
                 ]);
             }
+
+            // Quelques échéanciers, dont une échéance déjà dépassée (§7.7).
+            $scheduled = CustomerCredit::query()->whereIn('status', ['open', 'partial'])->where('remaining_amount', '>=', 1500)->orderBy('id')->limit(4)->get();
+            foreach ($scheduled as $i => $credit) {
+                $half = round((float) $credit->remaining_amount / 2 / 50) * 50;
+                $credits->setInstallments($credit, [
+                    ['due_date' => now()->addDays($i % 2 === 0 ? -5 : 2)->toDateString(), 'amount' => (string) $half],
+                    ['due_date' => now()->addDays(11)->toDateString(), 'amount' => (string) ((float) $credit->remaining_amount - $half)],
+                ]);
+            }
+
+            // Une vente payée, annulée par le gérant il y a 10 jours : elle apparaît au journal (M14).
+            $toCancel = Sale::query()->where('shop_id', $shops[0]->id)->where('payment_status', 'paid')
+                ->whereDate('occurred_at', now()->subDays(10)->toDateString())->orderBy('id')->first();
+            if ($toCancel) {
+                $sales->cancel($toCancel, $manager, 'Le client a rapporté la marchandise.');
+            }
         });
     }
 }
