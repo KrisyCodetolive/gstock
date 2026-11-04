@@ -1,0 +1,71 @@
+{
+  "customers": {
+    "title": "Mes clients",
+    "subtitle": "Vos clients sont communs à toutes vos boutiques",
+    "add": "Ajouter un client",
+    "search": "Nom, téléphone ou quartier",
+    "back": "Mes clients",
+    "filter_all": "Tous",
+    "filter_debtors": "Doivent de l'argent",
+    "empty_title": "Aucun client",
+    "empty_text": "Ajoutez vos clients habituels, ou créez-les à la caisse au moment de mettre à crédit.",
+    "debtors_empty_title": "Personne ne vous doit d'argent",
+    "debtors_empty_text": "Les clients qui ont un reste à payer apparaîtront ici.",
+    "due": "Reste à payer",
+    "nothing_due": "Rien à payer",
+    "no_phone": "Pas de téléphone",
+    "inactive": "Désactivé",
+    "columns": {
+      "name": "Client",
+      "phone": "Téléphone",
+      "district": "Quartier",
+      "due": "Reste à payer"
+    },
+    "new_title": "Nouveau client",
+    "form": {
+      "identity": "Le client",
+      "name": "Nom",
+      "name_placeholder": "ex. Awa Koné",
+      "phone": "Téléphone",
+      "phone_hint": "Pour l'appeler ou lui envoyer son reçu sur WhatsApp.",
+      "district": "Quartier",
+      "note": "Note",
+      "note_placeholder": "ex. Paie en fin de mois",
+      "required_name": "Saisissez le nom du client.",
+      "created": "Client ajouté."
+    },
+    "summary": {
+      "due_total": "Reste à payer",
+      "by_shop": "Dans {{shop}}",
+      "purchases": "Achats",
+      "purchases_value_one": "{{count}} achat",
+      "purchases_value_other": "{{count}} achats",
+      "last_purchase": "Dernier achat le {{date}}",
+      "no_purchase": "Aucun achat pour l'instant",
+      "repay": "Enregistrer un remboursement",
+      "recent_sales": "Derniers achats",
+      "credits": "Crédits",
+      "no_credits": "Aucun crédit.",
+      "opening_balance": "Ancienne dette",
+      "remaining": "Reste {{amount}}",
+      "on_amount": "sur {{amount}} FCFA",
+      "other_shop": "Vente faite dans {{shop}}"
+    },
+    "credit_status": {
+      "open": "En cours",
+      "partial": "Partiellement remboursé",
+      "settled": "Soldé",
+      "cancelled": "Annulé"
+    },
+    "status": {
+      "title": "Fiche client",
+      "active_text": "Le client est proposé à la caisse.",
+      "inactive_text": "Le client n'est plus proposé à la caisse. Son historique est conservé.",
+      "disable": "Désactiver le client",
+      "enable": "Réactiver le client",
+      "disabled": "Client désactivé.",
+      "enabled": "Client réactivé.",
+      "has_due": "Ce client a encore un reste à payer : vous pouvez le désactiver, sa dette reste suivie."
+    }
+  }
+}

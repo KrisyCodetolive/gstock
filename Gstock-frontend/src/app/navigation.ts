@@ -56,7 +56,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'customers', path: '/clients', label: 'nav.customers', description: 'home.customers_text',
-    icon: Users, permissions: ['customers.view'], phase: 'F4', tint: 'peach',
+    icon: Users, permissions: ['customers.view'], tint: 'peach',
   },
   {
     id: 'products', path: '/produits', label: 'nav.products', description: 'home.products_text',

@@ -32,6 +32,8 @@ const StockPage = lazy(() => import('@/features/stock/pages/StockPage').then((m)
 const PaymentSettingsPage = lazy(() => import('@/features/settings/pages/PaymentSettingsPage').then((m) => ({ default: m.PaymentSettingsPage })))
 const SettingsHubPage = lazy(() => import('@/features/settings/pages/SettingsHubPage').then((m) => ({ default: m.SettingsHubPage })))
 const TenantSettingsPage = lazy(() => import('@/features/settings/pages/TenantSettingsPage').then((m) => ({ default: m.TenantSettingsPage })))
+const CustomersListPage = lazy(() => import('@/features/customers/pages/CustomersListPage').then((m) => ({ default: m.CustomersListPage })))
+const CustomerPage = lazy(() => import('@/features/customers/pages/CustomerPage').then((m) => ({ default: m.CustomerPage })))
 
 const ShowcasePage = lazy(() => import('./pages/ShowcasePage').then((m) => ({ default: m.ShowcasePage })))
 
@@ -62,6 +64,9 @@ const catalog: RouteObject[] = [
   guarded('/stock/inventaire', ['stock.adjust'], <AdjustmentFormPage key="inventory" kind="inventory" />),
   guarded('/stock/mouvements', ['stock.view'], <MovementsPage />),
   guarded('/stock/operations/:id', ['stock.view'], <AdjustmentDetailPage />),
+  guarded('/clients', ['customers.view'], <CustomersListPage />),
+  guarded('/clients/nouveau', ['customers.create'], <CustomerPage />),
+  guarded('/clients/:id', ['customers.view'], <CustomerPage />),
 ]
 
 const settings: RouteObject[] = [
