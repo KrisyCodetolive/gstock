@@ -6,6 +6,7 @@ import { db, nextReference } from './db'
 import { MockHttpError, Validator } from './http'
 import { applyStockChanges } from './stock'
 import { unitFactor, unitFamily } from './units'
+import { buildSchedule, scheduleOf } from './installments'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 const num = (v: unknown) => (v === undefined || v === null || v === '' ? NaN : Number(String(v).replace(',', '.')))
@@ -54,6 +55,18 @@ export function purchaseState(p: MockPurchase) {
   const due = p.status === 'cancelled' ? 0 : round2(Math.max(p.total - paid, 0))
   const payment_status = due === 0 ? 'paid' : paid === 0 ? 'unpaid' : 'partial'
   return { paid, due, payment_status: payment_status as 'paid' | 'partial' | 'unpaid' }
+}
+
+/** Échéancier de la dette fournisseur : soldé par les paiements, du plus ancien au plus récent (§7.7). */
+export function purchaseInstallments(p: MockPurchase) {
+  return p.status === 'cancelled' ? [] : scheduleOf(p.installments, purchaseState(p).due)
+}
+
+export function setPurchaseInstallments(p: MockPurchase, items: { due_date?: string; amount?: string }[]) {
+  const due = purchaseState(p).due
+  if (p.status === 'cancelled' || due === 0) throw new MockHttpError(409, 'Cet approvisionnement n’a plus de reste à payer.')
+  const lastId = Math.max(0, ...db.purchases.flatMap((x) => (x.installments ?? []).map((i) => i.id)))
+  p.installments = buildSchedule(p.installments, due, items, lastId)
 }
 
 function checkPayment(amount: number, methodId: unknown, due: number, v: Validator) {

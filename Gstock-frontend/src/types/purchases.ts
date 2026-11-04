@@ -2,6 +2,7 @@
 // Les montants sont recalculés par le serveur (§7.4).
 import type { Id, IsoDate, Money } from './api'
 import type { ProductUnitRef } from './catalog'
+import type { Installment } from './credits'
 
 /** Ressource /suppliers */
 export interface Supplier {
@@ -89,6 +90,8 @@ export interface Purchase {
   payment_status: PurchasePaymentStatus
   status: PurchaseStatus
   payments: PurchasePayment[]
+  /** Échéancier facultatif du reste dû (§7.7) ; vide s'il n'y en a pas. */
+  installments: Installment[]
   note: string | null
   user: { id: Id; name: string } | null
   cancelled_at: IsoDate | null
@@ -98,7 +101,11 @@ export interface Purchase {
 export type PurchaseListItem = Pick<
   Purchase,
   'id' | 'reference' | 'supplier' | 'occurred_at' | 'total' | 'paid_amount' | 'due_amount' | 'payment_status' | 'status'
-> & { items_count: number }
+> & {
+  items_count: number
+  /** Montant des échéances dépassées et non payées, "0.00" sinon. */
+  overdue_amount: Money
+}
 
 export interface PurchasesList {
   data: PurchaseListItem[]

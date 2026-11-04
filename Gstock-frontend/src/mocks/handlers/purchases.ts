@@ -6,7 +6,17 @@ import type { MockExpense, MockPurchase, MockSupplier } from '../data/purchases'
 import type { MockUser } from '../data/users'
 import { db, nextId, persist } from '../db'
 import { API, findOr404, handle, normalize, nullable, paginate, requirePermission, Validator } from '../http'
-import { addPurchasePayment, cancelExpense, cancelPurchase, computePurchase, purchaseState, recordExpense, recordPurchase } from '../purchases'
+import {
+  addPurchasePayment,
+  cancelExpense,
+  cancelPurchase,
+  computePurchase,
+  purchaseInstallments,
+  purchaseState,
+  recordExpense,
+  recordPurchase,
+  setPurchaseInstallments,
+} from '../purchases'
 import { canSeeAll, money, qty, requireShopAccess, userName } from '../stock'
 import { visibleShopIds } from './customers'
 
@@ -58,6 +68,7 @@ function purchaseResource(p: MockPurchase): Purchase {
       const m = db.paymentMethods.find((pm) => pm.id === x.payment_method_id)!
       return { id: x.id, amount: money(x.amount)!, method: { id: m.id, name: m.name }, paid_at: x.paid_at, note: x.note, user: userName(x.user_id), status: x.status }
     }),
+    installments: purchaseInstallments(p).map((i) => ({ ...i, amount: money(i.amount)!, paid_amount: money(i.paid_amount)! })),
     note: p.note,
     user: userName(p.user_id),
     cancelled_at: p.cancelled_at,
@@ -186,11 +197,26 @@ export const purchasesHandlers = [
         .sort((a, b) => b.occurred_at.localeCompare(a.occurred_at))
         .map((p) => {
           const r = purchaseResource(p)
-          return { id: r.id, reference: r.reference, supplier: r.supplier, occurred_at: r.occurred_at, total: r.total, paid_amount: r.paid_amount, due_amount: r.due_amount, payment_status: r.payment_status, status: r.status, items_count: r.items.length }
+          const overdue = r.installments.filter((i) => i.status === 'overdue').reduce((a, i) => a + Number(i.amount) - Number(i.paid_amount), 0)
+          return {
+            id: r.id,
+            reference: r.reference,
+            supplier: r.supplier,
+            occurred_at: r.occurred_at,
+            total: r.total,
+            paid_amount: r.paid_amount,
+            due_amount: r.due_amount,
+            payment_status: r.payment_status,
+            status: r.status,
+            items_count: r.items.length,
+            overdue_amount: money(round2(overdue))!,
+          }
         })
       const filters = {
         supplier_id: (p: PurchaseListItem, v: string) => String(p.supplier?.id ?? '') === v,
         payment_status: (p: PurchaseListItem, v: string) => p.status === 'received' && p.payment_status === v,
+        // Dettes fournisseurs avec une échéance dépassée non payée (§7.7).
+        overdue: (p: PurchaseListItem, v: string) => (Number(p.overdue_amount) > 0) === (v === 'true'),
       }
       const page = (await paginate(request, rows, { searchIn: (p) => `${p.reference} ${p.supplier?.name ?? ''}`, filters }).json()) as object
       const counted = rows.filter((p) => p.status === 'received' && Object.entries(filters).every(([k, test]) => !url.searchParams.get(`filter[${k}]`) || test(p, url.searchParams.get(`filter[${k}]`)!)))
@@ -203,6 +229,19 @@ export const purchasesHandlers = [
           due: money(round2(counted.reduce((a, p) => a + Number(p.due_amount), 0))),
         },
       })
+    }),
+  ),
+  // Échéancier du reste dû au fournisseur (§7.7) : même droit que pour le payer.
+  http.put(`${API}/shops/:shopId/purchases/:id/installments`, ({ request, params }) =>
+    handle(async () => {
+      await delay(400)
+      const user = requirePermission('purchase_payments.create')
+      const shopId = requireShopAccess(user, params.shopId).id
+      const purchase = findOr404(db.purchases.filter((p) => p.shop_id === shopId && visible(user)(p)), params.id)
+      const body = (await request.json()) as { installments?: { due_date?: string; amount?: string }[] }
+      setPurchaseInstallments(purchase, body.installments ?? [])
+      persist()
+      return HttpResponse.json({ data: purchaseResource(purchase) })
     }),
   ),
   http.get(`${API}/shops/:shopId/purchases/:id`, ({ params }) =>

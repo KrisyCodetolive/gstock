@@ -5,6 +5,7 @@ import { DataList } from '@/components/DataList'
 import { Pagination, SearchInput } from '@/components/ListControls'
 import { Money } from '@/components/Money'
 import { PageHeader } from '@/components/PageHeader'
+import { StatusBadge } from '@/components/StatusBadge'
 import { EmptyState, ErrorState, LoadingState } from '@/components/states'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -23,7 +24,7 @@ export function PurchasesListPage() {
   const can = useCan()
   const { shop } = useCurrentShop()
   const list = useListParams(['paiement'])
-  const purchases = usePurchases(shop?.id, { page: list.page, search: list.params.search, filter: { payment_status: list.filter.paiement } })
+  const purchases = usePurchases(shop?.id, { page: list.page, search: list.params.search, filter: list.filter.paiement === 'en-retard' ? { overdue: 'true' } : { payment_status: list.filter.paiement } })
   const supplier = (p: PurchaseListItem) => p.supplier?.name ?? t('purchases.no_supplier')
   const total = (p: PurchaseListItem) => <Money value={p.total} className={p.status === 'cancelled' ? 'line-through opacity-60' : undefined} />
 
@@ -57,6 +58,7 @@ export function PurchasesListPage() {
                   {t(`purchases.payment_status.${s}`)}
                 </SelectItem>
               ))}
+              <SelectItem value="en-retard">{t('purchases.overdue')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -103,7 +105,7 @@ export function PurchasesListPage() {
               { header: t('purchases.columns.supplier'), cell: supplier },
               { header: t('purchases.columns.total'), cell: total },
               { header: t('purchases.columns.due'), cell: (p) => (Number(p.due_amount) > 0 ? <Money value={p.due_amount} className="text-destructive" /> : '—') },
-              { header: t('purchases.columns.status'), cell: (p) => <PurchaseStatusBadge status={p.payment_status} purchaseStatus={p.status} /> },
+              { header: t('purchases.columns.status'), cell: (p) => <Badges purchase={p} /> },
             ]}
             card={(p) => (
               <div className="grid gap-1">
@@ -117,7 +119,7 @@ export function PurchasesListPage() {
                   <span className="text-sm text-muted-foreground">
                     {formatShortDate(p.occurred_at)} · {t('purchases.items', { count: p.items_count })}
                   </span>
-                  <PurchaseStatusBadge status={p.payment_status} purchaseStatus={p.status} />
+                  <Badges purchase={p} />
                 </div>
               </div>
             )}
@@ -126,5 +128,18 @@ export function PurchasesListPage() {
         </>
       )}
     </div>
+  )
+}
+
+/** Statut de paiement, et « Échéance en retard » si une échéance dépassée n'est pas payée (§7.7). */
+function Badges({ purchase: p }: { purchase: PurchaseListItem }) {
+  const { t } = useTranslation()
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      <PurchaseStatusBadge status={p.payment_status} purchaseStatus={p.status} />
+      {Number(p.overdue_amount) > 0 && (
+        <StatusBadge tone="danger">{t('purchases.overdue_amount', { amount: Number(p.overdue_amount).toLocaleString('fr-FR') })}</StatusBadge>
+      )}
+    </span>
   )
 }

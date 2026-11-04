@@ -14,8 +14,10 @@ import {
   listSuppliers,
   quotePurchase,
   updateSupplier,
+  setPurchaseInstallments,
 } from '@/lib/api/purchases'
 import type { Id, ListParams } from '@/types/api'
+import type { InstallmentScheduleItem } from '@/types/credits'
 import type { ExpensePayload, PurchasePayload, PurchaseQuoteInput, SupplierPayload } from '@/types/purchases'
 import { sendOrKeep } from '@/offline/send'
 import type { OfflineContext } from '@/offline/queue'
@@ -83,6 +85,11 @@ export function useCreatePurchase(shopId: Id | undefined) {
 export function useAddPurchasePayment(shopId: Id | undefined, id: Id) {
   const invalidate = useInvalidate()
   return useMutation({ mutationFn: (payload: Parameters<typeof addPurchasePayment>[2]) => addPurchasePayment(shopId!, id, payload), onSuccess: invalidate })
+}
+
+export function useSetPurchaseInstallments(shopId: Id | undefined, id: Id) {
+  const invalidate = useInvalidate()
+  return useMutation({ mutationFn: (items: InstallmentScheduleItem[]) => setPurchaseInstallments(shopId!, id, items), onSuccess: invalidate })
 }
 
 export function useCancelPurchase(shopId: Id | undefined, id: Id) {
