@@ -6,10 +6,28 @@ import type { Adjustment, AdjustmentPayload, StockItem, StockMovement, StockOver
 import type { MockAdjustment, MockProduct } from '../data/products'
 import { db, nextId, nextReference, persist } from '../db'
 import { API, findOr404, handle, isOwner, MockHttpError, paginate, requirePermission, Validator } from '../http'
-import { alertOf, applyStockChanges, canSeeAll, money, qty, requireShopAccess, stockRow, stockState, userName } from '../stock'
+import {
+  alertOf,
+  applyStockChanges,
+  canSeeAll,
+  itemName,
+  money,
+  qty,
+  requireShopAccess,
+  resolveArticle,
+  stockKeys,
+  stockRow,
+  stockState,
+  userName,
+  variantOf,
+  variantRef,
+} from '../stock'
 
 /** Produits stockables, par ordre alphabétique (ordre des listes de stock). */
 const stockable = () => db.products.filter((p) => p.type !== 'service').sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+
+/** Articles qui portent du stock : chaque produit simple, chaque variante (même désactivée : son stock reste visible). */
+const articles = () => stockable().flatMap((p) => stockKeys(p).map((variantId) => ({ product: p, variantId })))
 
 function productRef(p: MockProduct) {
   const category = db.categories.find((c) => c.id === p.category_id)
@@ -25,24 +43,26 @@ function productRef(p: MockProduct) {
   }
 }
 
-function stockItem(p: MockProduct, shopId: number): StockItem {
-  const quantity = stockRow(shopId, p.id).quantity
-  const alert = alertOf(p, shopId)
+function stockItem(p: MockProduct, shopId: number, variantId: number | null = null): StockItem {
+  const quantity = stockRow(shopId, p.id, variantId).quantity
+  const alert = alertOf(p, shopId, variantId)
+  const cost = variantOf(p, variantId)?.cost ?? p.cost
   return {
-    product: productRef(p),
+    variant: variantRef(p, variantId),
+    product: { ...productRef(p), name: itemName(p, variantId) },
     quantity: qty(quantity),
     stock_alert: alert === null ? null : qty(alert),
-    cost: money(p.cost),
-    value: p.cost === null ? null : money(quantity * p.cost),
+    cost: money(cost),
+    value: cost === null ? null : money(quantity * cost),
     state: stockState(quantity, alert),
   }
 }
 
 /** Liste filtrée + totaux de la boutique (indépendants de la page). */
 async function stockResponse(request: Request, shopId: number, onlyAlerts: boolean) {
-  const items = stockable()
-    .filter((p) => p.is_active)
-    .map((p) => stockItem(p, shopId))
+  const items = articles()
+    .filter((a) => a.product.is_active)
+    .map((a) => stockItem(a.product, shopId, a.variantId))
   const summary = {
     products: items.length,
     low: items.filter((i) => i.state === 'low').length,
@@ -71,7 +91,8 @@ function adjustmentResource(a: MockAdjustment): Adjustment {
       const p = db.products.find((x) => x.id === item.product_id)!
       const ref = productRef(p)
       return {
-        product: { id: ref.id, name: ref.name, unit: ref.unit },
+        product: { id: ref.id, name: itemName(p, item.variant_id), unit: ref.unit },
+        variant: variantRef(p, item.variant_id),
         quantity: qty(item.quantity),
         counted_quantity: item.counted_quantity === null ? null : qty(item.counted_quantity),
       }
@@ -114,14 +135,14 @@ export const stockHandlers = [
       await delay(300)
       const user = requirePermission('stock.view')
       const shops = db.shops.filter((s) => s.is_active && (isOwner(user) || user.shop_ids.includes(s.id)))
-      const rows: StockOverviewItem[] = stockable()
-        .filter((p) => p.is_active)
-        .map((p) => {
+      const rows: StockOverviewItem[] = articles()
+        .filter((a) => a.product.is_active)
+        .map(({ product: p, variantId }) => {
           const perShop = shops.map((s) => {
-            const quantity = stockRow(s.id, p.id).quantity
-            return { shop_id: s.id, quantity: qty(quantity), state: stockState(quantity, alertOf(p, s.id)) }
+            const quantity = stockRow(s.id, p.id, variantId).quantity
+            return { shop_id: s.id, quantity: qty(quantity), state: stockState(quantity, alertOf(p, s.id, variantId)) }
           })
-          return { product: productRef(p), total: qty(perShop.reduce((sum, s) => sum + Number(s.quantity), 0)), shops: perShop }
+          return { variant: variantRef(p, variantId), product: { ...productRef(p), name: itemName(p, variantId) }, total: qty(perShop.reduce((sum, s) => sum + Number(s.quantity), 0)), shops: perShop }
         })
       return paginate(request, rows, {
         searchIn: (r) => `${r.product.name} ${r.product.code}`,
@@ -137,19 +158,21 @@ export const stockHandlers = [
       const shopId = requireShopAccess(user, params.shopId).id
       const productId = new URL(request.url).searchParams.get('product_id')
 
-      // Stock après chaque mouvement : cumul par produit, dans l'ordre chronologique.
-      const running = new Map<number, number>()
+      // Stock après chaque mouvement : cumul par article (produit ou variante), dans l'ordre chronologique.
+      const running = new Map<string, number>()
       const rows: (StockMovement & { user_id: number | null })[] = db.movements
         .filter((m) => m.shop_id === shopId)
         .sort((a, b) => a.occurred_at.localeCompare(b.occurred_at) || a.id - b.id)
         .map((m) => {
-          const balance = (running.get(m.product_id) ?? 0) + m.quantity
-          running.set(m.product_id, balance)
+          const key = `${m.product_id}:${m.variant_id ?? ''}`
+          const balance = (running.get(key) ?? 0) + m.quantity
+          running.set(key, balance)
           const p = db.products.find((x) => x.id === m.product_id)!
           const ref = productRef(p)
           return {
             id: m.id,
-            product: { id: ref.id, name: ref.name, unit: ref.unit },
+            product: { id: ref.id, name: itemName(p, m.variant_id), unit: ref.unit },
+            variant: variantRef(p, m.variant_id),
             quantity: qty(m.quantity),
             balance: qty(balance),
             source_type: m.source_type,
@@ -204,7 +227,7 @@ export const stockHandlers = [
       v.required(body.reason, 'reason', 'Indiquez le motif du mouvement.')
       const items = body.items ?? []
       v.check(items.length > 0, 'items', 'Ajoutez au moins un produit.')
-      const ids = items.map((i) => i.product_id)
+      const ids = items.map((i) => `${Number(i.product_id)}:${i.variant_id ?? ''}`)
       v.check(new Set(ids).size === ids.length, 'items', 'Un même produit apparaît deux fois.')
       const lines = items.map((item) => {
         const product = db.products.find((p) => p.id === Number(item.product_id))
@@ -212,15 +235,19 @@ export const stockHandlers = [
           v.add('items', 'Un des produits ne peut pas être stocké.')
           return null
         }
-        const current = stockRow(shopId, product.id).quantity
+        // Produit à variantes : le mouvement porte sur une variante précise.
+        const article = resolveArticle(product, item.variant_id, v)
+        if (!article) return null
+        const variantId = article.variantId
+        const current = stockRow(shopId, product.id, variantId).quantity
         if (kind === 'inventory') {
           const counted = num(item.counted_quantity)
-          v.check(counted >= 0, 'items', `Saisissez la quantité comptée pour ${product.name}.`)
-          return { product, delta: counted - current, quantity: counted - current, counted }
+          v.check(counted >= 0, 'items', `Saisissez la quantité comptée pour ${article.name}.`)
+          return { product, variantId, name: article.name, delta: counted - current, quantity: counted - current, counted }
         }
         const quantity = num(item.quantity)
-        v.check(quantity > 0, 'items', `Saisissez une quantité supérieure à 0 pour ${product.name}.`)
-        return { product, delta: kind === 'entry' ? quantity : -quantity, quantity, counted: null }
+        v.check(quantity > 0, 'items', `Saisissez une quantité supérieure à 0 pour ${article.name}.`)
+        return { product, variantId, name: article.name, delta: kind === 'entry' ? quantity : -quantity, quantity, counted: null }
       })
       v.done()
 
@@ -230,7 +257,7 @@ export const stockHandlers = [
       // On vérifie et on applique d'abord le stock ; la référence n'est consommée qu'en cas de succès.
       const reference = `MS-${db.sequences.MS ?? 1}`
       applyStockChanges(
-        valid.map((l) => ({ shopId, product: l.product, delta: l.delta })),
+        valid.map((l) => ({ shopId, product: l.product, variantId: l.variantId, delta: l.delta })),
         { source_type: 'adjustment', source_id: id, reference, reason: body.reason!.trim(), user_id: user.id, occurred_at: occurredAt },
       )
       nextReference('MS')
@@ -241,7 +268,7 @@ export const stockHandlers = [
         kind,
         reason: body.reason!.trim(),
         status: 'completed',
-        items: valid.map((l) => ({ product_id: l.product.id, quantity: l.quantity, counted_quantity: l.counted })),
+        items: valid.map((l) => ({ product_id: l.product.id, variant_id: l.variantId, quantity: l.quantity, counted_quantity: l.counted })),
         user_id: user.id,
         occurred_at: occurredAt,
         offline_uuid: body.offline_uuid ?? null,
@@ -253,7 +280,7 @@ export const stockHandlers = [
         shopId,
         subject: { type: 'adjustment', id, label: reference },
         reason: adjustment.reason,
-        new: { type: { entry: 'Ajout', exit: 'Retrait', inventory: 'Inventaire' }[kind], produits: valid.map((l) => ({ produit: l.product.name, quantite: l.delta })) },
+        new: { type: { entry: 'Ajout', exit: 'Retrait', inventory: 'Inventaire' }[kind], produits: valid.map((l) => ({ produit: l.name, quantite: l.delta })) },
       })
       persist()
       return HttpResponse.json({ data: adjustmentResource(adjustment) }, { status: 201 })
@@ -278,7 +305,7 @@ export const stockHandlers = [
         adjustment.items.map((item) => {
           const product = db.products.find((p) => p.id === item.product_id)!
           const applied = adjustment.kind === 'exit' ? -item.quantity : item.quantity
-          return { shopId, product, delta: -applied }
+          return { shopId, product, variantId: item.variant_id ?? null, delta: -applied }
         }),
         {
           source_type: 'adjustment_cancel',

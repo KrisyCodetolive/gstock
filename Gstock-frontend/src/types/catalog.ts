@@ -3,7 +3,7 @@
 import type { Id, Money } from './api'
 import type { CategoryColor } from './referentials'
 
-/** `variable` (variantes) est prévu par le cahier en mode avancé, pas encore à l'écran. */
+/** `variable` : produit à variantes (taille, parfum…), chacune avec son prix et son stock (mode avancé). */
 export type ProductType = 'simple' | 'variable' | 'service'
 
 export type StockState = 'ok' | 'low' | 'out'
@@ -18,6 +18,30 @@ export interface ProductUnitRef {
   id: Id
   name: string
   short_name: string
+}
+
+/** Variante d'un produit `variable` : son propre prix, son propre stock par boutique. */
+export interface ProductVariant {
+  id: Id
+  /** Ce qui distingue la variante : « Bissap », « Taille M »… */
+  name: string
+  /** Généré par le serveur : code du produit suivi d'un numéro (P-0061-1). */
+  code: string
+  barcode: string | null
+  cost: Money | null
+  price: Money
+  /** Une variante ne se supprime pas : elle se désactive (plus proposée à la vente). */
+  is_active: boolean
+}
+
+export interface ProductVariantPayload {
+  /** Absent : nouvelle variante. */
+  id?: Id
+  name: string
+  barcode: string | null
+  cost: string | null
+  price: string
+  is_active: boolean
 }
 
 /** Unité utilisable pour un produit, avec sa conversion (§7.3). */
@@ -47,8 +71,10 @@ export interface Product {
   stock_alert: string | null
   image_url: string | null
   is_active: boolean
-  /** Stock dans la boutique demandée (`?shop_id=`), null pour un service. */
+  /** Stock dans la boutique demandée (`?shop_id=`), null pour un service. Variantes : total. */
   stock: ShopStockLevel | null
+  /** Produit `variable` : ses variantes ; vide sinon. `price` est alors le plus bas prix des variantes. */
+  variants: ProductVariant[]
 }
 
 export interface ShopStockLevel {
@@ -73,6 +99,8 @@ export interface ProductPayload {
   tax_rate: string | null
   stock_alert: string | null
   is_active: boolean
+  /** Produit `variable` : toutes ses variantes (au moins une active). Le type ne change plus après la création. */
+  variants?: ProductVariantPayload[]
 }
 
 export interface ProductCreatePayload extends ProductPayload {
@@ -81,17 +109,25 @@ export interface ProductCreatePayload extends ProductPayload {
   shop_id?: Id
 }
 
-/** GET /products/{id}/stock : le stock de chaque boutique. */
+/** GET /products/{id}/stock : le stock de chaque boutique (variantes : total, puis détail). */
 export interface ProductShopStock {
   shop: { id: Id; name: string; is_active: boolean }
   quantity: string
   stock_alert: string | null
   state: StockState
+  variants: { id: Id; name: string; quantity: string; state: StockState }[]
 }
 
-/** GET /shops/{shop_id}/products/search : résultat compact pour les sélecteurs (stock, caisse). */
+/**
+ * GET /shops/{shop_id}/products/search : résultat compact pour les sélecteurs (stock, caisse).
+ * Un produit à variantes donne une entrée par variante active : `name` vaut alors
+ * « Produit — Variante », et prix, code-barres et stock sont ceux de la variante.
+ */
 export interface ProductSearchResult {
   id: Id
+  /** null pour un produit sans variantes. */
+  variant_id: Id | null
+  variant_name: string | null
   type: ProductType
   name: string
   code: string

@@ -13,6 +13,8 @@ export type SalePaymentStatus = 'pending' | 'completed' | 'failed' | 'cancelled'
 /** Ligne du panier envoyée au serveur. */
 export interface SaleLineInput {
   product_id: Id
+  /** Obligatoire pour un produit à variantes. */
+  variant_id?: Id | null
   quantity: string
   /** Prix modifié (permission sales.edit_price), sinon le prix du produit. */
   price?: string
@@ -39,6 +41,7 @@ export interface SaleQuoteInput {
 export interface SaleQuote {
   items: {
     product_id: Id
+    variant_id: Id | null
     quantity: string
     price: Money
     discount_amount: Money
@@ -63,7 +66,9 @@ export interface SalePayload extends SaleQuoteInput {
 }
 
 export interface SaleItem {
+  /** `name` : nom affiché de l'article, avec la variante (« Jus 1 L — Bissap »). */
   product: { id: Id; name: string; type: ProductType; unit: ProductUnitRef }
+  variant: { id: Id; name: string } | null
   quantity: string
   price: Money
   discount: Money
@@ -136,8 +141,11 @@ export interface SalesList {
 
 /** GET /shops/{shop_id}/pos/bootstrap : tout ce qu'il faut à la caisse (et au cache hors ligne). */
 export interface PosBootstrap {
+  /** Une entrée par article vendable : un produit, ou une variante (`variant_id`). */
   products: {
     id: Id
+    variant_id: Id | null
+    variant_name: string | null
     type: ProductType
     name: string
     code: string

@@ -17,7 +17,7 @@ import {
   recordPurchase,
   setPurchaseInstallments,
 } from '../purchases'
-import { canSeeAll, money, qty, requireShopAccess, userName } from '../stock'
+import { canSeeAll, itemName, money, qty, requireShopAccess, userName, variantRef } from '../stock'
 import { visibleShopIds } from './customers'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
@@ -49,7 +49,8 @@ function purchaseResource(p: MockPurchase): Purchase {
       const unit = db.units.find((u) => u.id === product.unit_id) ?? db.units[0]!
       const lineUnit = db.units.find((u) => u.id === i.unit_id) ?? unit
       return {
-        product: { id: product.id, name: product.name, unit: { id: unit.id, name: unit.name, short_name: unit.short_name } },
+        product: { id: product.id, name: itemName(product, i.variant_id), unit: { id: unit.id, name: unit.name, short_name: unit.short_name } },
+        variant: variantRef(product, i.variant_id),
         unit: { id: lineUnit.id, name: lineUnit.name, short_name: lineUnit.short_name },
         quantity: qty(i.quantity),
         base_quantity: qty(i.base_quantity ?? i.quantity),
@@ -163,6 +164,7 @@ export const purchasesHandlers = [
         data: {
           items: c.items.map((i) => ({
             product_id: i.product_id,
+            variant_id: i.variant_id,
             unit: { id: i.unit.id, name: i.unit.name, short_name: i.unit.short_name },
             quantity: qty(i.quantity),
             base_quantity: qty(i.base_quantity),

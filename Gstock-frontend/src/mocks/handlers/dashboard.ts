@@ -6,7 +6,7 @@ import type { MockUser } from '../data/users'
 import { installmentsOf, recomputeCredit } from '../credits'
 import { db } from '../db'
 import { API, handle, isOwner, MockHttpError, paginate, requirePermission } from '../http'
-import { alertOf, canSeeAll, money, requireShopAccess, stockRow, stockState, userName } from '../stock'
+import { alertOf, canSeeAll, money, requireShopAccess, stockKeys, stockRow, stockState, userName } from '../stock'
 import { visibleShopIds } from './customers'
 
 const DAY = 86_400_000
@@ -58,7 +58,11 @@ function buildDashboard(user: MockUser, shopIds: number[], period: DashboardPeri
   const complete = lines.every((i) => i.unit_cost !== null)
 
   // Stock et crédits : état actuel, pas une période.
-  const stockItems = db.products.filter((p) => p.is_active && p.type !== 'service').flatMap((p) => shopIds.map((id) => stockState(stockRow(id, p.id).quantity, alertOf(p, id))))
+  // Un article par produit simple ou par variante active.
+  const stockItems = db.products
+    .filter((p) => p.is_active && p.type !== 'service')
+    .flatMap((p) => stockKeys(p).filter((v) => v === null || p.variants?.find((x) => x.id === v)?.is_active).map((v) => ({ p, v })))
+    .flatMap(({ p, v }) => shopIds.map((id) => stockState(stockRow(id, p.id, v).quantity, alertOf(p, id, v))))
   const credits = db.credits.filter((c) => inShops(c) && c.status !== 'cancelled')
   credits.forEach(recomputeCredit)
   const open = credits.filter((c) => c.remaining_amount > 0)

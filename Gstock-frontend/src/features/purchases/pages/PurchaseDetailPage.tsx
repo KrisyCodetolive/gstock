@@ -19,6 +19,7 @@ import { useCan } from '@/features/auth/hooks'
 import { InstallmentStatusBadge } from '@/features/credits/components/badges'
 import { useReferentialList } from '@/features/referentials/hooks'
 import { useCurrentShop } from '@/features/shops/hooks'
+import { articleKey } from '@/lib/articles'
 import { apiErrorMessage } from '@/lib/form-errors'
 import { formatDateTime, formatQuantity, formatShortDate } from '@/lib/format'
 import type { Purchase } from '@/types/purchases'
@@ -83,7 +84,7 @@ function PurchaseDetail({ purchase: p }: { purchase: Purchase }) {
       <FormSection title={t('purchases.detail.items')}>
         <ul className="grid divide-y-2 divide-muted">
           {p.items.map((i) => (
-            <li key={i.product.id}>
+            <li key={articleKey(i.product.id, i.variant?.id)}>
               <Link to={`/produits/${i.product.id}`} className="flex items-start justify-between gap-3 rounded-md px-1 py-3 hover:bg-muted">
                 <span className="grid">
                   <span className="font-bold">{i.product.name}</span>

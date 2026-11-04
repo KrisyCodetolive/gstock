@@ -1,7 +1,7 @@
 // Règles de stock du serveur (§7.2), partagées par les handlers :
 // quantité = somme des mouvements, jamais négative, contrôle « en transaction ».
 import type { StockState } from '@/types/catalog'
-import type { MockMovement, MockProduct } from './data/products'
+import type { MockMovement, MockProduct, MockVariant } from './data/products'
 import type { MockUser } from './data/users'
 import { db } from './db'
 import { isOwner, MockHttpError, permissionsOf } from './http'
@@ -16,19 +16,61 @@ export function stockState(quantity: number, alert: number | null): StockState {
   return 'ok'
 }
 
-/** Seuil effectif : surcharge de la boutique, sinon celui du produit. */
-export function alertOf(product: MockProduct, shopId: number): number | null {
-  const row = db.shopStock.find((s) => s.shop_id === shopId && s.product_id === product.id)
+/** Seuil effectif : surcharge de la boutique, sinon celui du produit (le même pour chaque variante). */
+export function alertOf(product: MockProduct, shopId: number, variantId: number | null = null): number | null {
+  const row = db.shopStock.find((s) => s.shop_id === shopId && s.product_id === product.id && (s.variant_id ?? null) === variantId)
   return row?.stock_alert ?? product.stock_alert
 }
 
-export function stockRow(shopId: number, productId: number) {
-  let row = db.shopStock.find((s) => s.shop_id === shopId && s.product_id === productId)
+/** Ligne de stock (produit, variante, boutique), créée à 0 si elle manque (§7.2). */
+export function stockRow(shopId: number, productId: number, variantId: number | null = null) {
+  let row = db.shopStock.find((s) => s.shop_id === shopId && s.product_id === productId && (s.variant_id ?? null) === variantId)
   if (!row) {
-    row = { shop_id: shopId, product_id: productId, quantity: 0, stock_alert: null }
+    row = { shop_id: shopId, product_id: productId, variant_id: variantId, quantity: 0, stock_alert: null }
     db.shopStock.push(row)
   }
   return row
+}
+
+/** Ce qui porte du stock : le produit lui-même, ou chacune de ses variantes. */
+export function stockKeys(product: MockProduct): (number | null)[] {
+  if (product.type === 'service') return []
+  return product.type === 'variable' ? (product.variants ?? []).map((v) => v.id) : [null]
+}
+
+/** Stock total d'un produit dans une boutique (somme des variantes). */
+export function productQuantity(shopId: number, product: MockProduct): number {
+  return stockKeys(product).reduce<number>((s, v) => s + stockRow(shopId, product.id, v).quantity, 0)
+}
+
+export function variantOf(product: MockProduct, variantId: number | null | undefined): MockVariant | undefined {
+  return variantId ? product.variants?.find((v) => v.id === Number(variantId)) : undefined
+}
+
+/** Nom affiché d'un article : « Jus de fruits 1 L — Bissap ». */
+export function itemName(product: MockProduct, variantId?: number | null): string {
+  const variant = variantOf(product, variantId)
+  return variant ? `${product.name} — ${variant.name}` : product.name
+}
+
+/** Référence de variante pour l'API. */
+export function variantRef(product: MockProduct, variantId?: number | null) {
+  const variant = variantOf(product, variantId)
+  return variant ? { id: variant.id, name: variant.name } : null
+}
+
+/**
+ * Article vendable ou achetable : un produit simple, ou une variante active d'un produit
+ * `variable`. Ajoute un message en français à `errors` sinon.
+ */
+export function resolveArticle(product: MockProduct, variantId: unknown, errors: { add: (field: string, message: string) => void }, field = 'items') {
+  if (product.type !== 'variable') return { variantId: null, variant: undefined, name: product.name, price: product.price, cost: product.cost, barcode: product.barcode }
+  const variant = variantId ? product.variants?.find((v) => v.id === Number(variantId) && v.is_active) : undefined
+  if (!variant) {
+    errors.add(field, `Choisissez la variante de ${product.name}.`)
+    return null
+  }
+  return { variantId: variant.id, variant, name: itemName(product, variant.id), price: variant.price, cost: variant.cost, barcode: variant.barcode }
 }
 
 /**
@@ -53,6 +95,8 @@ export function canSeeAll(user: MockUser) {
 export interface StockChange {
   shopId: number
   product: MockProduct
+  /** Variante d'un produit `variable`. */
+  variantId?: number | null
   delta: number
 }
 
@@ -64,25 +108,35 @@ export function applyStockChanges(
   changes: StockChange[],
   meta: Omit<MockMovement, 'id' | 'shop_id' | 'product_id' | 'quantity' | 'unit_cost'>,
 ) {
-  for (const { shopId, product, delta } of changes) {
-    if (product.type === 'service') continue
-    const row = stockRow(shopId, product.id)
+  // Deux lignes sur le même article : le contrôle porte sur leur total.
+  const totals = new Map<string, { change: StockChange; delta: number }>()
+  for (const change of changes) {
+    if (change.product.type === 'service') continue
+    const key = `${change.shopId}:${change.product.id}:${change.variantId ?? ''}`
+    const entry = totals.get(key) ?? { change, delta: 0 }
+    entry.delta += change.delta
+    totals.set(key, entry)
+  }
+  for (const { change, delta } of totals.values()) {
+    const { shopId, product, variantId = null } = change
+    if (product.type === 'variable' && !variantOf(product, variantId)) throw new MockHttpError(422, `Choisissez la variante de ${product.name}.`, { items: [`Choisissez la variante de ${product.name}.`] })
+    const row = stockRow(shopId, product.id, variantId)
     if (row.quantity + delta < 0) {
       const unit = db.units.find((u) => u.id === product.unit_id)
-      throw new MockHttpError(422, `Stock insuffisant : il reste ${formatQty(row.quantity)} ${unit?.short_name ?? ''} de ${product.name}.`, {
-        items: [`Stock insuffisant : il reste ${formatQty(row.quantity)} ${unit?.short_name ?? ''} de ${product.name}.`],
-      })
+      const message = `Stock insuffisant : il reste ${formatQty(row.quantity)} ${unit?.short_name ?? ''} de ${itemName(product, variantId)}.`
+      throw new MockHttpError(422, message, { items: [message] })
     }
   }
-  for (const { shopId, product, delta } of changes) {
+  for (const { shopId, product, variantId = null, delta } of changes) {
     if (product.type === 'service' || delta === 0) continue
-    stockRow(shopId, product.id).quantity += delta
+    stockRow(shopId, product.id, variantId).quantity += delta
     db.movements.push({
       id: db.movements.length + 1,
       shop_id: shopId,
       product_id: product.id,
+      variant_id: variantId,
       quantity: delta,
-      unit_cost: product.cost,
+      unit_cost: variantOf(product, variantId)?.cost ?? product.cost,
       ...meta,
     })
   }

@@ -1,4 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { articleKey } from '@/lib/articles'
 import { ApiError } from '@/lib/api/client'
 import { useDebouncedValue } from '@/lib/use-debounced-value'
 import { createSale, getPosBootstrap, getSale, quoteSale } from '@/lib/api/sales'
@@ -25,6 +26,7 @@ export function cartToInput(cart: Cart, payments?: SalePaymentInput[]): SaleQuot
   return {
     items: cart.lines.map((l) => ({
       product_id: l.productId,
+      ...(l.variantId ? { variant_id: l.variantId } : {}),
       quantity: String(l.quantity),
       ...(l.price !== undefined ? { price: l.price } : {}),
       ...(l.discount ? { discount: l.discount, discount_method: l.discountMethod ?? 'fixed' } : {}),
@@ -75,10 +77,11 @@ export type CreatedSale = { kind: 'online'; sale: Sale } | { kind: 'offline'; op
 function applyToBootstrap(queryClient: QueryClient, shopId: Id, payload: SalePayload, quote: ProvisionalQuote) {
   queryClient.setQueryData<PosBootstrap>(['pos', shopId, 'bootstrap'], (b) => {
     if (!b) return b
-    const sold = new Map(payload.items.map((i) => [i.product_id, Number(i.quantity)]))
+    const sold = new Map(payload.items.map((i) => [articleKey(i.product_id, i.variant_id), Number(i.quantity)]))
+    const soldOf = (p: PosBootstrap['products'][number]) => sold.get(articleKey(p.id, p.variant_id))
     return {
       ...b,
-      products: b.products.map((p) => (p.quantity !== null && sold.has(p.id) ? { ...p, quantity: Math.max(0, Number(p.quantity) - sold.get(p.id)!).toFixed(3) } : p)),
+      products: b.products.map((p) => (p.quantity !== null && soldOf(p) !== undefined ? { ...p, quantity: Math.max(0, Number(p.quantity) - soldOf(p)!).toFixed(3) } : p)),
       customers: b.customers.map((c) => (c.id === payload.customer_id ? { ...c, balance: (Number(c.balance) + Number(quote.credit_amount)).toFixed(2) } : c)),
     }
   })
@@ -100,7 +103,10 @@ export function useCreateSale(shopId: Id | undefined) {
       // le serveur ne l'enregistrera jamais deux fois (ADR-005). Le prix connu de l'appareil est envoyé.
       const offlinePayload: SalePayload = {
         ...payload,
-        items: payload.items.map((i) => ({ ...i, price: i.price ?? context.bootstrap.products.find((p) => p.id === i.product_id)?.price })),
+        items: payload.items.map((i) => ({
+          ...i,
+          price: i.price ?? context.bootstrap.products.find((p) => p.id === i.product_id && p.variant_id === (i.variant_id ?? null))?.price,
+        })),
       }
       const quote = localQuote(offlinePayload, context.bootstrap)
       const operation = useOfflineQueue.getState().enqueue({

@@ -17,7 +17,7 @@ export interface MockPurchase {
   reference: string
   occurred_at: string
   /** `quantity` et `cost` dans l'unité de la ligne ; `base_quantity` en unité de base (absents : unité de base). */
-  items: { product_id: number; unit_id?: number; quantity: number; base_quantity?: number; cost: number; subtotal: number }[]
+  items: { product_id: number; variant_id?: number | null; unit_id?: number; quantity: number; base_quantity?: number; cost: number; subtotal: number }[]
   subtotal: number
   discount: number
   total: number

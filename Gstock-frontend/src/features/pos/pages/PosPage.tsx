@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { ShopSwitcher } from '@/features/shops/components/ShopSwitcher'
 import { useCurrentShop } from '@/features/shops/hooks'
+import { articleKey } from '@/lib/articles'
 import { ApiError } from '@/lib/api/client'
 import { apiErrorMessage } from '@/lib/form-errors'
 import { formatDateTime, formatQuantity } from '@/lib/format'
@@ -23,7 +24,7 @@ import { CartPanel } from '../components/CartPanel'
 import { CheckoutSheet } from '../components/CheckoutSheet'
 import { ProductGrid, type PosProduct } from '../components/ProductGrid'
 import { cartToInput, usePosBootstrap, useSaleQuote } from '../hooks'
-import { useCart, useHeldCarts, usePosStore } from '../store'
+import { lineKey, useCart, useHeldCarts, usePosStore } from '../store'
 import { OfflineIndicator } from '@/features/sync/components/OfflineIndicator'
 import { useAutoSync } from '@/offline/hooks'
 
@@ -47,8 +48,9 @@ export function PosPage() {
   const quote = useSaleQuote(shop?.id, cart.lines.length ? cartToInput(cart) : null, bootstrap.data)
   const quoteError = quote.error instanceof ApiError ? apiErrorMessage(quote.error) : null
 
-  const products = useMemo(() => new Map((bootstrap.data?.products ?? []).map((p) => [p.id, p])), [bootstrap.data])
-  const quantities = useMemo(() => new Map(cart.lines.map((l) => [l.productId, l.quantity])), [cart.lines])
+  // Articles : un par produit, ou un par variante (clé articleKey).
+  const products = useMemo(() => new Map((bootstrap.data?.products ?? []).map((p) => [articleKey(p.id, p.variant_id), p])), [bootstrap.data])
+  const quantities = useMemo(() => new Map(cart.lines.map((l) => [lineKey(l), l.quantity])), [cart.lines])
   const visible = useMemo(() => {
     const needle = normalizeText(search)
     return (bootstrap.data?.products ?? []).filter(
@@ -62,7 +64,7 @@ export function PosPage() {
 
   /** Ajout instantané, sans dépasser le stock disponible (§7.2). */
   const add = (p: PosProduct) => {
-    const inCart = quantities.get(p.id) ?? 0
+    const inCart = quantities.get(articleKey(p.id, p.variant_id)) ?? 0
     if (p.quantity !== null && inCart + 1 > Number(p.quantity)) {
       toast.warning(
         Number(p.quantity) <= 0
@@ -71,7 +73,7 @@ export function PosPage() {
       )
       return
     }
-    store.add(shop.id, p.id)
+    store.add(shop.id, p.id, p.variant_id)
   }
 
   /** Entrée dans la recherche : un code-barres exact ajoute directement le produit (douchette). */

@@ -8,7 +8,7 @@ import { ScanButton } from '@/components/BarcodeScanner'
 import { Input } from '@/components/ui/input'
 import { useCurrentShop } from '@/features/shops/hooks'
 import { formatQuantity } from '@/lib/format'
-import type { Id } from '@/types/api'
+import { articleKey } from '@/lib/articles'
 import type { ProductSearchResult } from '@/types/catalog'
 import { useProductSearch } from '../hooks'
 import { ProductThumb } from './ProductThumb'
@@ -22,13 +22,14 @@ export function ProductPicker({
   open,
   onOpenChange,
   onPick,
-  excludeIds = [],
+  exclude = [],
   services = false,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   onPick: (product: ProductSearchResult) => void
-  excludeIds?: Id[]
+  /** Articles déjà choisis (clés articleKey) : affichés mais non sélectionnables. */
+  exclude?: string[]
   services?: boolean
 }) {
   const { t } = useTranslation()
@@ -86,9 +87,9 @@ export function ProductPicker({
         ) : (
           <ul className="grid gap-2" aria-busy={results.isFetching}>
             {results.data.map((p) => {
-              const taken = excludeIds.includes(p.id)
+              const taken = exclude.includes(articleKey(p.id, p.variant_id))
               return (
-                <li key={p.id}>
+                <li key={articleKey(p.id, p.variant_id)}>
                   <button
                     type="button"
                     disabled={taken}

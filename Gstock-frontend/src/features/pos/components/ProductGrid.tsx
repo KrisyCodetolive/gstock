@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next'
 import { Money } from '@/components/Money'
 import { ProductThumb } from '@/features/products/components/ProductThumb'
+import { articleKey } from '@/lib/articles'
 import { formatQuantity } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import type { Id } from '@/types/api'
 import type { PosBootstrap } from '@/types/sales'
 
 export type PosProduct = PosBootstrap['products'][number]
@@ -18,17 +18,17 @@ export function ProductGrid({
   onAdd,
 }: {
   products: PosProduct[]
-  quantities: Map<Id, number>
+  quantities: Map<string, number>
   onAdd: (product: PosProduct) => void
 }) {
   const { t } = useTranslation()
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
       {products.map((p) => {
-        const inCart = quantities.get(p.id) ?? 0
+        const inCart = quantities.get(articleKey(p.id, p.variant_id)) ?? 0
         const out = p.quantity !== null && Number(p.quantity) <= 0
         return (
-          <li key={p.id}>
+          <li key={articleKey(p.id, p.variant_id)}>
             <button
               type="button"
               onClick={() => onAdd(p)}

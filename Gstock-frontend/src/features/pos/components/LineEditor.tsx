@@ -6,6 +6,7 @@ import { ResponsiveSheet } from '@/components/ResponsiveSheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useCan } from '@/features/auth/hooks'
+import { articleKey } from '@/lib/articles'
 import { cn } from '@/lib/utils'
 import type { Id } from '@/types/api'
 import type { DiscountMethod } from '@/types/sales'
@@ -24,7 +25,7 @@ export function LineEditor({ shopId, product, line, onClose }: { shopId: Id; pro
   const canDiscount = can('sales.give_discount')
 
   const save = () => {
-    update(shopId, product.id, {
+    update(shopId, articleKey(product.id, product.variant_id), {
       price: canPrice && price !== String(Number(product.price)) ? price.replace(',', '.') : undefined,
       discount: canDiscount && discount ? discount.replace(',', '.') : undefined,
       discountMethod: canDiscount && discount ? method : undefined,

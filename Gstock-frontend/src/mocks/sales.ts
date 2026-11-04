@@ -7,10 +7,12 @@ import type { MockUser } from './data/users'
 import { db, nextReference } from './db'
 import { MockHttpError, permissionsOf, Validator } from './http'
 import { applySettlement, checkSettlement, creditNoteBalance, recomputeCredit, type Settlement } from './credits'
-import { applyStockChanges, money, qty, stockRow } from './stock'
+import { applyStockChanges, itemName, money, qty, resolveArticle, stockRow } from './stock'
 
 export interface MockSaleItem {
   product_id: number
+  /** Variante vendue d'un produit `variable`. */
+  variant_id?: number | null
   quantity: number
   price: number
   discount: number
@@ -94,18 +96,22 @@ export function computeSale(input: SaleQuoteInput, user: MockUser, options: { of
       v.add('items', 'Un produit du panier n’est plus disponible.')
       return []
     }
+    // Produit à variantes : le prix, le coût et le stock sont ceux de la variante.
+    const article = resolveArticle(product, line.variant_id, v)
+    if (!article) return []
+    const name = article.name
     const quantity = num(line.quantity)
-    if (!(quantity > 0)) v.add('items', `Quantité invalide pour ${product.name}.`)
+    if (!(quantity > 0)) v.add('items', `Quantité invalide pour ${name}.`)
 
-    let price = product.price
-    if (options.offline && line.price !== undefined && num(line.price) !== product.price) {
+    let price = article.price
+    if (options.offline && line.price !== undefined && num(line.price) !== article.price) {
       // Vente faite hors ligne au prix connu de l'appareil : on garde ce prix, l'écart est signalé (ADR-005).
       price = num(line.price)
-      priceChanges.push(`Prix de ${product.name} : ${price.toLocaleString('fr-FR')} FCFA sur l'appareil, ${product.price.toLocaleString('fr-FR')} FCFA aujourd'hui.`)
-    } else if (line.price !== undefined && num(line.price) !== product.price) {
+      priceChanges.push(`Prix de ${name} : ${price.toLocaleString('fr-FR')} FCFA sur l'appareil, ${article.price.toLocaleString('fr-FR')} FCFA aujourd'hui.`)
+    } else if (line.price !== undefined && num(line.price) !== article.price) {
       if (!perms.includes('sales.edit_price')) throw new MockHttpError(403, "Vous n'avez pas le droit de modifier un prix.")
       price = num(line.price)
-      if (!(price >= 0)) v.add('items', `Prix invalide pour ${product.name}.`)
+      if (!(price >= 0)) v.add('items', `Prix invalide pour ${name}.`)
     }
 
     const discount = line.discount ? num(line.discount) : 0
@@ -120,6 +126,7 @@ export function computeSale(input: SaleQuoteInput, user: MockUser, options: { of
       {
         product,
         product_id: product.id,
+        variant_id: article.variantId,
         quantity,
         price,
         discount,
@@ -127,7 +134,7 @@ export function computeSale(input: SaleQuoteInput, user: MockUser, options: { of
         discount_amount: discountAmount,
         tax_rate: taxRate,
         tax_amount: round2(tax * quantity),
-        unit_cost: product.cost,
+        unit_cost: article.cost,
         subtotal: round2(quantity * (discounted + tax)),
       },
     ]
@@ -180,6 +187,7 @@ export function quoteResource(c: Computed): SaleQuote {
   return {
     items: c.items.map((i) => ({
       product_id: i.product_id,
+      variant_id: i.variant_id ?? null,
       quantity: qty(i.quantity),
       price: money(i.price)!,
       discount_amount: money(i.discount_amount)!,
@@ -231,12 +239,13 @@ export function recordSale(
   // mais le stock ne descend jamais sous 0 ; l'écart est marqué « à vérifier ».
   const reasons = [...c.priceChanges]
   const changes = c.items.map((i) => {
-    if (!options.offline || i.product.type === 'service') return { shopId, product: i.product, delta: -i.quantity }
-    const available = stockRow(shopId, i.product.id).quantity
-    if (available >= i.quantity) return { shopId, product: i.product, delta: -i.quantity }
+    const variantId = i.variant_id ?? null
+    if (!options.offline || i.product.type === 'service') return { shopId, product: i.product, variantId, delta: -i.quantity }
+    const available = stockRow(shopId, i.product.id, variantId).quantity
+    if (available >= i.quantity) return { shopId, product: i.product, variantId, delta: -i.quantity }
     const unit = db.units.find((u) => u.id === i.product.unit_id)?.short_name ?? ''
-    reasons.push(`Stock insuffisant pour ${i.product.name} : ${i.quantity} ${unit} vendus, ${available} ${unit} en stock à la synchronisation. Faites un inventaire.`)
-    return { shopId, product: i.product, delta: -available }
+    reasons.push(`Stock insuffisant pour ${itemName(i.product, variantId)} : ${i.quantity} ${unit} vendus, ${available} ${unit} en stock à la synchronisation. Faites un inventaire.`)
+    return { shopId, product: i.product, variantId, delta: -available }
   })
   applyStockChanges(changes, { source_type: 'sale', source_id: id, reference, reason: null, user_id: user.id, occurred_at: occurredAt })
   nextReference('V')
@@ -304,7 +313,7 @@ export function cancelSale(sale: MockSale, user: MockUser, reason: string, settl
   const repaid = credit ? checkSettlement(credit, settlement) : 0
   const now = new Date().toISOString()
   applyStockChanges(
-    sale.items.map((i) => ({ shopId: sale.shop_id, product: db.products.find((p) => p.id === i.product_id)!, delta: i.quantity })),
+    sale.items.map((i) => ({ shopId: sale.shop_id, product: db.products.find((p) => p.id === i.product_id)!, variantId: i.variant_id ?? null, delta: i.quantity })),
     { source_type: 'sale_cancel', source_id: sale.id, reference: sale.reference, reason: `Annulation : ${reason}`, user_id: user.id, occurred_at: now },
   )
   Object.assign(sale, { status: 'cancelled', cancelled_at: now, cancel_reason: reason })
@@ -324,6 +333,6 @@ export function customerBalance(customerId: number, shopIds?: number[]): number 
   return round2(credits.reduce((s, c) => s + c.remaining_amount, 0))
 }
 
-export function availableQuantity(shopId: number, productId: number) {
-  return stockRow(shopId, productId).quantity
+export function availableQuantity(shopId: number, productId: number, variantId: number | null = null) {
+  return stockRow(shopId, productId, variantId).quantity
 }

@@ -8,7 +8,8 @@ import { API, findOr404, handle, paginate, requirePermission, Validator } from '
 import { creditNoteBalance, recomputeCredit, repaidOf, type Settlement } from '../credits'
 import { cancelSale, computeSale, customerBalance, quoteResource, recordSale, type MockSale } from '../sales'
 import { signReceiptToken } from '../receipt-token'
-import { alertOf, canSeeAll, money, qty, requireShopAccess, stockRow, stockState, userName } from '../stock'
+import { alertOf, canSeeAll, itemName, money, qty, requireShopAccess, stockRow, stockState, userName, variantRef } from '../stock'
+import type { MockVariant } from '../data/products'
 
 export function saleResource(s: MockSale): Sale {
   const shop = db.shops.find((x) => x.id === s.shop_id)!
@@ -26,7 +27,8 @@ export function saleResource(s: MockSale): Sale {
       const p = db.products.find((x) => x.id === i.product_id)!
       const unit = db.units.find((u) => u.id === p.unit_id) ?? db.units[0]!
       return {
-        product: { id: p.id, name: p.name, type: p.type, unit: { id: unit.id, name: unit.name, short_name: unit.short_name } },
+        product: { id: p.id, name: itemName(p, i.variant_id), type: p.type, unit: { id: unit.id, name: unit.name, short_name: unit.short_name } },
+        variant: variantRef(p, i.variant_id),
         quantity: qty(i.quantity),
         price: money(i.price)!,
         discount: money(i.discount)!,
@@ -104,27 +106,33 @@ export const salesHandlers = [
       const shopId = requireShopAccess(user, params.shopId).id
       const unitOf = (id: number) => db.units.find((u) => u.id === id) ?? db.units[0]!
       const data: PosBootstrap = {
+        // Un article par produit, ou par variante active d'un produit à variantes.
         products: db.products
           .filter((p) => p.is_active)
           .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
-          .map((p) => {
+          .flatMap((p) => {
             const category = db.categories.find((c) => c.id === p.category_id)
             const unit = unitOf(p.unit_id)
-            const q = p.type === 'service' ? null : stockRow(shopId, p.id).quantity
-            return {
-              id: p.id,
-              type: p.type,
-              name: p.name,
-              code: p.code,
-              barcode: p.barcode,
-              price: money(p.price)!,
-              tax_rate: p.tax_rate === null ? null : String(p.tax_rate),
-              unit: { id: unit.id, name: unit.name, short_name: unit.short_name },
-              category: category ? { id: category.id, name: category.name, color: category.color } : null,
-              image_url: p.image_url,
-              quantity: q === null ? null : qty(q),
-              state: q === null ? null : stockState(q, alertOf(p, shopId)),
-            }
+            const variants: (MockVariant | null)[] = p.type === 'variable' ? (p.variants ?? []).filter((v) => v.is_active) : [null]
+            return variants.map((v) => {
+              const q = p.type === 'service' ? null : stockRow(shopId, p.id, v?.id ?? null).quantity
+              return {
+                id: p.id,
+                variant_id: v?.id ?? null,
+                variant_name: v?.name ?? null,
+                type: p.type,
+                name: itemName(p, v?.id),
+                code: v?.code ?? p.code,
+                barcode: v ? v.barcode : p.barcode,
+                price: money(v ? v.price : p.price)!,
+                tax_rate: p.tax_rate === null ? null : String(p.tax_rate),
+                unit: { id: unit.id, name: unit.name, short_name: unit.short_name },
+                category: category ? { id: category.id, name: category.name, color: category.color } : null,
+                image_url: p.image_url,
+                quantity: q === null ? null : qty(q),
+                state: q === null ? null : stockState(q, alertOf(p, shopId, v?.id ?? null)),
+              }
+            })
           }),
         categories: db.categories.filter((c) => c.is_active).map((c) => ({ id: c.id, name: c.name, color: c.color })),
         payment_methods: db.paymentMethods

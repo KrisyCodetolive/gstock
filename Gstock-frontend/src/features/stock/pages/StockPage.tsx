@@ -12,6 +12,7 @@ import { useCan, useSession } from '@/features/auth/hooks'
 import { ProductThumb } from '@/features/products/components/ProductThumb'
 import { StockStateBadge } from '@/features/products/components/StockStateBadge'
 import { useCurrentShop } from '@/features/shops/hooks'
+import { articleKey } from '@/lib/articles'
 import { formatQuantity } from '@/lib/format'
 import { useListParams } from '@/lib/use-list-params'
 import { cn } from '@/lib/utils'
@@ -185,7 +186,7 @@ function ShopStockList({ state, onState }: { state: StateFilter; onState: (s: St
           <DataList
             label={t('stock.title')}
             items={stock.data.data}
-            getKey={(i) => i.product.id}
+            getKey={(i) => articleKey(i.product.id, i.variant?.id)}
             to={(i) => `/produits/${i.product.id}`}
             columns={[
               { header: t('stock.columns.product'), cell: (i) => i.product.name },
@@ -237,7 +238,7 @@ function OverviewList() {
           <DataList
             label={t('stock.view_all')}
             items={overview.data.data}
-            getKey={(r) => r.product.id}
+            getKey={(r) => articleKey(r.product.id, r.variant?.id)}
             to={(r) => `/produits/${r.product.id}`}
             columns={[
               { header: t('stock.columns.product'), cell: (r) => r.product.name },

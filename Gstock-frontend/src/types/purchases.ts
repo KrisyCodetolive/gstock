@@ -31,6 +31,8 @@ export type PurchaseStatus = 'received' | 'cancelled'
 
 export interface PurchaseLineInput {
   product_id: Id
+  /** Obligatoire pour un produit à variantes. */
+  variant_id?: Id | null
   /** Quantité dans l'unité choisie (`unit_id`). */
   quantity: string
   /** Prix d'achat d'une unité choisie (un carton, par exemple). */
@@ -46,7 +48,7 @@ export interface PurchaseQuoteInput {
 }
 
 export interface PurchaseQuote {
-  items: { product_id: Id; unit: ProductUnitRef; quantity: string; base_quantity: string; cost: Money; subtotal: Money }[]
+  items: { product_id: Id; variant_id: Id | null; unit: ProductUnitRef; quantity: string; base_quantity: string; cost: Money; subtotal: Money }[]
   subtotal: Money
   discount: Money
   total: Money
@@ -81,7 +83,7 @@ export interface Purchase {
   supplier: { id: Id; name: string; phone: string | null } | null
   occurred_at: IsoDate
   /** `unit` : unité d'achat de la ligne ; `base_quantity` : ce qui est entré en stock, en unité de base. */
-  items: { product: { id: Id; name: string; unit: ProductUnitRef }; unit: ProductUnitRef; quantity: string; base_quantity: string; cost: Money; subtotal: Money }[]
+  items: { product: { id: Id; name: string; unit: ProductUnitRef }; variant: { id: Id; name: string } | null; unit: ProductUnitRef; quantity: string; base_quantity: string; cost: Money; subtotal: Money }[]
   subtotal: Money
   discount: Money
   total: Money

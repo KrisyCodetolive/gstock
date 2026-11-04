@@ -4,10 +4,13 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Id } from '@/types/api'
+import { articleKey } from '@/lib/articles'
 import type { DiscountMethod } from '@/types/sales'
 
 export interface CartLine {
   productId: Id
+  /** Variante d'un produit à variantes ; absente sinon. */
+  variantId?: Id | null
   quantity: number
   /** Prix modifié (sales.edit_price), sinon celui du produit. */
   price?: string
@@ -41,10 +44,11 @@ const EMPTY: Cart = { lines: [], customer: null }
 interface PosState {
   carts: Record<string, Cart>
   held: Record<string, HeldCart[]>
-  add: (shopId: Id, productId: Id) => void
-  setQuantity: (shopId: Id, productId: Id, quantity: number) => void
-  updateLine: (shopId: Id, productId: Id, changes: Partial<CartLine>) => void
-  remove: (shopId: Id, productId: Id) => void
+  add: (shopId: Id, productId: Id, variantId?: Id | null) => void
+  /** `article` : clé de la ligne (articleKey), produit ou variante. */
+  setQuantity: (shopId: Id, article: string, quantity: number) => void
+  updateLine: (shopId: Id, article: string, changes: Partial<CartLine>) => void
+  remove: (shopId: Id, article: string) => void
   setCustomer: (shopId: Id, customer: CartCustomer | null) => void
   setDiscount: (shopId: Id, discount: string | undefined) => void
   clear: (shopId: Id) => void
@@ -54,6 +58,8 @@ interface PosState {
 }
 
 const key = (shopId: Id) => String(shopId)
+/** Clé d'une ligne du panier : le produit, et sa variante s'il en a. */
+export const lineKey = (l: CartLine) => articleKey(l.productId, l.variantId)
 
 export const usePosStore = create<PosState>()(
   persist(
@@ -64,21 +70,22 @@ export const usePosStore = create<PosState>()(
       return {
         carts: {},
         held: {},
-        add: (shopId, productId) =>
+        add: (shopId, productId, variantId = null) =>
           patch(shopId, (c) => {
-            const existing = c.lines.find((l) => l.productId === productId)
+            const article = articleKey(productId, variantId)
+            const existing = c.lines.find((l) => lineKey(l) === article)
             return existing
-              ? { ...c, lines: c.lines.map((l) => (l.productId === productId ? { ...l, quantity: l.quantity + 1 } : l)) }
-              : { ...c, lines: [...c.lines, { productId, quantity: 1 }] }
+              ? { ...c, lines: c.lines.map((l) => (lineKey(l) === article ? { ...l, quantity: l.quantity + 1 } : l)) }
+              : { ...c, lines: [...c.lines, { productId, variantId, quantity: 1 }] }
           }),
-        setQuantity: (shopId, productId, quantity) =>
+        setQuantity: (shopId, article, quantity) =>
           patch(shopId, (c) => ({
             ...c,
-            lines: quantity <= 0 ? c.lines.filter((l) => l.productId !== productId) : c.lines.map((l) => (l.productId === productId ? { ...l, quantity } : l)),
+            lines: quantity <= 0 ? c.lines.filter((l) => lineKey(l) !== article) : c.lines.map((l) => (lineKey(l) === article ? { ...l, quantity } : l)),
           })),
-        updateLine: (shopId, productId, changes) =>
-          patch(shopId, (c) => ({ ...c, lines: c.lines.map((l) => (l.productId === productId ? { ...l, ...changes } : l)) })),
-        remove: (shopId, productId) => patch(shopId, (c) => ({ ...c, lines: c.lines.filter((l) => l.productId !== productId) })),
+        updateLine: (shopId, article, changes) =>
+          patch(shopId, (c) => ({ ...c, lines: c.lines.map((l) => (lineKey(l) === article ? { ...l, ...changes } : l)) })),
+        remove: (shopId, article) => patch(shopId, (c) => ({ ...c, lines: c.lines.filter((l) => lineKey(l) !== article) })),
         setCustomer: (shopId, customer) => patch(shopId, (c) => ({ ...c, customer })),
         setDiscount: (shopId, discount) => patch(shopId, (c) => ({ ...c, discount })),
         clear: (shopId) => patch(shopId, () => EMPTY),

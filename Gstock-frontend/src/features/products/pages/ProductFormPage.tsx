@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils'
 import type { Product } from '@/types/catalog'
 import { ProductThumb } from '../components/ProductThumb'
 import { StockStateBadge } from '../components/StockStateBadge'
+import { VariantsEditor } from '../components/VariantsEditor'
 import { useProduct, useProductImage, useProductStock, useSaveProduct } from '../hooks'
 import { formToPayload, PRODUCT_FIELDS, productSchema, productToForm, type ProductForm } from '../schemas'
 
@@ -129,9 +130,13 @@ function ProductFormBody({ product }: { product?: Product }) {
               <Input placeholder={t('products.form.name_placeholder')} autoFocus={!product} {...form.register('name')} />
             </FormField>
             <div className="grid gap-4 sm:grid-cols-2">
-              <FormField id="price" label={`${t('products.form.price')} (FCFA)`} error={errors.price?.message}>
-                <Input inputMode="numeric" className="tabular text-lg font-bold" {...form.register('price')} />
-              </FormField>
+              {type === 'variable' ? (
+                <p className="self-center text-sm text-muted-foreground">{t('products.form.price_variants')}</p>
+              ) : (
+                <FormField id="price" label={`${t('products.form.price')} (FCFA)`} error={errors.price?.message}>
+                  <Input inputMode="numeric" className="tabular text-lg font-bold" {...form.register('price')} />
+                </FormField>
+              )}
               <SelectField
                 control={form.control}
                 name="category_id"
@@ -168,9 +173,11 @@ function ProductFormBody({ product }: { product?: Product }) {
           {showMore && (
             <FormSection title={t('products.form.more')}>
               <div className="grid gap-4 sm:grid-cols-2">
-                <FormField id="cost" label={`${t('products.form.cost')} (FCFA)`} optional hint={t('products.form.cost_hint')} error={errors.cost?.message}>
-                  <Input inputMode="numeric" className="tabular" {...form.register('cost')} />
-                </FormField>
+                {type !== 'variable' && (
+                  <FormField id="cost" label={`${t('products.form.cost')} (FCFA)`} optional hint={t('products.form.cost_hint')} error={errors.cost?.message}>
+                    <Input inputMode="numeric" className="tabular" {...form.register('cost')} />
+                  </FormField>
+                )}
                 <SelectField
                   control={form.control}
                   name="unit_id"
@@ -180,17 +187,19 @@ function ProductFormBody({ product }: { product?: Product }) {
                   options={units.data?.data.filter((u) => u.base_unit_id === null).map((u) => ({ value: String(u.id), label: `${u.name} (${u.short_name})` })) ?? []}
                   error={errors.unit_id?.message}
                 />
-                <div className="flex items-end gap-2">
-                  <FormField id="barcode" label={t('products.form.barcode')} optional error={errors.barcode?.message} className="flex-1">
-                    <Input inputMode="numeric" className="tabular" {...form.register('barcode')} />
-                  </FormField>
-                  {editable && (
-                    <ScanButton
-                      className={errors.barcode ? 'mb-7' : undefined}
-                      onDetected={(code) => form.setValue('barcode', code, { shouldDirty: true, shouldValidate: true })}
-                    />
+                {type !== 'variable' && (
+                  <div className="flex items-end gap-2">
+                    <FormField id="barcode" label={t('products.form.barcode')} optional error={errors.barcode?.message} className="flex-1">
+                      <Input inputMode="numeric" className="tabular" {...form.register('barcode')} />
+                    </FormField>
+                    {editable && (
+                      <ScanButton
+                        className={errors.barcode ? 'mb-7' : undefined}
+                        onDetected={(code) => form.setValue('barcode', code, { shouldDirty: true, shouldValidate: true })}
+                      />
                   )}
                 </div>
+                )}
                 <FormField id="code" label={t('products.form.code')} optional hint={t('products.form.code_hint')} error={errors.code?.message}>
                   <Input {...form.register('code')} />
                 </FormField>
@@ -199,7 +208,7 @@ function ProductFormBody({ product }: { product?: Product }) {
                     <Input inputMode="decimal" className="tabular" {...form.register('stock_alert')} />
                   </FormField>
                 )}
-                {!product && type !== 'service' && shop && can('stock.entry') && (
+                {!product && type === 'simple' && shop && can('stock.entry') && (
                   <FormField
                     id="initial_quantity"
                     label={t('products.form.initial_quantity')}
@@ -239,10 +248,16 @@ function ProductFormBody({ product }: { product?: Product }) {
                   control={form.control}
                   name="type"
                   label={t('products.form.type')}
-                  options={[
-                    { value: 'simple', label: t('products.form.type_simple') },
-                    { value: 'service', label: t('products.form.type_service') },
-                  ]}
+                  // Le stock d'un produit à variantes est tenu par variante : ce type ne change plus après la création.
+                  options={
+                    product?.type === 'variable'
+                      ? [{ value: 'variable', label: t('products.form.type_variable') }]
+                      : [
+                          { value: 'simple', label: t('products.form.type_simple') },
+                          { value: 'service', label: t('products.form.type_service') },
+                          ...(product ? [] : [{ value: 'variable', label: t('products.form.type_variable') }]),
+                        ]
+                  }
                   error={errors.type?.message}
                 />
                 <SelectField
@@ -258,6 +273,7 @@ function ProductFormBody({ product }: { product?: Product }) {
               </div>
             </FormSection>
           )}
+          {type === 'variable' && <VariantsEditor control={form.control} register={form.register} errors={errors} />}
         </fieldset>
 
         {editable && (
@@ -307,14 +323,32 @@ function ShopStockSection({ product }: { product: Product }) {
       ) : (
         <ul className="grid gap-2 sm:grid-cols-2">
           {stock.data.map((s) => (
-            <li key={s.shop.id} className="flex items-center justify-between gap-3 rounded-md border-2 border-foreground px-3 py-2">
-              <span className="grid">
-                <span className="font-bold">{s.shop.name}</span>
-                <span className="tabular text-lg font-bold">
-                  {formatQuantity(s.quantity)} <span className="text-sm font-semibold text-muted-foreground">{product.unit.short_name}</span>
+            <li key={s.shop.id} className="grid gap-2 rounded-md border-2 border-foreground px-3 py-2">
+              <div className="flex items-center justify-between gap-3">
+                <span className="grid">
+                  <span className="font-bold">{s.shop.name}</span>
+                  <span className="tabular text-lg font-bold">
+                    {formatQuantity(s.quantity)} <span className="text-sm font-semibold text-muted-foreground">{product.unit.short_name}</span>
+                  </span>
                 </span>
-              </span>
-              <StockStateBadge state={s.state} />
+                <StockStateBadge state={s.state} />
+              </div>
+              {/* Produit à variantes : le stock de chaque variante dans la boutique. */}
+              {s.variants.length > 0 && (
+                <ul className="grid gap-1 border-t-2 border-muted pt-2 text-sm">
+                  {s.variants.map((v) => (
+                    <li key={v.id} className="flex items-center justify-between gap-2">
+                      <span className="font-semibold">{v.name}</span>
+                      <span className="flex items-center gap-2">
+                        <span className="tabular font-bold">
+                          {formatQuantity(v.quantity)} {product.unit.short_name}
+                        </span>
+                        <StockStateBadge state={v.state} />
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
         </ul>

@@ -19,6 +19,7 @@ import { ProductThumb } from '@/features/products/components/ProductThumb'
 import { useReferentialList } from '@/features/referentials/hooks'
 import { useCurrentShop } from '@/features/shops/hooks'
 import { ApiError } from '@/lib/api/client'
+import { articleKey } from '@/lib/articles'
 import { formatQuantity } from '@/lib/format'
 import { apiErrorMessage } from '@/lib/form-errors'
 import type { ProductSearchResult } from '@/types/catalog'
@@ -38,6 +39,9 @@ function suggestedCost(product: ProductSearchResult, unitId: number): string {
   const factor = Number(product.units.find((u) => u.id === unitId)?.factor ?? 1)
   return product.cost ? String(Math.round(Number(product.cost) * factor * 100) / 100) : ''
 }
+
+/** Une ligne par article : produit, ou variante d'un produit à variantes. */
+const keyOf = (l: Line) => articleKey(l.product.id, l.product.variant_id)
 
 function newLine(product: ProductSearchResult): Line {
   const unitId = product.purchase_unit_id ?? product.unit.id
@@ -72,7 +76,7 @@ export function PurchaseFormPage() {
   const validLines = lines.every((l) => Number(clean(l.quantity)) > 0 && clean(l.cost) !== '' && Number(clean(l.cost)) >= 0)
   const input = lines.length
     ? {
-        items: lines.map((l) => ({ product_id: l.product.id, unit_id: l.unitId, quantity: clean(l.quantity), cost: clean(l.cost) || '0' })),
+        items: lines.map((l) => ({ product_id: l.product.id, ...(l.product.variant_id ? { variant_id: l.product.variant_id } : {}), unit_id: l.unitId, quantity: clean(l.quantity), cost: clean(l.cost) || '0' })),
         ...(discount ? { discount: clean(discount) } : {}),
       }
     : null
@@ -104,7 +108,7 @@ export function PurchaseFormPage() {
     )
   }
 
-  const update = (id: number, changes: Partial<Line>) => setLines((ls) => ls.map((l) => (l.product.id === id ? { ...l, ...changes } : l)))
+  const update = (k: string, changes: Partial<Line>) => setLines((ls) => ls.map((l) => (keyOf(l) === k ? { ...l, ...changes } : l)))
 
   return (
     <div className="grid gap-6">
@@ -143,28 +147,29 @@ export function PurchaseFormPage() {
           {lines.length > 0 && (
             <ul className="grid gap-3">
               {lines.map((l) => {
-                const q = quote.data?.items.find((i) => i.product_id === l.product.id)
+                const k = keyOf(l)
+                const q = quote.data?.items.find((i) => articleKey(i.product_id, i.variant_id) === k)
                 const unit = l.product.units.find((u) => u.id === l.unitId) ?? l.product.unit
                 return (
-                  <li key={l.product.id} className="grid gap-3 rounded-md border-2 border-foreground p-3">
+                  <li key={k} className="grid gap-3 rounded-md border-2 border-foreground p-3">
                     <div className="flex items-center gap-3">
                       <ProductThumb name={l.product.name} color={l.product.category?.color} imageUrl={l.product.image_url} className="size-10" />
                       <span className="min-w-0 flex-1 truncate font-bold">{l.product.name}</span>
-                      <Button type="button" variant="ghost" size="icon-sm" onClick={() => setLines((ls) => ls.filter((x) => x.product.id !== l.product.id))} aria-label={t('purchases.form.remove', { name: l.product.name })}>
+                      <Button type="button" variant="ghost" size="icon-sm" onClick={() => setLines((ls) => ls.filter((x) => keyOf(x) !== k))} aria-label={t('purchases.form.remove', { name: l.product.name })}>
                         <Trash2 aria-hidden="true" />
                       </Button>
                     </div>
                     {/* Unités multiples : mode avancé (§7.3), ou produit qui a déjà une unité d'achat. */}
                     {l.product.units.length > 1 && (tenant.advanced_mode || l.product.purchase_unit_id !== null) && (
                       <div className="grid gap-1">
-                        <label htmlFor={`purchase-unit-${l.product.id}`} className="text-sm font-semibold">
+                        <label htmlFor={`purchase-unit-${k}`} className="text-sm font-semibold">
                           {t('purchases.form.unit')}
                         </label>
                         <Select
                           value={String(l.unitId)}
-                          onValueChange={(v) => update(l.product.id, { unitId: Number(v), cost: suggestedCost(l.product, Number(v)) })}
+                          onValueChange={(v) => update(k, { unitId: Number(v), cost: suggestedCost(l.product, Number(v)) })}
                         >
-                          <SelectTrigger id={`purchase-unit-${l.product.id}`}>
+                          <SelectTrigger id={`purchase-unit-${k}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -184,10 +189,10 @@ export function PurchaseFormPage() {
                         <span className="text-sm font-semibold">
                           {t('purchases.form.quantity')} ({unit.short_name})
                         </span>
-                        <QuantityInput id={`purchase-qty-${l.product.id}`} value={l.quantity} onChange={(v) => update(l.product.id, { quantity: v })} label={`${t('purchases.form.quantity')} — ${l.product.name}`} />
+                        <QuantityInput id={`purchase-qty-${k}`} value={l.quantity} onChange={(v) => update(k, { quantity: v })} label={`${t('purchases.form.quantity')} — ${l.product.name}`} />
                       </div>
-                      <FormField id={`purchase-cost-${l.product.id}`} label={t('purchases.form.cost_per', { unit: unit.short_name })}>
-                        <Input inputMode="numeric" className="tabular" value={l.cost} onChange={(e) => update(l.product.id, { cost: e.target.value })} />
+                      <FormField id={`purchase-cost-${k}`} label={t('purchases.form.cost_per', { unit: unit.short_name })}>
+                        <Input inputMode="numeric" className="tabular" value={l.cost} onChange={(e) => update(k, { cost: e.target.value })} />
                       </FormField>
                     </div>
                     {q && (
@@ -276,7 +281,7 @@ export function PurchaseFormPage() {
       <ProductPicker
         open={picker}
         onOpenChange={setPicker}
-        excludeIds={lines.map((l) => l.product.id)}
+        exclude={lines.map(keyOf)}
         onPick={(product) => setLines((ls) => [...ls, newLine(product)])}
       />
     </div>
