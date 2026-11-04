@@ -1,0 +1,62 @@
+# Intégration continue (§12.6) : lint, tests et build du backend et du frontend, image Docker.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Gstock-plateform
+    services:
+      pgsql:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: gstock_test
+          POSTGRES_USER: gstock
+          POSTGRES_PASSWORD: gstock
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U gstock" --health-interval 5s --health-retries 10
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USERNAME: gstock
+      DB_PASSWORD: gstock
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, intl, bcmath, gd, zip
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+      - run: vendor/bin/pint --test
+      - run: php artisan test
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Gstock-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Gstock-frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: backend
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t gstock-api Gstock-plateform
