@@ -3,6 +3,11 @@
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\MeController;
+use App\Http\Controllers\Api\V1\Referentials\BrandController;
+use App\Http\Controllers\Api\V1\Referentials\CategoryController;
+use App\Http\Controllers\Api\V1\Referentials\ExpenseCategoryController;
+use App\Http\Controllers\Api\V1\Referentials\PaymentMethodController;
+use App\Http\Controllers\Api\V1\Referentials\UnitController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\ShopController;
@@ -65,5 +70,18 @@ Route::middleware('tenant')->group(function () {
         });
 
         Route::get('audit-logs', [AuditLogController::class, 'index'])->middleware('permission:audit.view');
+
+        // Référentiels (M05) : lecture pour les écrans qui en ont besoin, écriture pour qui les gère. Pas de suppression.
+        foreach ([
+            'categories' => [CategoryController::class, 'products.view,categories.manage', 'categories.manage'],
+            'units' => [UnitController::class, 'products.view,units.manage', 'units.manage'],
+            'payment-methods' => [PaymentMethodController::class, 'sales.create,repayments.create,expenses.create,settings.manage', 'settings.manage'],
+            'expense-categories' => [ExpenseCategoryController::class, 'expenses.view,settings.manage', 'settings.manage'],
+            'brands' => [BrandController::class, 'products.view,settings.manage', 'settings.manage'],
+        ] as $path => [$controller, $read, $write]) {
+            Route::get($path, [$controller, 'index'])->middleware("permission:{$read}");
+            Route::post($path, [$controller, 'store'])->middleware("permission:{$write}");
+            Route::put("{$path}/{id}", [$controller, 'update'])->middleware("permission:{$write}")->whereNumber('id');
+        }
     });
 });
