@@ -1,6 +1,6 @@
 # GStock — État du projet
 
-> Mis à jour le 4 novembre 2026, à la fin de la phase B2 (référentiels du backend).
+> Mis à jour le 4 novembre 2026, à la fin de la phase B3 (produits et stock du backend).
 > Ce dossier est l'inventaire de ce qui a été **fait**. Il s'adresse à la personne (ou à l'agent) qui reprend le projet : ce fichier donne la vue d'ensemble et ce qui est commun à toutes les phases ; **chaque phase terminée a son rapport** (tableau ci-dessous) : ce qui a été livré, où se trouve le code, les règles appliquées, les vérifications faites et les limites.
 
 ## En bref
@@ -8,9 +8,9 @@
 | | État |
 |---|---|
 | **Frontend** (`Gstock-frontend/`) | **Toutes les phases F1 à F9 terminées** (§11.4 du cahier), plus F10 (compléments de la V1 relevés par la [comparaison avec l'ancien GStock](comparaison-ancien-gstock.md)). Application navigable, entièrement sur données simulées (MSW). |
-| **Backend** (`Gstock-plateform/`) | **Socle (B1) et référentiels (B2) livrés** : PostgreSQL en Docker, `/api/v1`, multi-tenant par sous-domaine, Sanctum, permissions, rôles, utilisateurs, boutiques, paramètres, audit, catégories, unités, modes de paiement, catégories de dépenses, marques ; 33 tests. Le frontend s'y branche avec `npm run dev:api`. Modules métier à venir. Voir [B1-socle-api.md](B1-socle-api.md). |
+| **Backend** (`Gstock-plateform/`) | **Socle (B1), référentiels (B2), produits et stock (B3) livrés** : PostgreSQL en Docker, `/api/v1`, multi-tenant par sous-domaine, Sanctum, permissions, rôles, utilisateurs, boutiques, paramètres, audit, référentiels, catalogue, stock jamais négatif et égal à la somme des mouvements ; 47 tests. Le frontend s'y branche avec `npm run dev:api`. Modules métier à venir. Voir [B1-socle-api.md](B1-socle-api.md). |
 | **Contrat d'API** | Défini côté frontend : types dans `src/types/`, endpoints dans `src/lib/api/`, comportement serveur reproduit dans `src/mocks/`. **C'est la spécification que le backend devra respecter** (ADR-004). Voir « Le contrat d'API pour le backend ». |
-| **Phases restantes** | Backend : back-office Filament (étape 3), modules métier (étape 4 : produits, stock, clients, ventes, crédits, approvisionnements, dépenses, tableau de bord), puis branchement module par module, paiements GeniusPay et synchronisation hors ligne (§15). |
+| **Phases restantes** | Backend : back-office Filament (étape 3), modules métier (étape 4 : clients, ventes, crédits, approvisionnements, dépenses, tableau de bord), puis branchement module par module, paiements GeniusPay et synchronisation hors ligne (§15). |
 
 ## Rapports des phases terminées
 
@@ -29,6 +29,7 @@
 
 | B1 — Socle du backend (Laravel, PostgreSQL, multi-tenant, identité et accès, boutiques, audit) | [B1-socle-api.md](B1-socle-api.md) | `api-socle` |
 | B2 — Référentiels du backend (catégories, unités, modes de paiement, catégories de dépenses, marques) | [B2-referentiels-api.md](B2-referentiels-api.md) | `api-referentiels` |
+| B3 — Produits et stock du backend (catalogue, variantes, registre de stock verrouillé, mouvements MS-N) | [B3-produits-stock-api.md](B3-produits-stock-api.md) | `api-produits-stock` |
 
 Hors phase : [comparaison-ancien-gstock.md](comparaison-ancien-gstock.md) confronte l'inventaire de l'ancien GStock (Stocky v5.0) avec le nouveau, pour décider de ce qu'il faut reprendre.
 
@@ -163,6 +164,8 @@ Recettes pour une nouvelle rubrique (c'est ainsi que F2 à F4 ont été faites) 
 - **Backend, tests et Sanctum** : en test, l'application n'est pas recréée entre deux requêtes. `actingAs()` avec la garde de session perd l'utilisateur à la requête suivante : utiliser `Sanctum::actingAs()`, et `forgetGuards()` après une déconnexion (voir `tests/TestCase.php`).
 - **Backend, espaces en développement** : l'espace est le sous-domaine de `localhost` (`alimentation-kone.localhost:5173`). Le proxy Vite garde le Host (`changeOrigin: false`), sinon le serveur ne reconnaît pas l'espace. `SANCTUM_STATEFUL_DOMAINS=*.localhost,*.localhost:*` accepte tous les ports.
 - **Backend, recherche** : les listes cherchent sans accents grâce à l'extension PostgreSQL `unaccent` (créée par la première migration).
+- **Backend, stock** : ne jamais écrire dans `shop_stock` directement. Passer par `StockLedger::apply()` (mouvements + verrous) ; la base refuse de toute façon une quantité négative (`CHECK`).
+- **Backend, fonctions fléchées PHP** : `fn () => $x` capture `$x` par valeur au moment de sa création. Pour une variable remplie plus tard (ex. présentateur créé par `beforeMap`), utiliser `function () use (&$x)`.
 - **Versions récentes** : TypeScript 7, React Router 8, MSW 3, Tailwind 4, Zod 4, i18next 26. Vérifier les API dans `node_modules` plutôt que de se fier à des exemples anciens (MSW 3 : `onUnhandledFrame` au lieu de `onUnhandledRequest`).
 
 ## Tests
