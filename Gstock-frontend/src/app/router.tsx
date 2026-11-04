@@ -39,6 +39,10 @@ const SalesHistoryPage = lazy(() => import('@/features/sales/pages/SalesHistoryP
 const SaleDetailPage = lazy(() => import('@/features/sales/pages/SaleDetailPage').then((m) => ({ default: m.SaleDetailPage })))
 const ReceiptPage = lazy(() => import('@/features/sales/pages/ReceiptPage').then((m) => ({ default: m.ReceiptPage })))
 const PublicReceiptPage = lazy(() => import('@/features/sales/pages/PublicReceiptPage').then((m) => ({ default: m.PublicReceiptPage })))
+const CreditsPage = lazy(() => import('@/features/credits/pages/CreditsPage').then((m) => ({ default: m.CreditsPage })))
+const CustomerCreditsPage = lazy(() => import('@/features/credits/pages/CustomerCreditsPage').then((m) => ({ default: m.CustomerCreditsPage })))
+const RepaymentFormPage = lazy(() => import('@/features/credits/pages/RepaymentFormPage').then((m) => ({ default: m.RepaymentFormPage })))
+const RepaymentPage = lazy(() => import('@/features/credits/pages/RepaymentPage').then((m) => ({ default: m.RepaymentPage })))
 
 const ShowcasePage = lazy(() => import('./pages/ShowcasePage').then((m) => ({ default: m.ShowcasePage })))
 
@@ -75,6 +79,10 @@ const catalog: RouteObject[] = [
   guarded('/ventes', ['sales.view'], <SalesHistoryPage />),
   guarded('/ventes/:id', ['sales.view', 'sales.create'], <SaleDetailPage />),
   guarded('/ventes/:id/recu', ['sales.view', 'sales.create'], <ReceiptPage />),
+  guarded('/credits', ['credits.view'], <CreditsPage />),
+  guarded('/credits/clients/:id', ['credits.view'], <CustomerCreditsPage />),
+  guarded('/credits/clients/:id/paiement', ['repayments.create'], <RepaymentFormPage />),
+  guarded('/credits/paiements/:id', ['credits.view', 'repayments.create'], <RepaymentPage />),
 ]
 
 const settings: RouteObject[] = [

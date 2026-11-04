@@ -4,10 +4,11 @@ import { useParams } from 'react-router'
 import { Logo } from '@/components/Logo'
 import { LoadingState, MessageBlock } from '@/components/states'
 import { ApiError } from '@/lib/api/client'
+import { RepaymentTicket } from '@/features/credits/components/RepaymentTicket'
 import { ReceiptTicket } from '../components/ReceiptTicket'
 import { usePublicReceipt } from '../hooks'
 
-/** Reçu ouvert par le client depuis le lien WhatsApp : sans connexion, lien signé et expirant. */
+/** Reçu (vente ou paiement) ouvert par le client depuis le lien WhatsApp : sans connexion, lien signé et expirant. */
 export function PublicReceiptPage() {
   const { t } = useTranslation()
   const { token = '' } = useParams()
@@ -29,7 +30,7 @@ export function PublicReceiptPage() {
         <>
           <h1 className="text-xl font-bold">{t('sales.receipt.public_title')}</h1>
           <div className="rounded-lg border-2 border-foreground bg-muted p-4">
-            <ReceiptTicket receipt={receipt.data} width={80} />
+            {receipt.data.kind === 'repayment' ? <RepaymentTicket receipt={receipt.data} width={80} /> : <ReceiptTicket receipt={receipt.data} width={80} />}
           </div>
         </>
       )}

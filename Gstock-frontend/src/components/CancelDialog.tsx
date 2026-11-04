@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FormAlert } from '@/components/FormField'
 import {
@@ -28,6 +28,7 @@ export function CancelDialog({
   confirmLabel,
   pending,
   onConfirm,
+  children,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -38,6 +39,8 @@ export function CancelDialog({
   confirmLabel: string
   pending: boolean
   onConfirm: (reason: string) => Promise<string | null>
+  /** Choix supplémentaires (par exemple avoir ou argent rendu, décision P3). */
+  children?: ReactNode
 }) {
   const { t } = useTranslation()
   const [reason, setReason] = useState('')
@@ -64,16 +67,17 @@ export function CancelDialog({
         if (!o) setError(null)
       }}
     >
-      <AlertDialogContent>
+      <AlertDialogContent className="max-h-[92dvh] overflow-y-auto">
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <div className="grid gap-2">
           <Label htmlFor="cancel_reason">{reasonLabel}</Label>
-          <Textarea id="cancel_reason" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={error ? true : undefined} />
-          {error && <FormAlert>{error}</FormAlert>}
+          <Textarea id="cancel_reason" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={error === requiredMessage ? true : undefined} />
         </div>
+        {children}
+        {error && <FormAlert>{error}</FormAlert>}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={pending}>{t('common.cancel')}</AlertDialogCancel>
           <Button variant="destructive" disabled={pending} onClick={() => void confirm()}>

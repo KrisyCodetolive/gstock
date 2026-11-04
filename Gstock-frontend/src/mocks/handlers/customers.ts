@@ -5,6 +5,7 @@ import type { MockCustomer } from '../data/customers'
 import type { MockUser } from '../data/users'
 import { db, nextId, persist } from '../db'
 import { API, findOr404, handle, isOwner, nullable, paginate, requirePermission, Validator } from '../http'
+import { creditNoteBalance, recomputeCredit } from '../credits'
 import { customerBalance } from '../sales'
 import { money } from '../stock'
 
@@ -14,10 +15,16 @@ export function visibleShopIds(user: MockUser): number[] {
 }
 
 export function customerResource(c: MockCustomer, user: MockUser): Customer {
-  return { ...c, balance: money(customerBalance(c.id, visibleShopIds(user)))! }
+  const shops = visibleShopIds(user)
+  return {
+    ...c,
+    balance: money(customerBalance(c.id, shops))!,
+    credit_note_balance: money(shops.reduce((sum, id) => sum + creditNoteBalance(c.id, id), 0))!,
+  }
 }
 
 export function creditResource(credit: (typeof db.credits)[number]): CustomerCredit {
+  recomputeCredit(credit)
   const shop = db.shops.find((s) => s.id === credit.shop_id)!
   const sale = db.sales.find((s) => s.id === credit.sale_id)
   return {

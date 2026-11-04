@@ -82,7 +82,7 @@ function CustomerDetail({ summary }: { summary: CustomerSummary }) {
           )}
           {owes && can('repayments.create') && (
             <Button asChild className="mt-1">
-              <Link to={`/credits?client=${customer.id}`}>
+              <Link to={`/credits/clients/${customer.id}/paiement`}>
                 <HandCoins aria-hidden="true" />
                 {t('customers.summary.repay')}
               </Link>

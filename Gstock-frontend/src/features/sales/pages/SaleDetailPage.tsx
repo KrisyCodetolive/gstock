@@ -12,9 +12,11 @@ import { StatusBadge } from '@/components/StatusBadge'
 import { ErrorState, LoadingState } from '@/components/states'
 import { Button } from '@/components/ui/button'
 import { useCan } from '@/features/auth/hooks'
+import { SettlementChoice } from '@/features/credits/components/SettlementChoice'
 import { useCurrentShop } from '@/features/shops/hooks'
 import { apiErrorMessage } from '@/lib/form-errors'
 import { formatDateTime, formatQuantity } from '@/lib/format'
+import type { CancelSettlement } from '@/types/credits'
 import type { Sale } from '@/types/sales'
 import { PaymentStatusBadge } from '../components/PaymentStatusBadge'
 import { useCancelSale, useSale } from '../hooks'
@@ -54,7 +56,10 @@ function SaleDetail({ sale }: { sale: Sale }) {
   const { shop } = useCurrentShop()
   const cancel = useCancelSale(shop?.id, sale.id)
   const [cancelOpen, setCancelOpen] = useState(false)
+  const [settlement, setSettlement] = useState<CancelSettlement>({})
   const cancelled = sale.status === 'cancelled'
+  // Décision P3 : de l'argent a déjà été reçu sur le crédit de cette vente.
+  const repaid = sale.credit && sale.credit.status !== 'cancelled' ? Number(sale.credit.repaid_amount) : 0
 
   return (
     <>
@@ -129,7 +134,7 @@ function SaleDetail({ sale }: { sale: Sale }) {
             {sale.payments.map((p) => (
               <li key={p.id} className="flex flex-wrap items-center justify-between gap-2">
                 <span className="grid">
-                  <span className="font-bold">{p.method.name}</span>
+                  <span className="font-bold">{p.method?.name ?? t('sales.detail.credit_note')}</span>
                   {p.cash_given && Number(p.change) > 0 && (
                     <span className="text-sm text-muted-foreground">
                       {t('sales.detail.cash_given', { given: Number(p.cash_given).toLocaleString('fr-FR'), change: Number(p.change).toLocaleString('fr-FR') })}
@@ -176,15 +181,18 @@ function SaleDetail({ sale }: { sale: Sale }) {
             confirmLabel={t('sales.cancel.button')}
             pending={cancel.isPending}
             onConfirm={async (reason) => {
+              if (repaid > 0 && !settlement.refund_mode) return t('credits.settlement.required')
               try {
-                await cancel.mutateAsync(reason)
+                await cancel.mutateAsync({ reason, ...settlement })
                 toast.success(t('sales.cancel.done'))
                 return null
               } catch (e) {
                 return apiErrorMessage(e)
               }
             }}
-          />
+          >
+            {repaid > 0 && <SettlementChoice amount={String(repaid)} value={settlement} onChange={setSettlement} />}
+          </CancelDialog>
         </FormSection>
       )}
     </>

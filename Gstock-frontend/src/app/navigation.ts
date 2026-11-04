@@ -44,7 +44,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'credits', path: '/credits', label: 'nav.credits', shortLabel: 'nav.credits_short',
-    description: 'home.credits_text', icon: WalletCards, permissions: ['credits.view'], phase: 'F5', tint: 'lavender',
+    description: 'home.credits_text', icon: WalletCards, permissions: ['credits.view'], tint: 'lavender',
   },
   {
     id: 'stock', path: '/stock', label: 'nav.stock', shortLabel: 'nav.stock_short',

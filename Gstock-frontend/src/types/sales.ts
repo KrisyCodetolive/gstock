@@ -2,6 +2,7 @@
 // recalculés par le serveur ; ceux du navigateur sont ignorés (§7.4).
 import type { Id, IsoDate, Money } from './api'
 import type { ProductCategoryRef, ProductType, ProductUnitRef, StockState } from './catalog'
+import type { RepaymentReceipt } from './credits'
 import type { PaymentMethodType } from './referentials'
 
 export type DiscountMethod = 'percent' | 'fixed'
@@ -20,7 +21,9 @@ export interface SaleLineInput {
 }
 
 export interface SalePaymentInput {
-  payment_method_id: Id
+  /** null avec `credit_note` : payé avec l'avoir du client (décision P3). */
+  payment_method_id: Id | null
+  credit_note?: boolean
   amount: string
   /** Espèces seulement : somme donnée par le client, pour le rendu. */
   cash_given?: string
@@ -71,7 +74,8 @@ export interface SaleItem {
 
 export interface SalePayment {
   id: Id
-  method: { id: Id; name: string; type: PaymentMethodType; uses_geniuspay: boolean }
+  /** null : payé avec l'avoir du client. */
+  method: { id: Id; name: string; type: PaymentMethodType; uses_geniuspay: boolean } | null
   amount: Money
   cash_given: Money | null
   change: Money | null
@@ -97,7 +101,8 @@ export interface Sale {
   payment_status: PaymentStatus
   status: SaleStatus
   payments: SalePayment[]
-  credit: { id: Id; remaining_amount: Money; status: string } | null
+  /** `repaid_amount` : déjà payé sur ce crédit ; s'il est > 0, l'annulation demande le choix P3. */
+  credit: { id: Id; remaining_amount: Money; repaid_amount: Money; status: string } | null
   note: string | null
   cancelled_at: IsoDate | null
   cancel_reason: string | null
@@ -156,3 +161,6 @@ export interface ShareLink {
   /** Message pré-rempli pour WhatsApp. */
   message: string
 }
+
+/** GET /public/receipts/{token} : reçu d'une vente ou d'un remboursement. */
+export type PublicReceipt = ({ kind: 'sale' } & Receipt) | ({ kind: 'repayment' } & RepaymentReceipt)

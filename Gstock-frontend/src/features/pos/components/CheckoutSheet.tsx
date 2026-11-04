@@ -1,4 +1,4 @@
-import { CheckCircle2, CreditCard, Loader2, Plus, ReceiptText, Smartphone, Trash2, UserRound } from 'lucide-react'
+import { CheckCircle2, CreditCard, Loader2, Plus, ReceiptText, Smartphone, Trash2, UserRound, Wallet } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -23,6 +23,8 @@ type Method = PosBootstrap['payment_methods'][number]
 interface PaymentRow {
   key: string
   methodId: Id
+  /** Paiement avec l'avoir du client (décision P3). */
+  creditNote?: boolean
   amount: string
   cashGiven: string
 }
@@ -72,6 +74,7 @@ export function CheckoutSheet({
   const payments: SalePaymentInput[] = rows
     .filter((r) => Number(clean(r.amount)) > 0)
     .map((r) => {
+      if (r.creditNote) return { payment_method_id: null, credit_note: true, amount: clean(r.amount) }
       const method = methods.find((m) => m.id === r.methodId)
       return {
         payment_method_id: r.methodId,
@@ -84,6 +87,7 @@ export function CheckoutSheet({
   const quoteError = quote.error instanceof ApiError ? apiErrorMessage(quote.error) : null
   const missing = q ? Number(q.credit_amount) : 0
   const needsCustomer = missing > 0 && !cart.customer
+  const creditNote = Number(cart.customer?.creditNote ?? 0)
 
   const update = (key: string, changes: Partial<PaymentRow>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...changes } : r)))
 
@@ -133,6 +137,9 @@ export function CheckoutSheet({
               {cart.customer && Number(cart.customer.balance) > 0 && (
                 <span className="text-sm text-destructive">{t('sales.pos.customer_due', { amount: Number(cart.customer.balance).toLocaleString('fr-FR') })}</span>
               )}
+              {cart.customer && Number(cart.customer.creditNote ?? 0) > 0 && (
+                <span className="text-sm font-semibold text-primary">{t('sales.pos.customer_credit_note', { amount: Number(cart.customer.creditNote).toLocaleString('fr-FR') })}</span>
+              )}
             </span>
             <span className="text-sm font-bold text-primary">{t('sales.pos.customer_change')}</span>
           </button>
@@ -145,6 +152,22 @@ export function CheckoutSheet({
           {rows.map((row) => {
             const method = methods.find((m) => m.id === row.methodId)
             const amount = Number(clean(row.amount)) || 0
+            if (row.creditNote) {
+              return (
+                <div key={row.key} className="grid gap-2 rounded-md border-2 border-foreground bg-tint-lavender p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold">{t('sales.detail.credit_note')}</span>
+                    <Button variant="ghost" size="icon" onClick={() => setRows((rs) => rs.filter((r) => r.key !== row.key))} aria-label={t('sales.pos.remove_payment')}>
+                      <Trash2 aria-hidden="true" />
+                    </Button>
+                  </div>
+                  <label className="grid gap-1.5">
+                    <span className="text-sm font-semibold">{t('sales.pos.amount')} (FCFA)</span>
+                    <Input inputMode="numeric" className="tabular text-lg font-bold" value={row.amount} onChange={(e) => update(row.key, { amount: e.target.value })} />
+                  </label>
+                </div>
+              )
+            }
             return (
               <div key={row.key} className="grid gap-3 rounded-md border-2 border-foreground p-3">
                 <div className="grid grid-cols-[1fr_auto] gap-2">
@@ -195,15 +218,33 @@ export function CheckoutSheet({
               </div>
             )
           })}
-          <Button
-            type="button"
-            variant="outline"
-            className="justify-self-start"
-            onClick={() => setRows((rs) => [...rs, { key: crypto.randomUUID(), methodId: (methods.find((m) => m.type !== 'cash') ?? cash)!.id, amount: String(missing > 0 ? missing : ''), cashGiven: '' }])}
-          >
-            <Plus aria-hidden="true" />
-            {t('sales.pos.add_payment')}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setRows((rs) => [...rs, { key: crypto.randomUUID(), methodId: (methods.find((m) => m.type !== 'cash') ?? cash)!.id, amount: String(missing > 0 ? missing : ''), cashGiven: '' }])}
+            >
+              <Plus aria-hidden="true" />
+              {t('sales.pos.add_payment')}
+            </Button>
+            {creditNote > 0 && !rows.some((r) => r.creditNote) && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  // L'avoir passe en premier : les autres paiements couvrent le reste.
+                  const use = Math.min(creditNote, Number(q?.total ?? total))
+                  setRows((rs) => [
+                    { key: crypto.randomUUID(), methodId: cash!.id, creditNote: true, amount: String(use), cashGiven: '' },
+                    ...rs.map((r, i) => (i === 0 && !r.creditNote ? { ...r, amount: String(Math.max(0, Number(clean(r.amount)) - use)) } : r)),
+                  ])
+                }}
+              >
+                <Wallet aria-hidden="true" />
+                {t('sales.pos.use_credit_note', { amount: creditNote.toLocaleString('fr-FR') })}
+              </Button>
+            )}
+          </div>
         </section>
 
         {q && (
