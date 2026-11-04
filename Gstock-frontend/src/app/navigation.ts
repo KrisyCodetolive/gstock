@@ -52,7 +52,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'sales', path: '/ventes', label: 'nav.sales', description: 'home.sales_text',
-    icon: ReceiptText, permissions: ['sales.view'], phase: 'F4', tint: 'yellow',
+    icon: ReceiptText, permissions: ['sales.view'], tint: 'yellow',
   },
   {
     id: 'customers', path: '/clients', label: 'nav.customers', description: 'home.customers_text',

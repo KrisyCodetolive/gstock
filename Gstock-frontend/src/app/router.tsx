@@ -35,6 +35,10 @@ const TenantSettingsPage = lazy(() => import('@/features/settings/pages/TenantSe
 const CustomersListPage = lazy(() => import('@/features/customers/pages/CustomersListPage').then((m) => ({ default: m.CustomersListPage })))
 const CustomerPage = lazy(() => import('@/features/customers/pages/CustomerPage').then((m) => ({ default: m.CustomerPage })))
 const PosPage = lazy(() => import('@/features/pos/pages/PosPage').then((m) => ({ default: m.PosPage })))
+const SalesHistoryPage = lazy(() => import('@/features/sales/pages/SalesHistoryPage').then((m) => ({ default: m.SalesHistoryPage })))
+const SaleDetailPage = lazy(() => import('@/features/sales/pages/SaleDetailPage').then((m) => ({ default: m.SaleDetailPage })))
+const ReceiptPage = lazy(() => import('@/features/sales/pages/ReceiptPage').then((m) => ({ default: m.ReceiptPage })))
+const PublicReceiptPage = lazy(() => import('@/features/sales/pages/PublicReceiptPage').then((m) => ({ default: m.PublicReceiptPage })))
 
 const ShowcasePage = lazy(() => import('./pages/ShowcasePage').then((m) => ({ default: m.ShowcasePage })))
 
@@ -68,6 +72,9 @@ const catalog: RouteObject[] = [
   guarded('/clients', ['customers.view'], <CustomersListPage />),
   guarded('/clients/nouveau', ['customers.create'], <CustomerPage />),
   guarded('/clients/:id', ['customers.view'], <CustomerPage />),
+  guarded('/ventes', ['sales.view'], <SalesHistoryPage />),
+  guarded('/ventes/:id', ['sales.view', 'sales.create'], <SaleDetailPage />),
+  guarded('/ventes/:id/recu', ['sales.view', 'sales.create'], <ReceiptPage />),
 ]
 
 const settings: RouteObject[] = [
@@ -92,6 +99,16 @@ const settings: RouteObject[] = [
 
 export const router = createBrowserRouter([
   { path: '/connexion', element: <LoginPage />, errorElement: <RouteErrorPage /> },
+  // Reçu partagé par WhatsApp : public, protégé par un lien signé et expirant (ADR-013).
+  {
+    path: '/recu/:token',
+    element: (
+      <Suspense fallback={<SplashScreen />}>
+        <PublicReceiptPage />
+      </Suspense>
+    ),
+    errorElement: <RouteErrorPage />,
+  },
   // Caisse plein écran, hors de la mise en page habituelle (M08).
   {
     path: '/vendre',

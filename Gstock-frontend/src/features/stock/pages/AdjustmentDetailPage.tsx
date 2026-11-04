@@ -4,23 +4,12 @@ import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { BackLink } from '@/components/BackLink'
-import { FormAlert } from '@/components/FormField'
+import { CancelDialog } from '@/components/CancelDialog'
 import { FormSection } from '@/components/FormLayout'
 import { PageHeader } from '@/components/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge'
 import { ErrorState, LoadingState } from '@/components/states'
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { useCan } from '@/features/auth/hooks'
 import { useCurrentShop } from '@/features/shops/hooks'
 import { apiErrorMessage } from '@/lib/form-errors'
@@ -113,22 +102,6 @@ function CancelSection({ adjustment }: { adjustment: Adjustment }) {
   const { shop } = useCurrentShop()
   const cancel = useCancelAdjustment(shop?.id, adjustment.id)
   const [open, setOpen] = useState(false)
-  const [reason, setReason] = useState('')
-  const [error, setError] = useState<string | null>(null)
-
-  const confirm = () => {
-    if (!reason.trim()) {
-      setError(t('stock.adjustment.cancel_reason_required'))
-      return
-    }
-    cancel.mutate(reason.trim(), {
-      onSuccess: () => {
-        setOpen(false)
-        toast.success(t('stock.adjustment.cancelled'))
-      },
-      onError: (e) => setError(apiErrorMessage(e)),
-    })
-  }
 
   return (
     <FormSection title={t('stock.adjustment.cancel')} description={t('stock.adjustment.cancel_text')}>
@@ -136,31 +109,25 @@ function CancelSection({ adjustment }: { adjustment: Adjustment }) {
         <Ban aria-hidden="true" />
         {t('stock.adjustment.cancel')}
       </Button>
-      <AlertDialog
+      <CancelDialog
         open={open}
-        onOpenChange={(o) => {
-          setOpen(o)
-          if (!o) setError(null)
+        onOpenChange={setOpen}
+        title={t('stock.adjustment.cancel_title', { reference: adjustment.reference })}
+        description={t('stock.adjustment.cancel_text')}
+        reasonLabel={t('stock.adjustment.cancel_reason')}
+        requiredMessage={t('stock.adjustment.cancel_reason_required')}
+        confirmLabel={t('stock.adjustment.cancel')}
+        pending={cancel.isPending}
+        onConfirm={async (reason) => {
+          try {
+            await cancel.mutateAsync(reason)
+            toast.success(t('stock.adjustment.cancelled'))
+            return null
+          } catch (e) {
+            return apiErrorMessage(e)
+          }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('stock.adjustment.cancel_title', { reference: adjustment.reference })}</AlertDialogTitle>
-            <AlertDialogDescription>{t('stock.adjustment.cancel_text')}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="grid gap-2">
-            <Label htmlFor="cancel_reason">{t('stock.adjustment.cancel_reason')}</Label>
-            <Textarea id="cancel_reason" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} aria-invalid={error ? true : undefined} />
-            {error && <FormAlert>{error}</FormAlert>}
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={cancel.isPending}>{t('common.cancel')}</AlertDialogCancel>
-            <Button variant="destructive" disabled={cancel.isPending} onClick={confirm}>
-              {t('stock.adjustment.cancel')}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      />
     </FormSection>
   )
 }
