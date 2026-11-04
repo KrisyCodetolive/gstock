@@ -5,9 +5,11 @@ use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CreditController;
 use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\ExpenseController;
 use App\Http\Controllers\Api\V1\MeController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\PublicReceiptController;
+use App\Http\Controllers\Api\V1\PurchaseController;
 use App\Http\Controllers\Api\V1\Referentials\BrandController;
 use App\Http\Controllers\Api\V1\Referentials\CategoryController;
 use App\Http\Controllers\Api\V1\Referentials\ExpenseCategoryController;
@@ -19,6 +21,7 @@ use App\Http\Controllers\Api\V1\SaleController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use App\Http\Controllers\Api\V1\ShopController;
 use App\Http\Controllers\Api\V1\StockController;
+use App\Http\Controllers\Api\V1\SupplierController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -113,6 +116,12 @@ Route::middleware('tenant')->group(function () {
         // Fiche crédit d'un client, sur les boutiques accessibles (M09).
         Route::get('customers/{customer}/credits', [CreditController::class, 'customerFile'])->middleware('permission:credits.view');
 
+        // Fournisseurs (M11) : communs à l'espace ; l'écran d'approvisionnement peut les lire.
+        Route::get('suppliers', [SupplierController::class, 'index'])->middleware('permission:suppliers.view,purchases.create');
+        Route::get('suppliers/{supplier}', [SupplierController::class, 'show'])->middleware('permission:suppliers.view');
+        Route::post('suppliers', [SupplierController::class, 'store'])->middleware('permission:suppliers.manage');
+        Route::put('suppliers/{supplier}', [SupplierController::class, 'update'])->middleware('permission:suppliers.manage');
+
         // Mon stock, vue « Toutes mes boutiques » (M07).
         Route::get('stock', [StockController::class, 'overview'])->middleware('permission:stock.view');
 
@@ -164,6 +173,27 @@ Route::middleware('tenant')->group(function () {
                 Route::post('repayments/{id}/share-link', [RepaymentController::class, 'shareLink'])->whereNumber('id');
             });
             Route::post('repayments/{id}/cancel', [RepaymentController::class, 'cancel'])->middleware('permission:repayments.cancel')->whereNumber('id');
+
+            // Approvisionnements (M11).
+            Route::middleware('permission:purchases.create')->group(function () {
+                Route::post('purchases/quote', [PurchaseController::class, 'quote']);
+                Route::post('purchases', [PurchaseController::class, 'store']);
+            });
+            Route::middleware('permission:purchases.view')->group(function () {
+                Route::get('purchases', [PurchaseController::class, 'index']);
+                Route::get('purchases/{id}', [PurchaseController::class, 'show'])->whereNumber('id');
+            });
+            // Échéancier du reste dû : même droit que pour payer le fournisseur.
+            Route::middleware('permission:purchase_payments.create')->group(function () {
+                Route::post('purchases/{id}/payments', [PurchaseController::class, 'addPayment'])->whereNumber('id');
+                Route::put('purchases/{id}/installments', [PurchaseController::class, 'setInstallments'])->whereNumber('id');
+            });
+            Route::post('purchases/{id}/cancel', [PurchaseController::class, 'cancel'])->middleware('permission:purchases.cancel')->whereNumber('id');
+
+            // Dépenses (M12).
+            Route::get('expenses', [ExpenseController::class, 'index'])->middleware('permission:expenses.view');
+            Route::post('expenses', [ExpenseController::class, 'store'])->middleware('permission:expenses.create');
+            Route::post('expenses/{id}/cancel', [ExpenseController::class, 'cancel'])->middleware('permission:expenses.cancel')->whereNumber('id');
         });
     });
 });
