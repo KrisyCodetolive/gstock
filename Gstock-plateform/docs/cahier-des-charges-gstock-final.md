@@ -6,7 +6,7 @@
 |---|---|
 | **Éditeur** | Genius Groups SAS |
 | **Version** | 3.1 — ajout des dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
-| **Date** | 5 novembre 2026 |
+| **Date** | 5 novembre 2026 (connexion centrale, ADR-009) |
 | **Cible** | Boutiques de quartier, épiceries, mini-markets, commerces de proximité et petits détaillants |
 | **Statut** | Définitif pour la phase 1 — évolutif pour les phases suivantes |
 
@@ -347,9 +347,11 @@ Le backend et le frontend sont deux applications séparées. Le frontend ne calc
 
 **Statut.** Proposée.
 
-**Décision.** Chaque espace a un sous-domaine (`maboutique.gstock.app`). stancl/tenancy identifie l'espace par le domaine. Le domaine principal héberge le site, l'inscription et le back-office super-admin.
+**Décision.** Chaque espace a un sous-domaine (`maboutique.gstock.app`). stancl/tenancy identifie l'espace par le domaine. Le domaine principal héberge le site, l'inscription, la **connexion centrale** et le back-office super-admin.
 
-**Conséquences.** Certificat TLS wildcard nécessaire. Un utilisateur appartient à un seul espace.
+**Connexion centrale** (5 novembre 2026). Le commerçant n'a pas à connaître l'adresse de son espace : il se connecte sur le domaine principal (`gstock.app`) avec son e-mail ou son téléphone et son mot de passe. Le serveur cherche les espaces où ce compte existe **avec ce mot de passe** (aucun espace n'est révélé sans mot de passe juste), puis renvoie vers le sous-domaine avec un lien de connexion à usage unique. S'il y a plusieurs espaces, la personne choisit. L'adresse directe du sous-domaine reste utilisable.
+
+**Conséquences.** Certificat TLS wildcard nécessaire. Un compte appartient à un espace ; une même personne peut avoir un compte dans plusieurs espaces (même e-mail), et choisit alors l'espace à la connexion centrale. Le mot de passe oublié se traite sur le sous-domaine de l'espace.
 
 ### ADR-010 — Back-office super-admin avec Filament
 
@@ -856,12 +858,13 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 
 **Fonctionnalités.**
 - Connexion par e-mail ou téléphone et mot de passe ; refus explicite si identifiants incorrects, compte inactif ou espace suspendu.
+- Connexion centrale sur le domaine principal (ADR-009) : l'espace est trouvé à partir du compte, puis ouvert déjà connecté ; choix de l'espace si le compte existe dans plusieurs.
 - Déconnexion ; mot de passe oublié par lien à jeton expirant.
 - Profil : prénom, nom, téléphone, avatar, mot de passe.
 - Au chargement : utilisateur, rôle et permissions, boutiques accessibles, paramètres de l'espace.
 - Limitation du nombre de tentatives de connexion.
 
-**Endpoints.** `POST /auth/login`, `POST /auth/logout`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `GET /me`, `PUT /me`.
+**Endpoints.** `POST /auth/login`, `POST /auth/central-login` (domaine principal : espaces du compte, chacun avec son lien de connexion à usage unique), `POST /auth/token-login`, `POST /auth/logout`, `POST /auth/forgot-password`, `POST /auth/reset-password`, `GET /me`, `PUT /me`.
 
 **Critères d'acceptation.** Un utilisateur inactif ne peut pas se connecter. `GET /me` renvoie les permissions et les boutiques utilisées par le menu et le sélecteur.
 
