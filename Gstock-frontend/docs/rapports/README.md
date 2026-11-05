@@ -38,7 +38,9 @@
 | B9 — Synchronisation hors ligne du backend (références définitives, idempotence, écarts « à vérifier », refus motivés) | [B9-hors-ligne-api.md](B9-hors-ligne-api.md) | `api-hors-ligne` |
 | B10 — Back-office de Genius Groups (Filament : tableau de bord, espaces, boutiques, utilisateurs, mode support, formules, factures, journal) | [B10-back-office.md](B10-back-office.md) | `back-office` |
 
-Hors phase : [fin-donnees-simulees.md](fin-donnees-simulees.md) (données simulées retirées, `npm run dev` branché sur le backend).
+Hors phase : [creation-rapide-produits.md](creation-rapide-produits.md) (« Ajouter et créer un autre », stock de départ par variante).
+
+Hors phase également : [fin-donnees-simulees.md](fin-donnees-simulees.md) (données simulées retirées, `npm run dev` branché sur le backend).
 
 Hors phase également : [peremption.md](peremption.md) (dates de péremption, backend et frontend, branche `peremption`).
 

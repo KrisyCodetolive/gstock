@@ -39,7 +39,8 @@ final class ProductService
 
         // Quantité initiale : demande l'accès à la boutique et le droit d'ajouter du stock.
         $shop = null;
-        if ($data['initial'] !== null && Decimal::cmp($data['initial'], '0') > 0) {
+        $variantStock = array_filter($data['variants'], fn ($v) => $v['initial'] !== null && Decimal::cmp($v['initial'], '0') > 0);
+        if (($data['initial'] !== null && Decimal::cmp($data['initial'], '0') > 0) || $variantStock) {
             $shop = Shop::query()->find((int) ($input['shop_id'] ?? 0));
             if (! $shop || ! $user->canAccessShop($shop)) {
                 throw ApiException::forbidden("Vous n'avez pas accès à cette boutique.");
@@ -52,10 +53,16 @@ final class ProductService
         $product = DB::transaction(function () use ($data, $shop, $user) {
             $code = $data['fields']['code'] ?? sprintf('P-%04d', DocumentSequence::next('P'));
             $product = Product::create([...$data['fields'], 'code' => $code]);
-            $this->saveVariants($product, $data['variants']);
+            $ids = $this->saveVariants($product, $data['variants']);
             $this->ledger->ensureRows($product->load('variants'));
             if ($shop) {
-                $this->ledger->apply([new StockChange($shop->id, $product, null, $data['initial'], expiryDate: $data['initial_expiry'])], [
+                // Stock initial du produit, ou de chacune de ses variantes (une entrée par variante).
+                $changes = $product->type === 'variable'
+                    ? array_values(array_filter(array_map(fn ($v, $i) => $v['initial'] !== null && Decimal::cmp($v['initial'], '0') > 0
+                        ? new StockChange($shop->id, $product, $ids[$i], $v['initial'], expiryDate: $product->track_expiry ? $v['initial_expiry'] : null)
+                        : null, $data['variants'], array_keys($data['variants']))))
+                    : [new StockChange($shop->id, $product, null, $data['initial'], expiryDate: $data['initial_expiry'])];
+                $this->ledger->apply($changes, [
                     'source_type' => 'opening', 'reason' => 'Stock initial', 'user_id' => $user->id,
                 ]);
             }
@@ -213,6 +220,10 @@ final class ProductService
             'barcode' => filled($x['barcode'] ?? null) ? trim((string) $x['barcode']) : null,
             'cost' => Decimal::parse($x['cost'] ?? null),
             'cost_raw' => $x['cost'] ?? null,
+            // Création seulement : stock de départ de la variante dans la boutique courante.
+            'initial' => $current ? null : Decimal::parse($x['initial_quantity'] ?? null),
+            'initial_raw' => $current ? null : ($x['initial_quantity'] ?? null),
+            'initial_expiry' => $current ? null : Expiry::parse($x['initial_expiry_date'] ?? null),
             'price' => Decimal::parse($x['price'] ?? null),
             'is_active' => ($x['is_active'] ?? true) !== false,
         ], array_values($input));
@@ -236,6 +247,12 @@ final class ProductService
             if (filled($x['cost_raw']) && ($x['cost'] === null || Decimal::cmp($x['cost'], '0') < 0)) {
                 $add('variants', 'Le prix d’achat de '.($x['name'] ?: 'la variante').' doit être un nombre positif.');
             }
+            if (filled($x['initial_raw']) && ($x['initial'] === null || Decimal::cmp($x['initial'], '0') < 0)) {
+                $add('variants', 'La quantité de '.($x['name'] ?: 'la variante').' doit être un nombre positif.');
+            }
+            if ($x['initial_expiry'] === false) {
+                $add('variants', 'La date de péremption de '.($x['name'] ?: 'la variante').' n’est pas valide.');
+            }
             if ($x['barcode'] && $this->barcodeTaken($x['barcode'], $current?->id)) {
                 $add('variants', "Le code-barres de {$x['name']} est déjà utilisé par un autre produit.");
             }
@@ -249,7 +266,7 @@ final class ProductService
             $add('variants', 'Deux variantes ont le même code-barres.');
         }
 
-        return array_map(fn ($x) => array_diff_key([...$x, 'price' => $x['price'] ?? '0'], ['cost_raw' => 1]), $rows);
+        return array_map(fn ($x) => array_diff_key([...$x, 'price' => $x['price'] ?? '0', 'initial_expiry' => $x['initial_expiry'] ?: null], ['cost_raw' => 1, 'initial_raw' => 1]), $rows);
     }
 
     /** Un code-barres est unique dans l'espace, produits et variantes confondus. */
@@ -259,20 +276,28 @@ final class ProductService
             || ProductVariant::query()->where('barcode', $barcode)->when($exceptProductId, fn ($q) => $q->where('product_id', '!=', $exceptProductId))->exists();
     }
 
-    /** Nouvelles variantes créées (code P-0061-n), les autres mises à jour. */
-    private function saveVariants(Product $product, array $rows): void
+    /**
+     * Nouvelles variantes créées (code P-0061-n), les autres mises à jour.
+     *
+     * @return list<int> l'identifiant de chaque ligne, dans l'ordre reçu
+     */
+    private function saveVariants(Product $product, array $rows): array
     {
         if ($product->type !== 'variable') {
-            return;
+            return [];
         }
         $count = $product->variants()->count();
+        $ids = [];
         foreach ($rows as $row) {
             $fields = ['name' => $row['name'], 'barcode' => $row['barcode'], 'cost' => $row['cost'], 'price' => $row['price'], 'is_active' => $row['is_active']];
             if ($row['id']) {
                 $product->variants()->whereKey($row['id'])->update($fields);
+                $ids[] = $row['id'];
             } else {
-                $product->variants()->create([...$fields, 'code' => $product->code.'-'.(++$count)]);
+                $ids[] = $product->variants()->create([...$fields, 'code' => $product->code.'-'.(++$count)])->id;
             }
         }
+
+        return $ids;
     }
 }

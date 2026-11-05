@@ -42,6 +42,10 @@ export interface ProductVariantPayload {
   cost: string | null
   price: string
   is_active: boolean
+  /** Création seulement : stock de départ de la variante dans la boutique courante. */
+  initial_quantity?: string | null
+  /** Création d'un produit suivi : date de péremption de ce stock (Y-m-d), facultative. */
+  initial_expiry_date?: string | null
 }
 
 /** Unité utilisable pour un produit, avec sa conversion (§7.3). */
