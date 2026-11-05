@@ -25,7 +25,7 @@ export function AppLayout() {
         <SupportBanner />
         <OfflineBanner />
         <SubscriptionBanner />
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-5 pb-32 lg:px-8 lg:pt-8 lg:pb-12">
+        <main className="w-full flex-1 px-4 pt-5 pb-32 lg:px-8 lg:pt-8 lg:pb-12">
           <Suspense fallback={<LoadingState rows={4} />}>
             <Outlet />
           </Suspense>
