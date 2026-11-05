@@ -14,6 +14,10 @@ final class StockChange
         public readonly string $delta,
         /** Coût unitaire à noter sur le mouvement ; par défaut celui de l'article. */
         public readonly ?string $unitCost = null,
+        /** Entrée d'un produit suivi : date de péremption de l'arrivage créé (§7.11), facultative. */
+        public readonly ?string $expiryDate = null,
+        /** Sortie d'un produit suivi : arrivage précis à vider (sortie « Périmé »), sinon la date la plus proche. */
+        public readonly ?int $lotId = null,
     ) {}
 
     public function key(): string

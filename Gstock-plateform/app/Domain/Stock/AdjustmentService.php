@@ -21,6 +21,11 @@ final class AdjustmentService
 {
     private const PERMISSION = ['entry' => 'stock.entry', 'exit' => 'stock.exit', 'inventory' => 'stock.adjust'];
 
+    /** Motifs d'une sortie (§7.11) ; périmé, cassé et volé sont des pertes (§7.8). */
+    public const EXIT_REASONS = ['expired', 'damaged', 'stolen', 'consumed', 'other'];
+
+    public const LOSS_REASONS = ['expired', 'damaged', 'stolen'];
+
     public function __construct(private StockLedger $ledger) {}
 
     public function create(Shop $shop, User $user, array $in): Adjustment
@@ -42,17 +47,23 @@ final class AdjustmentService
         if ($reason === '') {
             $errors['reason'][] = 'Indiquez le motif du mouvement.';
         }
+        $exitReason = $kind === 'exit' ? ($in['exit_reason'] ?? 'other') : null;
+        if ($exitReason !== null && ! in_array($exitReason, self::EXIT_REASONS, true)) {
+            $errors['exit_reason'][] = 'Choisissez le motif de la sortie.';
+        }
         $items = array_values((array) ($in['items'] ?? []));
         if (! $items) {
             $errors['items'][] = 'Ajoutez au moins un produit.';
         }
-        $keys = array_map(fn ($i) => ((int) ($i['product_id'] ?? 0)).':'.($i['variant_id'] ?? ''), $items);
+        // Deux lignes d'un même article : permises pour deux dates (entrée) ou deux arrivages (sortie).
+        $keys = array_map(fn ($i) => ((int) ($i['product_id'] ?? 0)).':'.($i['variant_id'] ?? '')
+            .($kind === 'entry' ? ':'.($i['expiry_date'] ?? '') : '').($kind === 'exit' ? ':'.($i['stock_lot_id'] ?? '') : ''), $items);
         if (count(array_unique($keys)) !== count($keys)) {
             $errors['items'][] = 'Un même produit apparaît deux fois.';
         }
         $products = Product::query()->with(['variants', 'unit'])->whereKey(array_map(fn ($i) => (int) ($i['product_id'] ?? 0), $items))->get()->keyBy('id');
 
-        return DB::transaction(function () use ($shop, $user, $kind, $reason, $items, $products, $errors, $in) {
+        return DB::transaction(function () use ($shop, $user, $kind, $reason, $exitReason, $items, $products, $errors, $in) {
             $lines = [];
             foreach ($items as $item) {
                 $product = $products->get((int) ($item['product_id'] ?? 0));
@@ -68,6 +79,15 @@ final class AdjustmentService
 
                     continue;
                 }
+                // Date de péremption (entrée, inventaire) ou arrivage visé (sortie) : produits suivis seulement (§7.11).
+                $expiry = Expiry::parse($item['expiry_date'] ?? null);
+                if ($expiry === false) {
+                    $errors['items'][] = "La date de péremption de {$article->name()} n’est pas valide.";
+
+                    continue;
+                }
+                $expiry = $product->track_expiry && $kind !== 'exit' ? $expiry : null;
+                $lotId = $product->track_expiry && $kind === 'exit' && filled($item['stock_lot_id'] ?? null) ? (int) $item['stock_lot_id'] : null;
                 // Ligne verrouillée : l'écart d'inventaire reste exact face à une vente simultanée.
                 $current = $this->ledger->lockedQuantity($shop->id, $product->id, $article->variantId());
                 if ($kind === 'inventory') {
@@ -78,7 +98,7 @@ final class AdjustmentService
                         continue;
                     }
                     $delta = Decimal::sub($counted, $current);
-                    $lines[] = [$article, $delta, $delta, $counted];
+                    $lines[] = [$article, $delta, $delta, $counted, Decimal::cmp($delta, '0') > 0 ? $expiry : null, null];
                 } else {
                     $quantity = Decimal::parse($item['quantity'] ?? null);
                     if ($quantity === null || Decimal::cmp($quantity, '0') <= 0) {
@@ -86,7 +106,7 @@ final class AdjustmentService
 
                         continue;
                     }
-                    $lines[] = [$article, $kind === 'entry' ? $quantity : Decimal::neg($quantity), $quantity, null];
+                    $lines[] = [$article, $kind === 'entry' ? $quantity : Decimal::neg($quantity), $quantity, null, $expiry, $lotId];
                 }
             }
             if ($errors) {
@@ -100,20 +120,23 @@ final class AdjustmentService
                 'reference' => $reference,
                 'kind' => $kind,
                 'reason' => $reason,
+                'exit_reason' => $exitReason,
                 'occurred_at' => now(),
                 'user_id' => $user->id,
                 'offline_uuid' => $in['offline_uuid'] ?? null,
             ]);
             $this->ledger->apply(
-                array_map(fn ($l) => new StockChange($shop->id, $l[0]->product, $l[0]->variantId(), $l[1]), $lines),
+                array_map(fn ($l) => new StockChange($shop->id, $l[0]->product, $l[0]->variantId(), $l[1], expiryDate: $l[4], lotId: $l[5]), $lines),
                 ['source_type' => 'adjustment', 'source_id' => $adjustment->id, 'reference' => $reference, 'reason' => $reason, 'user_id' => $user->id, 'occurred_at' => $adjustment->occurred_at],
             );
-            foreach ($lines as [$article, $delta, $quantity, $counted]) {
+            foreach ($lines as [$article, $delta, $quantity, $counted, $expiry, $lotId]) {
                 $adjustment->items()->create([
                     'product_id' => $article->product->id,
                     'product_variant_id' => $article->variantId(),
                     'quantity' => $kind === 'inventory' ? $delta : $quantity,
                     'counted_quantity' => $counted,
+                    'expiry_date' => $expiry,
+                    'stock_lot_id' => $lotId,
                 ]);
             }
             Audit::record($user, 'stock.adjusted', [

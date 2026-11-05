@@ -46,6 +46,7 @@ function toForm(s: TenantSettings): TenantSettingsForm {
     timezone: s.timezone,
     receipt_footer: s.receipt_footer ?? '',
     advanced_mode: s.advanced_mode,
+    expiry_alert_days: String(s.expiry_alert_days ?? 7),
   }
 }
 
@@ -61,13 +62,13 @@ function TenantForm({ settings }: { settings: TenantSettings }) {
 
   const submit = form.handleSubmit((values) => {
     setFormError(null)
-    update.mutate(values, {
+    update.mutate({ ...values, expiry_alert_days: Number(values.expiry_alert_days) }, {
       onSuccess: (data) => {
         form.reset(toForm(data))
         toast.success(t('common.saved'))
       },
       onError: (error) =>
-        setFormError(applyApiErrors(error, form.setError, ['name', 'phone', 'email', 'address', 'timezone', 'receipt_footer'])),
+        setFormError(applyApiErrors(error, form.setError, ['name', 'phone', 'email', 'address', 'timezone', 'receipt_footer', 'expiry_alert_days'])),
     })
   })
 
@@ -149,6 +150,15 @@ function TenantForm({ settings }: { settings: TenantSettings }) {
             />
           )}
         />
+        <FormField
+          id="expiry_alert_days"
+          label={t('settings.tenant.expiry_alert_days')}
+          hint={t('settings.tenant.expiry_alert_days_hint')}
+          error={errors.expiry_alert_days?.message}
+          className="sm:max-w-xs"
+        >
+          <Input inputMode="numeric" className="tabular" {...form.register('expiry_alert_days')} />
+        </FormField>
         <p className="flex gap-2 rounded-sm bg-muted p-3 text-sm">
           <Info className="size-5 shrink-0 text-primary" aria-hidden="true" />
           {t('settings.tenant.plan', {

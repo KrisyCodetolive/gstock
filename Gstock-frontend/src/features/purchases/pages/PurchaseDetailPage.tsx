@@ -21,7 +21,7 @@ import { useReferentialList } from '@/features/referentials/hooks'
 import { useCurrentShop } from '@/features/shops/hooks'
 import { articleKey } from '@/lib/articles'
 import { apiErrorMessage } from '@/lib/form-errors'
-import { formatDateTime, formatQuantity, formatShortDate } from '@/lib/format'
+import { formatDateTime, formatDay, formatQuantity, formatShortDate } from '@/lib/format'
 import type { Purchase } from '@/types/purchases'
 import { PurchaseStatusBadge } from '../components/PurchaseStatusBadge'
 import { useAddPurchasePayment, useCancelPurchase, usePurchase, useSetPurchaseInstallments } from '../hooks'
@@ -84,7 +84,8 @@ function PurchaseDetail({ purchase: p }: { purchase: Purchase }) {
       <FormSection title={t('purchases.detail.items')}>
         <ul className="grid divide-y-2 divide-muted">
           {p.items.map((i) => (
-            <li key={articleKey(i.product.id, i.variant?.id)}>
+            // Deux lignes d'un même article sont possibles avec deux dates de péremption (§7.11).
+            <li key={`${articleKey(i.product.id, i.variant?.id)}-${i.expiry_date ?? ''}`}>
               <Link to={`/produits/${i.product.id}`} className="flex items-start justify-between gap-3 rounded-md px-1 py-3 hover:bg-muted">
                 <span className="grid">
                   <span className="font-bold">{i.product.name}</span>
@@ -95,6 +96,9 @@ function PurchaseDetail({ purchase: p }: { purchase: Purchase }) {
                     <span className="text-sm text-muted-foreground">
                       {t('purchases.form.base_quantity', { qty: formatQuantity(i.base_quantity), unit: i.product.unit.short_name })}
                     </span>
+                  )}
+                  {i.expiry_date && (
+                    <span className="text-sm text-muted-foreground">{`${t('stock.expiry.date')} : ${formatDay(i.expiry_date)}`}</span>
                   )}
                 </span>
                 <Money value={i.subtotal} />

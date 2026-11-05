@@ -15,7 +15,7 @@ import { useCurrentShop } from '@/features/shops/hooks'
 import { articleKey } from '@/lib/articles'
 import { ApiError } from '@/lib/api/client'
 import { apiErrorMessage } from '@/lib/form-errors'
-import { formatDateTime, formatQuantity } from '@/lib/format'
+import { formatDateTime, formatDay, formatQuantity } from '@/lib/format'
 import { useIsDesktop } from '@/lib/use-media-query'
 import { normalizeText } from '@/lib/text'
 import { cn } from '@/lib/utils'
@@ -72,6 +72,17 @@ export function PosPage() {
           : t('sales.pos.max_reached', { value: `${formatQuantity(p.quantity)} ${p.unit.short_name}` }),
       )
       return
+    }
+    // Péremption (§7.11) : alerte au premier ajout, sans bloquer la vente (le commerçant décide).
+    if (inCart === 0 && p.expiry && Number(p.expiry.expired_quantity) > 0 && p.expiry.expired_since) {
+      toast.warning(
+        t('sales.pos.expired_alert', {
+          value: `${formatQuantity(p.expiry.expired_quantity)} ${p.unit.short_name}`,
+          name: p.name,
+          date: formatDay(p.expiry.expired_since),
+        }),
+        { duration: 8000 },
+      )
     }
     store.add(shop.id, p.id, p.variant_id)
   }

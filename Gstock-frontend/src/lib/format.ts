@@ -56,3 +56,9 @@ const longDateFormatter = new Intl.DateTimeFormat('fr-FR', {
 export function formatLongDate(iso: string): string {
   return longDateFormatter.format(new Date(iso))
 }
+
+/** "2026-11-20" → "20/11/2026" : date de péremption, sans heure ni fuseau (§7.11). */
+export function formatDay(ymd: string): string {
+  const [y, m, d] = ymd.slice(0, 10).split('-')
+  return `${d}/${m}/${y}`
+}

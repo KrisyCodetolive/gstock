@@ -68,7 +68,14 @@
       "purchase_unit_empty": "Créez d'abord une unité dérivée de l'unité du produit (Paramètres › Unités), par exemple Carton = Unité × 12.",
       "purchase_unit_option": "{{name}} ({{qty}} {{base}})",
       "type_variable": "Avec variantes (taille, parfum…)",
-      "price_variants": "Prix de vente : saisi pour chaque variante, plus bas."
+      "price_variants": "Prix de vente : saisi pour chaque variante, plus bas.",
+      "track_expiry": "Suivre les dates de péremption",
+      "track_expiry_hint": "Pour les produits qui se périment : GStock vous prévient avant la date et à la caisse.",
+      "initial_expiry_date": "Date de péremption",
+      "initial_expiry_hint": "Celle de la quantité en stock. Facultative.",
+      "expiry_alert_days": "Prévenir combien de jours avant",
+      "expiry_alert_days_hint": "Laissez vide pour utiliser le délai de l'espace (Paramètres de l'espace).",
+      "invalid_alert_days": "Saisissez un nombre de jours entre 0 et 365."
     },
     "stock_by_shop": "Stock par boutique",
     "stock_by_shop_service": "Un service n'a pas de stock.",

@@ -1,6 +1,6 @@
 // Contrat d'API du module M07 : stock d'une boutique, mouvements, ajustements.
 import type { Id, IsoDate, Money } from './api'
-import type { ProductCategoryRef, ProductUnitRef, StockState } from './catalog'
+import type { ExpiryState, ExpirySummary, ProductCategoryRef, ProductUnitRef, StockState } from './catalog'
 
 /** GET /shops/{shop_id}/stock : une ligne par produit stockable. */
 /** Une ligne par article : un produit, ou une variante (`variant`, et `product.name` avec la variante). */
@@ -21,6 +21,8 @@ export interface StockItem {
   /** quantité × prix d'achat, calculée par le serveur. */
   value: Money | null
   state: StockState
+  /** Produit suivi : péremption dans la boutique (§7.11) ; null sinon. */
+  expiry?: ExpirySummary | null
 }
 
 export interface StockList {
@@ -36,7 +38,25 @@ export interface StockSummary {
   out: number
   /** Valeur estimée du stock au prix d'achat. */
   value: Money
+  /** Articles qui ont des arrivages périmés / bientôt périmés (§7.11). */
+  expired?: number
+  soon?: number
 }
+
+/** GET /shops/{shop_id}/stock/lots?product_id=&variant_id= : arrivages en stock, dans l'ordre de sortie. */
+export interface StockLot {
+  id: Id
+  expiry_date: string | null
+  state: ExpiryState
+  quantity: string
+  initial_quantity: string
+  source_type: string
+  reference: string | null
+  received_at: IsoDate
+}
+
+/** Motif d'une sortie (§7.11) ; périmé, cassé et volé sont des pertes (§7.8). */
+export type ExitReason = 'expired' | 'damaged' | 'stolen' | 'consumed' | 'other'
 
 /** GET /stock : vue « Toutes mes boutiques » (propriétaire). */
 export interface StockOverviewItem {
@@ -75,6 +95,8 @@ export interface AdjustmentItem {
   quantity: string
   /** Inventaire seulement : quantité comptée. */
   counted_quantity: string | null
+  expiry_date?: string | null
+  stock_lot_id?: Id | null
 }
 
 /** Ressource /shops/{shop_id}/adjustments, référence MS-N. */
@@ -83,6 +105,7 @@ export interface Adjustment {
   reference: string
   kind: AdjustmentKind
   reason: string
+  exit_reason?: ExitReason | null
   status: AdjustmentStatus
   items: AdjustmentItem[]
   user: { id: Id; name: string } | null
@@ -94,7 +117,18 @@ export interface Adjustment {
 export interface AdjustmentPayload {
   kind: AdjustmentKind
   reason: string
-  items: { product_id: Id; variant_id?: Id | null; quantity?: string; counted_quantity?: string }[]
+  /** Sortie : motif choisi dans la liste (§7.11). */
+  exit_reason?: ExitReason
+  items: {
+    product_id: Id
+    variant_id?: Id | null
+    quantity?: string
+    counted_quantity?: string
+    /** Entrée ou inventaire d'un produit suivi : date de péremption (Y-m-d), facultative. */
+    expiry_date?: string | null
+    /** Sortie d'un arrivage précis (sortie « Périmé »). */
+    stock_lot_id?: Id | null
+  }[]
   /** Idempotence hors ligne (ADR-005). */
   offline_uuid?: string
 }

@@ -38,7 +38,9 @@
 | B9 — Synchronisation hors ligne du backend (références définitives, idempotence, écarts « à vérifier », refus motivés) | [B9-hors-ligne-api.md](B9-hors-ligne-api.md) | `api-hors-ligne` |
 | B10 — Back-office de Genius Groups (Filament : tableau de bord, espaces, boutiques, utilisateurs, mode support, formules, factures, journal) | [B10-back-office.md](B10-back-office.md) | `back-office` |
 
-Hors phase : [connexion-centrale.md](connexion-centrale.md) (connexion sur le domaine principal, branche `connexion-centrale`).
+Hors phase : [peremption.md](peremption.md) (dates de péremption, backend et frontend, branche `peremption`).
+
+Hors phase également : [connexion-centrale.md](connexion-centrale.md) (connexion sur le domaine principal, branche `connexion-centrale`).
 
 Hors phase également : [comparaison-ancien-gstock.md](comparaison-ancien-gstock.md) confronte l'inventaire de l'ancien GStock (Stocky v5.0) avec le nouveau, pour décider de ce qu'il faut reprendre.
 
@@ -113,6 +115,7 @@ Ces décisions complètent ou précisent le cahier. Celles marquées **[cahier]*
 | Tableau de bord (backend) | Calculé à la demande en SQL agrégé (`app/Domain/Reporting/DashboardService.php`), sans table de statistiques ; fuseau `Africa/Abidjan`. Voir [B7](B7-tableau-de-bord-api.md). |
 | GeniusPay (backend) | Sans documentation ni clés, le paiement passe par l'interface `PlatformGateway` ; seul le pilote `simulation` existe (page servie par l'API, refusée en production). Format du webhook provisoire. Voir [B8](B8-inscription-abonnement-api.md). |
 | Back-office (M01) | Filament 5 sur `/admin` (ou `ADMIN_DOMAIN`), garde `platform` séparée ; suspension par GStock distincte de l'impayé (`tenants.suspended_at`) ; mode support limité dans le temps avec bandeau. Voir [B10](B10-back-office.md). |
+| Dates de péremption (§7.11) | Arrivages par entrée de marchandise pour les produits suivis, sortie de la date la plus proche, approvisionnement entamé non annulable, pertes à part du résultat. Voir [peremption.md](peremption.md). |
 | Connexion centrale (ADR-009) | Sur le domaine principal, `POST /auth/central-login` trouve les espaces du compte (seulement avec le bon mot de passe) et y renvoie par un lien à usage unique ; choix si plusieurs. Les sous-domaines restent. Voir [connexion-centrale.md](connexion-centrale.md). |
 | Déconnexion | Mène toujours à l'accueil de la personne suivante (pas à la dernière page de la précédente). Nécessite `RouterProvider` importé de `react-router/dom` (voir « Pièges déjà rencontrés »). |
 
@@ -134,6 +137,7 @@ Le backend devra reproduire ce que font les handlers de `src/mocks/handlers/` (u
   - F7 : détail de la réponse du tableau de bord (`money_in.by_method`, `money_out`, `result.complete`, `recent`…), `GET /dashboard` réservé au propriétaire, filtres du journal (`filter[domain]`…). Détail dans [F7-tableau-de-bord-audit.md](F7-tableau-de-bord-audit.md).
   - F8 : `GET /register/check-slug`, `POST /auth/token-login` (lien à usage unique renvoyé par `/register`), `GET /onboarding` et ses actions, `tenant.subscription` dans `GET /me`, `usage` et `pending_invoice` dans `GET /subscription`, statut 402 en lecture seule, `max_products`. Détail dans [F8-inscription-abonnement.md](F8-inscription-abonnement.md).
   - F9 : résultats de `POST /shops/{id}/sync` (`created`, `duplicate`, `to_review`, `rejected`), `customers` et `tax_rate` dans `pos/bootstrap`, `sync_status` et `review_reasons` sur les ventes. Détail dans [F9-hors-ligne.md](F9-hors-ligne.md).
+  - Péremption : `GET|PUT /shops/{id}/stock/lots`, champs `track_expiry`, `expiry`, `exit_reason`, `losses`… Détail dans [peremption.md](peremption.md).
   - Connexion centrale : `POST /auth/central-login` (domaine principal). Détail dans [connexion-centrale.md](connexion-centrale.md).
   - F10 : `PUT /me/password`, `POST|DELETE /me/avatar`, `POST|DELETE /products/{id}/image`, `PUT /shops/{id}/purchases/{id}/installments` (avec `installments` et `overdue_amount`), `purchase_unit_id` / `purchase_unit` / `units` sur le produit, `unit_id` / `unit` / `base_quantity` sur les lignes d'approvisionnement, `variants` sur le produit et `variant_id` / `variant` sur toutes les lignes (vente, approvisionnement, mouvement de stock). Détail dans [F10-complements-v1.md](F10-complements-v1.md).
 - **Où trouver les règles serveur déjà écrites** : `src/mocks/http.ts` (garde de session, permissions, validation, pagination), `src/mocks/stock.ts` (stock), `src/mocks/sales.ts` (ventes), `src/mocks/credits.ts` (crédits, remboursements, échéances, avoirs), `src/mocks/purchases.ts` (approvisionnements, dépenses), `src/mocks/handlers/dashboard.ts` (tableau de bord §7.8), `src/mocks/audit.ts` (journal), `src/mocks/platform.ts` et `handlers/platform.ts` (inscription, abonnement, webhook GeniusPay, lecture seule), `handlers/sync.ts` (synchronisation hors ligne). Elles sont commentées avec les paragraphes du cahier.

@@ -24,7 +24,40 @@
     "filters": {
       "all": "Tout",
       "low": "Stock faible",
-      "out": "Rupture"
+      "out": "Rupture",
+      "expired": "Périmés",
+      "soon": "Bientôt périmés"
+    },
+    "expiry": {
+      "state": {
+        "expired": "Périmé",
+        "soon": "Bientôt périmé",
+        "ok": "Bon",
+        "undated": "Sans date"
+      },
+      "date": "Date de péremption",
+      "date_hint": "Facultative. Laissez vide si elle n'est pas indiquée.",
+      "invalid_date": "Cette date n'est pas valide.",
+      "expired_since": "{{value}} périmé depuis le {{date}}",
+      "soon_until": "{{value}} à écouler avant le {{date}}",
+      "next": "Prochaine date : {{date}}",
+      "lots_title": "Stock par date dans {{shop}}",
+      "lots_empty": "Aucun stock dans cette boutique.",
+      "lot_line": "{{value}} au {{date}}",
+      "lot_undated": "{{value}} sans date",
+      "edit_date": "Modifier la date",
+      "add_date": "Indiquer la date",
+      "remove_expired": "Retirer",
+      "edit_title": "Date de péremption",
+      "edit_description": "{{value}} de {{name}}, arrivé le {{date}}",
+      "saved": "Date enregistrée.",
+      "clear": "Sans date",
+      "variant": "Variante",
+      "empty_title": "Rien à surveiller",
+      "empty_text": "Aucun produit n'est périmé ni proche de sa date de péremption."
+    },
+    "sources": {
+      "tracking_start": "Stock déjà présent"
     },
     "columns": {
       "product": "Produit",
@@ -75,10 +108,10 @@
         "entry_received": "Marchandise reçue",
         "entry_return": "Retour d'un client",
         "entry_found": "Produit retrouvé",
-        "exit_loss": "Perte",
-        "exit_broken": "Casse",
-        "exit_expired": "Produit périmé",
-        "exit_used": "Consommé en boutique",
+        "exit_expired": "Périmé",
+        "exit_broken": "Cassé",
+        "exit_stolen": "Volé",
+        "exit_used": "Consommé (boutique ou personnel)",
         "inventory_count": "Inventaire",
         "other": "Autre"
       },

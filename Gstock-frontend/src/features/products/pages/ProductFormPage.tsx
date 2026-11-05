@@ -1,14 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronDown, ClipboardCheck, Eye, EyeOff, History, PackageMinus, PackagePlus } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { BackLink } from '@/components/BackLink'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { FormAlert, FormField } from '@/components/FormField'
-import { FormActions, FormSection } from '@/components/FormLayout'
+import { FormActions, FormSection, SwitchField } from '@/components/FormLayout'
 import { PageHeader } from '@/components/PageHeader'
 import { ScanButton } from '@/components/BarcodeScanner'
 import { PhotoPicker } from '@/components/PhotoPicker'
@@ -21,6 +21,7 @@ import { useCan, useSession } from '@/features/auth/hooks'
 import { useReferentialList } from '@/features/referentials/hooks'
 import { useCurrentShop } from '@/features/shops/hooks'
 import { MovementsPreview } from '@/features/stock/components/MovementsPreview'
+import { ProductLotsSection } from '@/features/stock/components/ProductLotsSection'
 import { StockQuickSheet } from '@/features/stock/components/StockQuickSheet'
 import { apiErrorMessage, applyApiErrors } from '@/lib/form-errors'
 import { formatQuantity } from '@/lib/format'
@@ -95,6 +96,7 @@ function ProductFormBody({ product }: { product?: Product }) {
   const { errors, isDirty } = form.formState
   const type = useWatch({ control: form.control, name: 'type' })
   const unitId = useWatch({ control: form.control, name: 'unit_id' })
+  const trackExpiry = useWatch({ control: form.control, name: 'track_expiry' })
   // Unités d'achat possibles : celles dérivées de l'unité du produit (Carton = Unité × 12).
   // Sans unité choisie, le serveur prend l'unité de base au plus petit identifiant (la liste, elle, est triée par nom).
   const baseUnitId = unitId
@@ -165,6 +167,41 @@ function ProductFormBody({ product }: { product?: Product }) {
                 error={errors.category_id?.message}
               />
             </div>
+            {/* Dates de péremption (§7.11) : accessibles sans le mode avancé, tous les champs facultatifs. */}
+            {type !== 'service' && (
+              <Controller
+                control={form.control}
+                name="track_expiry"
+                render={({ field }) => (
+                  <SwitchField
+                    id="track_expiry"
+                    label={t('products.form.track_expiry')}
+                    hint={t('products.form.track_expiry_hint')}
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    disabled={!editable}
+                  />
+                )}
+              />
+            )}
+            {type !== 'service' && trackExpiry && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {canSetInitialQuantity && shop && (
+                  <FormField id="initial_expiry_date" label={t('products.form.initial_expiry_date')} optional hint={t('products.form.initial_expiry_hint')}>
+                    <Input type="date" {...form.register('initial_expiry_date')} />
+                  </FormField>
+                )}
+                <FormField
+                  id="expiry_alert_days"
+                  label={t('products.form.expiry_alert_days')}
+                  optional
+                  hint={t('products.form.expiry_alert_days_hint')}
+                  error={errors.expiry_alert_days?.message}
+                >
+                  <Input inputMode="numeric" className="tabular" {...form.register('expiry_alert_days')} />
+                </FormField>
+              </div>
+            )}
           </FormSection>
 
           {!product && (
@@ -333,61 +370,65 @@ function ShopStockSection({ product }: { product: Product }) {
     ] as const
   ).filter((a) => can(a.permission))
   return (
-    <FormSection title={t('products.stock_by_shop')}>
-      {product.type === 'service' ? (
-        <p className="text-muted-foreground">{t('products.stock_by_shop_service')}</p>
-      ) : stock.isPending ? (
-        <LoadingState rows={2} />
-      ) : stock.isError ? (
-        <ErrorState error={stock.error} onRetry={() => void stock.refetch()} />
-      ) : (
-        <ul className="grid gap-2 sm:grid-cols-2">
-          {stock.data.map((s) => (
-            <li key={s.shop.id} className="grid gap-2 rounded-md border-2 border-foreground px-3 py-2">
-              <div className="flex items-center justify-between gap-3">
-                <span className="grid">
-                  <span className="font-bold">{s.shop.name}</span>
-                  <span className="tabular text-lg font-bold">
-                    {formatQuantity(s.quantity)} <span className="text-sm font-semibold text-muted-foreground">{product.unit.short_name}</span>
-                  </span>
-                </span>
-                <StockStateBadge state={s.state} />
-              </div>
-              {/* Produit à variantes : le stock de chaque variante dans la boutique. */}
-              {s.variants.length > 0 && (
-                <ul className="grid gap-1 border-t-2 border-muted pt-2 text-sm">
-                  {s.variants.map((v) => (
-                    <li key={v.id} className="flex items-center justify-between gap-2">
-                      <span className="font-semibold">{v.name}</span>
-                      <span className="flex items-center gap-2">
-                        <span className="tabular font-bold">
-                          {formatQuantity(v.quantity)} {product.unit.short_name}
-                        </span>
-                        <StockStateBadge state={v.state} />
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-      {here && shop && actions.length > 0 &&
-        (product.is_active ? (
-          <div className="flex flex-wrap gap-3">
-            {actions.map((a, i) => (
-              <Button key={a.kind} type="button" variant={i === 0 ? 'default' : 'outline'} onClick={() => setKind(a.kind)}>
-                <a.icon aria-hidden="true" />
-                {t(`products.stock_actions.${a.kind}`)}
-              </Button>
-            ))}
-          </div>
+    <>
+      <FormSection title={t('products.stock_by_shop')}>
+        {product.type === 'service' ? (
+          <p className="text-muted-foreground">{t('products.stock_by_shop_service')}</p>
+        ) : stock.isPending ? (
+          <LoadingState rows={2} />
+        ) : stock.isError ? (
+          <ErrorState error={stock.error} onRetry={() => void stock.refetch()} />
         ) : (
-          <p className="text-sm text-muted-foreground">{t('products.stock_actions.inactive')}</p>
-        ))}
-      {here && shop && <StockQuickSheet kind={kind} onClose={() => setKind(null)} product={product} shop={shop} stock={here} />}
-    </FormSection>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {stock.data.map((s) => (
+              <li key={s.shop.id} className="grid gap-2 rounded-md border-2 border-foreground px-3 py-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="grid">
+                    <span className="font-bold">{s.shop.name}</span>
+                    <span className="tabular text-lg font-bold">
+                      {formatQuantity(s.quantity)} <span className="text-sm font-semibold text-muted-foreground">{product.unit.short_name}</span>
+                    </span>
+                  </span>
+                  <StockStateBadge state={s.state} />
+                </div>
+                {/* Produit à variantes : le stock de chaque variante dans la boutique. */}
+                {s.variants.length > 0 && (
+                  <ul className="grid gap-1 border-t-2 border-muted pt-2 text-sm">
+                    {s.variants.map((v) => (
+                      <li key={v.id} className="flex items-center justify-between gap-2">
+                        <span className="font-semibold">{v.name}</span>
+                        <span className="flex items-center gap-2">
+                          <span className="tabular font-bold">
+                            {formatQuantity(v.quantity)} {product.unit.short_name}
+                          </span>
+                          <StockStateBadge state={v.state} />
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {here && shop && actions.length > 0 &&
+          (product.is_active ? (
+            <div className="flex flex-wrap gap-3">
+              {actions.map((a, i) => (
+                <Button key={a.kind} type="button" variant={i === 0 ? 'default' : 'outline'} onClick={() => setKind(a.kind)}>
+                  <a.icon aria-hidden="true" />
+                  {t(`products.stock_actions.${a.kind}`)}
+                </Button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">{t('products.stock_actions.inactive')}</p>
+          ))}
+        {here && shop && <StockQuickSheet kind={kind} onClose={() => setKind(null)} product={product} shop={shop} stock={here} />}
+      </FormSection>
+      {/* Produit suivi : stock par date dans la boutique courante (§7.11). */}
+      {product.track_expiry && here && shop && can('stock.view') && <ProductLotsSection product={product} shop={shop} stock={here} />}
+    </>
   )
 }
 

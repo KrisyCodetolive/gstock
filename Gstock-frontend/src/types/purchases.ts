@@ -39,6 +39,8 @@ export interface PurchaseLineInput {
   cost: string
   /** Unité de la ligne, parmi `units` du produit ; absente : l'unité de base. */
   unit_id?: Id | null
+  /** Produit suivi : date de péremption de l'arrivage (Y-m-d), facultative (§7.11). */
+  expiry_date?: string | null
 }
 
 /** POST /shops/{shop_id}/purchases/quote : total calculé par le serveur. */
@@ -83,7 +85,7 @@ export interface Purchase {
   supplier: { id: Id; name: string; phone: string | null } | null
   occurred_at: IsoDate
   /** `unit` : unité d'achat de la ligne ; `base_quantity` : ce qui est entré en stock, en unité de base. */
-  items: { product: { id: Id; name: string; unit: ProductUnitRef }; variant: { id: Id; name: string } | null; unit: ProductUnitRef; quantity: string; base_quantity: string; cost: Money; subtotal: Money }[]
+  items: { product: { id: Id; name: string; unit: ProductUnitRef }; variant: { id: Id; name: string } | null; unit: ProductUnitRef; quantity: string; base_quantity: string; cost: Money; subtotal: Money; expiry_date?: string | null }[]
   subtotal: Money
   discount: Money
   total: Money

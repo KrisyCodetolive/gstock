@@ -12,6 +12,7 @@ use App\Domain\Purchases\Models\Purchase;
 use App\Domain\Purchases\Models\Supplier;
 use App\Domain\Sales\Models\PaymentMethod;
 use App\Domain\Shops\Models\Shop;
+use App\Domain\Stock\Expiry;
 use App\Domain\Stock\StockChange;
 use App\Domain\Stock\StockLedger;
 use App\Support\ApiException;
@@ -42,9 +43,10 @@ final class PurchaseService
         if (! $lines) {
             throw ApiException::invalid('items', 'Ajoutez au moins un produit.');
         }
-        $keys = array_map(fn ($l) => ((int) ($l['product_id'] ?? 0)).':'.($l['variant_id'] ?? ''), $lines);
+        // Un même article sur deux lignes : permis seulement pour deux dates de péremption (§7.11).
+        $keys = array_map(fn ($l) => ((int) ($l['product_id'] ?? 0)).':'.($l['variant_id'] ?? '').':'.($l['expiry_date'] ?? ''), $lines);
         if (count(array_unique($keys)) !== count($keys)) {
-            throw ApiException::invalid('items', 'Un même produit apparaît deux fois.');
+            throw ApiException::invalid('items', 'Un même produit apparaît deux fois avec la même date.');
         }
 
         $products = Product::query()->with(['variants', 'unit'])->whereIn('id', array_map(fn ($l) => (int) ($l['product_id'] ?? 0), $lines))->get()->keyBy('id');
@@ -77,6 +79,12 @@ final class PurchaseService
 
                 continue;
             }
+            $expiry = Expiry::parse($l['expiry_date'] ?? null);
+            if ($expiry === false) {
+                $errors[] = "La date de péremption de {$article->name()} n’est pas valide.";
+
+                continue;
+            }
             if ($quantity === null || $cost === null) {
                 continue;
             }
@@ -90,6 +98,8 @@ final class PurchaseService
                 'base_quantity' => D::round(D::mul($quantity, $factor, 9), D::QTY),
                 'cost' => D::round($cost, D::MONEY),
                 'subtotal' => D::round(D::mul($quantity, $cost, 6), D::MONEY),
+                // Facultative, gardée pour les produits suivis seulement.
+                'expiry_date' => $product->track_expiry ? $expiry : null,
             ];
         }
         if ($errors) {
@@ -157,10 +167,11 @@ final class PurchaseService
                     'base_quantity' => $i['base_quantity'],
                     'cost' => $i['cost'],
                     'subtotal' => $i['subtotal'],
+                    'expiry_date' => $i['expiry_date'],
                 ]);
                 // Le prix d'achat est tenu par unité de base : prix du carton ÷ 12.
                 $unitCost = D::round(D::div($i['cost'], $i['factor'], 6), D::MONEY);
-                $changes[] = new StockChange($shop->id, $i['article']->product, $i['article']->variantId(), $i['base_quantity'], $unitCost);
+                $changes[] = new StockChange($shop->id, $i['article']->product, $i['article']->variantId(), $i['base_quantity'], $unitCost, $i['expiry_date']);
                 if (! empty($in['update_costs'])) {
                     ($i['article']->variant ?? $i['article']->product)->update(['cost' => $unitCost]);
                 }

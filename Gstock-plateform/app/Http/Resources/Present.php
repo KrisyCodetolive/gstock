@@ -122,6 +122,7 @@ final class Present
             'timezone' => $tenant->timezone,
             'receipt_footer' => $settings?->receipt_footer,
             'advanced_mode' => (bool) $settings?->advanced_mode,
+            'expiry_alert_days' => (int) ($settings?->expiry_alert_days ?? 7),
             'plan' => ['name' => $plan->name, 'max_shops' => $plan->max_shops, 'max_users' => $plan->max_users, 'max_products' => $plan->max_products],
         ];
     }

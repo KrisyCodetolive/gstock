@@ -32,6 +32,8 @@ interface Line {
   quantity: string
   /** Prix d'une unité de la ligne (un carton, par exemple). */
   cost: string
+  /** Produit suivi : date de péremption de l'arrivage, facultative (§7.11). */
+  expiry: string
 }
 
 /** Prix d'achat proposé pour une unité : prix par unité de base × contenu de l'unité. */
@@ -45,7 +47,7 @@ const keyOf = (l: Line) => articleKey(l.product.id, l.product.variant_id)
 
 function newLine(product: ProductSearchResult): Line {
   const unitId = product.purchase_unit_id ?? product.unit.id
-  return { product, unitId, quantity: '1', cost: suggestedCost(product, unitId) }
+  return { product, unitId, quantity: '1', cost: suggestedCost(product, unitId), expiry: '' }
 }
 
 const NONE = 'none'
@@ -76,7 +78,7 @@ export function PurchaseFormPage() {
   const validLines = lines.every((l) => Number(clean(l.quantity)) > 0 && clean(l.cost) !== '' && Number(clean(l.cost)) >= 0)
   const input = lines.length
     ? {
-        items: lines.map((l) => ({ product_id: l.product.id, ...(l.product.variant_id ? { variant_id: l.product.variant_id } : {}), unit_id: l.unitId, quantity: clean(l.quantity), cost: clean(l.cost) || '0' })),
+        items: lines.map((l) => ({ product_id: l.product.id, ...(l.product.variant_id ? { variant_id: l.product.variant_id } : {}), unit_id: l.unitId, quantity: clean(l.quantity), cost: clean(l.cost) || '0', ...(l.product.track_expiry && l.expiry ? { expiry_date: l.expiry } : {}) })),
         ...(discount ? { discount: clean(discount) } : {}),
       }
     : null
@@ -195,6 +197,11 @@ export function PurchaseFormPage() {
                         <Input inputMode="numeric" className="tabular" value={l.cost} onChange={(e) => update(k, { cost: e.target.value })} />
                       </FormField>
                     </div>
+                    {l.product.track_expiry && (
+                      <FormField id={`purchase-expiry-${k}`} label={t('stock.expiry.date')} optional hint={t('stock.expiry.date_hint')}>
+                        <Input type="date" value={l.expiry} onChange={(e) => update(k, { expiry: e.target.value })} />
+                      </FormField>
+                    )}
                     {q && (
                       <span className="text-sm font-semibold text-muted-foreground">
                         {t('purchases.form.subtotal', { amount: Number(q.subtotal).toLocaleString('fr-FR') })}

@@ -5,7 +5,9 @@ import {
   getAdjustment,
   listMovements,
   listShopStock,
+  listStockLots,
   listStockOverview,
+  updateStockLot,
 } from '@/lib/api/stock'
 import type { Id, ListParams } from '@/types/api'
 import type { AdjustmentPayload } from '@/types/stock'
@@ -70,6 +72,23 @@ export function useCancelAdjustment(shopId: Id | undefined, id: Id) {
   const invalidate = useInvalidateStock()
   return useMutation({
     mutationFn: (reason: string) => cancelAdjustment(shopId!, id, reason),
+    onSuccess: invalidate,
+  })
+}
+
+/** Arrivages d'un article suivi dans une boutique (§7.11). */
+export function useStockLots(shopId: Id | undefined, productId: Id, variantId: Id | null, enabled = true) {
+  return useQuery({
+    queryKey: [...stockKey, shopId, 'lots', productId, variantId],
+    queryFn: () => listStockLots(shopId!, productId, variantId),
+    enabled: enabled && shopId !== undefined,
+  })
+}
+
+export function useUpdateStockLot(shopId: Id | undefined) {
+  const invalidate = useInvalidateStock()
+  return useMutation({
+    mutationFn: ({ id, expiryDate }: { id: Id; expiryDate: string | null }) => updateStockLot(shopId!, id, expiryDate),
     onSuccess: invalidate,
   })
 }

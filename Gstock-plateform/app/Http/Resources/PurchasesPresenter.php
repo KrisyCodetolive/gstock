@@ -68,6 +68,7 @@ final class PurchasesPresenter
                     'base_quantity' => D::format((string) $i->base_quantity),
                     'cost' => D::format((string) $i->cost, D::MONEY),
                     'subtotal' => D::format((string) $i->subtotal, D::MONEY),
+                    'expiry_date' => $i->expiry_date,
                 ];
             })->values()->all(),
             'subtotal' => D::format((string) $p->subtotal, D::MONEY),

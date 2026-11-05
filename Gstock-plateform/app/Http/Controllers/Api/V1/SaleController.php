@@ -46,6 +46,8 @@ class SaleController extends Controller
                 'tax_rate' => $p->tax_rate === null ? null : (string) $p->tax_rate,
                 'unit' => $a['unit'], 'category' => $a['category'], 'image_url' => $a['image_url'],
                 'quantity' => $a['quantity'], 'state' => $a['state'],
+                // Alerte de péremption à la caisse, même hors ligne (§7.11).
+                'expiry' => $a['expiry'] ?? null,
             ], $presenter->articles($p)))->values(),
             'categories' => Category::query()->where('is_active', true)->orderBy('id')->get(['id', 'name', 'color']),
             'payment_methods' => PaymentMethod::query()->where('is_active', true)->orderBy('id')->get()->map(fn ($m) => [

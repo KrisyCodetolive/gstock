@@ -14,6 +14,11 @@ export const tenantSettingsSchema = z.object({
   timezone: z.string().min(1),
   receipt_footer: optionalText,
   advanced_mode: z.boolean(),
+  /** Délai d'alerte de péremption par défaut, en jours (§7.11). */
+  expiry_alert_days: z
+    .string()
+    .trim()
+    .refine((v) => /^\d+$/.test(v) && Number(v) <= 365, i18n.t('settings.tenant.invalid_expiry_alert_days')),
 })
 
 export type TenantSettingsForm = z.infer<typeof tenantSettingsSchema>

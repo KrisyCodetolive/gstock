@@ -1,7 +1,7 @@
 // Contrat d'API du module M08 : caisse et ventes. Tous les montants sont
 // recalculés par le serveur ; ceux du navigateur sont ignorés (§7.4).
 import type { Id, IsoDate, Money } from './api'
-import type { ProductCategoryRef, ProductType, ProductUnitRef, StockState } from './catalog'
+import type { ExpirySummary, ProductCategoryRef, ProductType, ProductUnitRef, StockState } from './catalog'
 import type { RepaymentReceipt } from './credits'
 import type { PaymentMethodType } from './referentials'
 
@@ -158,6 +158,8 @@ export interface PosBootstrap {
     image_url: string | null
     quantity: string | null
     state: StockState | null
+    /** Alerte de péremption à la caisse, même hors ligne (§7.11). */
+    expiry?: ExpirySummary | null
   }[]
   categories: ProductCategoryRef[]
   payment_methods: { id: Id; name: string; type: PaymentMethodType; uses_geniuspay: boolean }[]

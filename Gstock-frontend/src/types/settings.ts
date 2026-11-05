@@ -13,6 +13,8 @@ export interface TenantSettings {
   receipt_footer: string | null
   /** Variantes, taxes, unités multiples, marques (§3.1). */
   advanced_mode: boolean
+  /** Délai d'alerte de péremption de l'espace, en jours (7 par défaut, §7.11). */
+  expiry_alert_days?: number
   /** Plan d'abonnement, en lecture seule ici. */
   plan: PlanLimits
 }

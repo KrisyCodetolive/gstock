@@ -175,11 +175,13 @@ Route::middleware('tenant')->group(function () {
                 Route::get('stock', [StockController::class, 'index']);
                 Route::get('stock/alerts', [StockController::class, 'alerts']);
                 Route::get('stock/movements', [StockController::class, 'movements']);
+                Route::get('stock/lots', [StockController::class, 'lots']);
                 Route::get('adjustments/{id}', [AdjustmentController::class, 'show'])->whereNumber('id');
             });
             // Le type de mouvement (entrée, sortie, inventaire) demande sa propre permission : vérifié dans le service.
             Route::post('adjustments', [AdjustmentController::class, 'store'])->middleware('permission:stock.entry,stock.exit,stock.adjust');
             Route::post('adjustments/{id}/cancel', [AdjustmentController::class, 'cancel'])->middleware('permission:stock.adjust')->whereNumber('id');
+            Route::put('stock/lots/{id}', [StockController::class, 'updateLot'])->middleware('permission:stock.adjust')->whereNumber('id');
 
             // Caisse et ventes (M08).
             Route::middleware('permission:sales.create')->group(function () {

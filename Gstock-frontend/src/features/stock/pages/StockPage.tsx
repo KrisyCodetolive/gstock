@@ -1,4 +1,4 @@
-import { AlertTriangle, ArchiveX, Boxes, ClipboardCheck, History, Minus, Plus } from 'lucide-react'
+import { AlertTriangle, ArchiveX, Boxes, CalendarClock, CalendarX, ClipboardCheck, History, Minus, Plus } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -13,13 +13,16 @@ import { ProductThumb } from '@/features/products/components/ProductThumb'
 import { StockStateBadge } from '@/features/products/components/StockStateBadge'
 import { useCurrentShop } from '@/features/shops/hooks'
 import { articleKey } from '@/lib/articles'
-import { formatQuantity } from '@/lib/format'
+import { formatDay, formatQuantity } from '@/lib/format'
 import { useListParams } from '@/lib/use-list-params'
 import { cn } from '@/lib/utils'
 import type { StockItem, StockSummary } from '@/types/stock'
 import { useShopStock, useStockOverview } from '../hooks'
 
-type StateFilter = 'low' | 'out' | undefined
+/** low, out : état du stock ; expired, soon : péremption (§7.11). */
+type StateFilter = 'low' | 'out' | 'expired' | 'soon' | undefined
+
+const isExpiryFilter = (s: StateFilter) => s === 'expired' || s === 'soon'
 
 export function StockPage() {
   const { t } = useTranslation()
@@ -149,6 +152,17 @@ function Summary({ summary, state, onState }: { summary: StockSummary; state: St
       <SummaryTile icon={ArchiveX} label={t('stock.summary.out')} active={state === 'out'} tone="danger" onClick={() => onState(state === 'out' ? undefined : 'out')}>
         <span className="tabular text-[28px] leading-tight font-bold">{summary.out}</span>
       </SummaryTile>
+      {/* Péremption : seulement si des produits suivis ont des dates proches ou dépassées. */}
+      {(Boolean(summary.expired) || isExpiryFilter(state)) && (
+        <SummaryTile icon={CalendarX} label={t('stock.filters.expired')} active={state === 'expired'} tone="danger" onClick={() => onState(state === 'expired' ? undefined : 'expired')}>
+          <span className="tabular text-[28px] leading-tight font-bold">{summary.expired ?? 0}</span>
+        </SummaryTile>
+      )}
+      {(Boolean(summary.soon) || isExpiryFilter(state)) && (
+        <SummaryTile icon={CalendarClock} label={t('stock.filters.soon')} active={state === 'soon'} tone="warn" onClick={() => onState(state === 'soon' ? undefined : 'soon')}>
+          <span className="tabular text-[28px] leading-tight font-bold">{summary.soon ?? 0}</span>
+        </SummaryTile>
+      )}
     </div>
   )
 }
@@ -157,7 +171,7 @@ function ShopStockList({ state, onState }: { state: StateFilter; onState: (s: St
   const { t } = useTranslation()
   const { shop } = useCurrentShop()
   const list = useListParams(['state', 'vue'])
-  const stock = useShopStock(shop?.id, { ...list.params, filter: { state } })
+  const stock = useShopStock(shop?.id, { ...list.params, filter: isExpiryFilter(state) ? { expiry: state } : { state } })
 
   const qty = (i: StockItem) => (
     <span className="tabular font-bold">
@@ -176,6 +190,8 @@ function ShopStockList({ state, onState }: { state: StateFilter; onState: (s: St
       ) : stock.data.data.length === 0 ? (
         list.search ? (
           <EmptyState title={t('list.no_result_title')} text={t('list.no_result_text')} />
+        ) : isExpiryFilter(state) ? (
+          <EmptyState icon={CalendarClock} title={t('stock.expiry.empty_title')} text={t('stock.expiry.empty_text')} />
         ) : state ? (
           <EmptyState icon={Boxes} title={t('stock.alerts_empty_title')} text={t('stock.alerts_empty_text')} />
         ) : (
@@ -189,7 +205,15 @@ function ShopStockList({ state, onState }: { state: StateFilter; onState: (s: St
             getKey={(i) => articleKey(i.product.id, i.variant?.id)}
             to={(i) => `/produits/${i.product.id}`}
             columns={[
-              { header: t('stock.columns.product'), cell: (i) => i.product.name },
+              {
+                header: t('stock.columns.product'),
+                cell: (i) => (
+                  <span className="grid">
+                    {i.product.name}
+                    <ExpiryHint item={i} />
+                  </span>
+                ),
+              },
               { header: t('stock.columns.quantity'), cell: qty },
               { header: t('stock.columns.alert'), cell: (i) => (i.stock_alert ? formatQuantity(i.stock_alert) : '—'), className: 'tabular text-muted-foreground' },
               { header: t('stock.columns.cost'), cell: (i) => (i.cost ? <Money value={i.cost} /> : '—') },
@@ -205,6 +229,7 @@ function ShopStockList({ state, onState }: { state: StateFilter; onState: (s: St
                     {qty(i)}
                     {i.stock_alert && <span className="text-muted-foreground">{t('stock.alert_value', { value: formatQuantity(i.stock_alert) })}</span>}
                   </span>
+                  <ExpiryHint item={i} />
                 </div>
                 {i.state !== 'ok' && <StockStateBadge state={i.state} />}
               </div>
@@ -215,6 +240,29 @@ function ShopStockList({ state, onState }: { state: StateFilter; onState: (s: St
       )}
     </>
   )
+}
+
+/** Péremption d'une ligne (§7.11) : le périmé d'abord, sinon ce qui arrive à sa date. */
+function ExpiryHint({ item }: { item: StockItem }) {
+  const { t } = useTranslation()
+  const e = item.expiry
+  if (!e) return null
+  const unit = item.product.unit.short_name
+  if (Number(e.expired_quantity) > 0 && e.expired_since) {
+    return (
+      <span className="text-sm font-semibold text-destructive">
+        {t('stock.expiry.expired_since', { value: `${formatQuantity(e.expired_quantity)} ${unit}`, date: formatDay(e.expired_since) })}
+      </span>
+    )
+  }
+  if (Number(e.soon_quantity) > 0 && e.next_expiry_date) {
+    return (
+      <span className="text-sm font-semibold text-warn">
+        {t('stock.expiry.soon_until', { value: `${formatQuantity(e.soon_quantity)} ${unit}`, date: formatDay(e.next_expiry_date) })}
+      </span>
+    )
+  }
+  return null
 }
 
 /** Vue « Toutes mes boutiques » : une colonne par boutique, et le total. */

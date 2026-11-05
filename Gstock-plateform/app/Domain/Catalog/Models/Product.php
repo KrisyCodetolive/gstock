@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Storage;
  * @property ?string $cost
  * @property string $price
  * @property ?string $stock_alert
+ * @property bool $track_expiry dates de péremption suivies (§7.11)
+ * @property ?int $expiry_alert_days
  */
 class Product extends Model
 {
@@ -27,7 +29,7 @@ class Product extends Model
 
     protected $fillable = [
         'type', 'name', 'code', 'barcode', 'category_id', 'brand_id', 'unit_id', 'sale_unit_id', 'purchase_unit_id',
-        'cost', 'price', 'tax_rate', 'tax_method', 'stock_alert', 'image_path', 'is_active',
+        'cost', 'price', 'tax_rate', 'tax_method', 'stock_alert', 'image_path', 'is_active', 'track_expiry', 'expiry_alert_days',
     ];
 
     protected $casts = [
@@ -36,6 +38,8 @@ class Product extends Model
         'tax_rate' => 'decimal:2',
         'stock_alert' => 'decimal:3',
         'is_active' => 'boolean',
+        'track_expiry' => 'boolean',
+        'expiry_alert_days' => 'integer',
     ];
 
     public function category(): BelongsTo

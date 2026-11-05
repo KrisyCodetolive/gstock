@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   Banknote,
   Boxes,
+  CalendarX,
   ChevronRight,
   HandCoins,
   PackagePlus,
@@ -210,6 +211,28 @@ function Cards({ data, period }: { data: Dashboard; period: DashboardPeriod }) {
           </span>
         </StatCard>
       )}
+      {/* Péremption (§7.11) et pertes de la période (§7.8) : seulement s'il y a quelque chose à voir. */}
+      {has('stock.view') && data.expiry && (data.expiry.expired + data.expiry.soon > 0 || Number(data.losses?.total ?? 0) > 0) && (
+        <StatCard
+          to={`/stock?state=${data.expiry.expired > 0 ? 'expired' : 'soon'}`}
+          icon={CalendarX}
+          label={t('home.cards.expiry')}
+          tone={data.expiry.expired > 0 ? 'danger' : data.expiry.soon > 0 ? 'warn' : undefined}
+        >
+          <span className="tabular text-[32px] leading-tight font-bold">{data.expiry.expired + data.expiry.soon}</span>
+          <span className="text-sm text-muted-foreground">
+            {t('home.cards.expiry_expired', { count: data.expiry.expired })} · {t('home.cards.expiry_soon', { count: data.expiry.soon })}
+          </span>
+          {Number(data.expiry.expired_value) + Number(data.expiry.soon_value) > 0 && (
+            <span className="text-sm text-muted-foreground">
+              {t('home.cards.expiry_value', { amount: (Number(data.expiry.expired_value) + Number(data.expiry.soon_value)).toLocaleString('fr-FR') })}
+            </span>
+          )}
+          {Number(data.losses?.total ?? 0) > 0 && (
+            <span className="text-sm font-semibold text-destructive">{t('home.cards.losses', { amount: Number(data.losses!.total).toLocaleString('fr-FR') })}</span>
+          )}
+        </StatCard>
+      )}
       {has('credits.view') && (
         <StatCard to="/credits" icon={WalletCards} label={t('home.cards.credits')} tone={Number(data.credits.remaining) > 0 ? 'danger' : undefined}>
           <Money value={data.credits.remaining} size="lg" className={Number(data.credits.remaining) > 0 ? 'text-destructive' : undefined} />
@@ -259,6 +282,18 @@ function Cards({ data, period }: { data: Dashboard; period: DashboardPeriod }) {
             </dd>
           </div>
           {!data.result.complete && <p className="text-sm font-semibold text-warn">{t('home.cards.result_incomplete')}</p>}
+          {/* Pertes : affichées à part, jamais déduites du résultat estimé (§7.8). */}
+          {data.losses && Number(data.losses.total) > 0 && (
+            <div className="mt-2 grid gap-1 border-t-2 border-muted pt-2">
+              <div className="flex justify-between gap-2">
+                <dt>{t('home.cards.losses_line')}</dt>
+                <dd>
+                  <Money value={data.losses.total} className="text-destructive" />
+                </dd>
+              </div>
+              <p className="text-sm text-muted-foreground">{t('home.cards.losses_hint')}</p>
+            </div>
+          )}
         </dl>
       </ResponsiveSheet>
     </section>
