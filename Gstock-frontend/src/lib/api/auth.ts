@@ -1,6 +1,7 @@
 // Endpoints du module M02 (authentification et profil).
 import type { Resource } from '@/types/api'
 import type {
+  CentralSpace,
   ForgotPasswordPayload,
   ForgotPasswordResult,
   LoginPayload,
@@ -15,6 +16,12 @@ export async function login(payload: LoginPayload): Promise<Me> {
   await ensureCsrfCookie()
   const res = await http.post<Resource<Me>>('/auth/login', payload)
   return res.data
+}
+
+/** Connexion sur le domaine principal : les espaces du compte, seulement si le mot de passe est juste (ADR-009). */
+export async function centralLogin(payload: LoginPayload): Promise<CentralSpace[]> {
+  const res = await http.post<{ data: { spaces: CentralSpace[] } }>('/auth/central-login', payload)
+  return res.data.spaces
 }
 
 export async function logout(): Promise<void> {

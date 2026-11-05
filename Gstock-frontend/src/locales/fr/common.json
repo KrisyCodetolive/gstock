@@ -52,6 +52,9 @@
     "demo_reset": "Remettre les données de démonstration à zéro",
     "demo_reset_done": "Données de démonstration remises à zéro.",
     "forgot_link": "Mot de passe oublié ?",
+    "spaces_title": "Votre espace",
+    "spaces_subtitle": "Votre compte existe dans plusieurs espaces. Lequel voulez-vous ouvrir ?",
+    "spaces_back": "Changer de compte",
     "forgot": {
       "title": "Mot de passe oublié",
       "text": "Saisissez l'adresse e-mail de votre compte : nous vous envoyons un lien pour choisir un nouveau mot de passe.",

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router'
 import {
+  centralLogin,
   changePassword,
   deleteAvatar,
   forgotPassword,
@@ -45,6 +46,11 @@ export function useSession(): Me {
   const { data } = useMe()
   if (!data) throw new Error('useSession appelé hors de RequireAuth')
   return data
+}
+
+/** Domaine principal : trouve les espaces du compte (ADR-009). */
+export function useCentralLogin() {
+  return useMutation({ mutationFn: (payload: LoginPayload) => centralLogin(payload) })
 }
 
 export function useLogin() {
