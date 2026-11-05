@@ -1,4 +1,4 @@
-import { AlertTriangle, ArchiveX, Boxes, CalendarClock, CalendarX, ClipboardCheck, History, Minus, Plus } from 'lucide-react'
+import { AlertTriangle, ArchiveX, ArrowLeftRight, Boxes, CalendarClock, CalendarX, ClipboardCheck, History, Minus, Plus } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
@@ -17,6 +17,7 @@ import { formatDay, formatQuantity } from '@/lib/format'
 import { useListParams } from '@/lib/use-list-params'
 import { cn } from '@/lib/utils'
 import type { StockItem, StockSummary } from '@/types/stock'
+import { TransfersToReceive } from '../components/TransfersToReceive'
 import { useShopStock, useStockOverview } from '../hooks'
 
 /** low, out : état du stock ; expired, soon : péremption (§7.11). */
@@ -67,15 +68,33 @@ export function StockPage() {
                 </Link>
               </Button>
             )}
+            {can('stock.transfer') && shops.length > 1 && (
+              <Button asChild variant="outline">
+                <Link to="/stock/transferts/nouveau">
+                  <ArrowLeftRight aria-hidden="true" />
+                  {t('stock.transfers.new')}
+                </Link>
+              </Button>
+            )}
             <Button asChild variant="ghost">
               <Link to="/stock/mouvements">
                 <History aria-hidden="true" />
                 {t('stock.actions.movements')}
               </Link>
             </Button>
+            {shops.length > 1 && (
+              <Button asChild variant="ghost">
+                <Link to="/stock/transferts">
+                  <ArrowLeftRight aria-hidden="true" />
+                  {t('stock.transfers.list_link')}
+                </Link>
+              </Button>
+            )}
           </div>
         }
       />
+
+      {!allShops && <TransfersToReceive />}
 
       {allShopsAvailable && (
         <div className="inline-flex justify-self-start rounded-md border-2 border-foreground bg-card p-1" role="group" aria-label={t('stock.view_label')}>

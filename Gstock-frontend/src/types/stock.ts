@@ -66,7 +66,18 @@ export interface StockOverviewItem {
   shops: { shop_id: Id; quantity: string; state: StockState }[]
 }
 
-export type MovementSource = 'opening' | 'adjustment' | 'adjustment_cancel' | 'sale' | 'sale_cancel' | 'purchase' | 'purchase_cancel'
+export type MovementSource =
+  | 'opening'
+  | 'adjustment'
+  | 'adjustment_cancel'
+  | 'sale'
+  | 'sale_cancel'
+  | 'purchase'
+  | 'purchase_cancel'
+  | 'transfer_out'
+  | 'transfer_in'
+  | 'transfer_cancel'
+  | 'tracking_start'
 
 /** GET /shops/{shop_id}/stock/movements */
 export interface StockMovement {
@@ -131,4 +142,63 @@ export interface AdjustmentPayload {
   }[]
   /** Idempotence hors ligne (ADR-005). */
   offline_uuid?: string
+}
+
+/** Transfert entre boutiques (§7.12) : en route, reçu, ou annulé avant réception. */
+export type TransferStatus = 'in_transit' | 'received' | 'cancelled'
+
+/** GET /shops/{shop_id}/transfers : une ligne, vue depuis la boutique demandée. */
+export interface TransferSummary {
+  id: Id
+  reference: string
+  status: TransferStatus
+  /** out : envoyé par cette boutique ; in : reçu par elle. */
+  direction: 'out' | 'in'
+  from_shop: { id: Id; name: string }
+  to_shop: { id: Id; name: string }
+  lines: number
+  quantity: string
+  sent_at: IsoDate
+  sent_by: { id: Id; name: string } | null
+  received_at: IsoDate | null
+}
+
+export interface TransferList {
+  data: TransferSummary[]
+  meta: { current_page: number; per_page: number; total: number; last_page: number }
+  /** Transferts en route vers cette boutique. */
+  summary: { to_receive: number }
+}
+
+/** GET /shops/{shop_id}/transfers/{id} : quantités en unité de base. */
+export interface Transfer extends TransferSummary {
+  items: {
+    product: { id: Id; name: string; unit: ProductUnitRef }
+    variant: { id: Id; name: string } | null
+    quantity: string
+    /** null tant que le transfert est en route. */
+    received_quantity: string | null
+    missing_quantity: string
+    unit_cost: Money | null
+  }[]
+  note: string | null
+  received_by: { id: Id; name: string } | null
+  reception_note: string | null
+  /** Valeur du manque au prix d'achat : comptée dans les pertes (§7.8). */
+  missing_value: Money
+  cancelled_at: IsoDate | null
+  cancel_reason: string | null
+}
+
+/** POST /shops/{shop_id}/transfers : envoi depuis cette boutique. */
+export interface TransferPayload {
+  to_shop_id: Id
+  items: { product_id: Id; variant_id?: Id | null; quantity: string }[]
+  note?: string | null
+}
+
+/** POST /shops/{shop_id}/transfers/{id}/receive : par défaut, tout ce qui a été envoyé. */
+export interface TransferReceivePayload {
+  items: { product_id: Id; variant_id?: Id | null; received_quantity: string }[]
+  note?: string | null
 }

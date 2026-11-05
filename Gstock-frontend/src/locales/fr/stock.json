@@ -28,6 +28,77 @@
       "expired": "Périmés",
       "soon": "Bientôt périmés"
     },
+    "transfers": {
+      "title": "Transferts entre boutiques",
+      "subtitle": "Marchandise envoyée ou reçue par {{shop}}",
+      "new": "Transférer",
+      "list_link": "Transferts",
+      "back": "Transferts",
+      "to_receive_one": "{{count}} transfert à réceptionner",
+      "to_receive_other": "{{count}} transferts à réceptionner",
+      "to_receive_hint": "De la marchandise est en route vers {{shop}}.",
+      "see": "Voir",
+      "filters": {
+        "all": "Tous",
+        "in_transit": "En route",
+        "received": "Reçus",
+        "cancelled": "Annulés"
+      },
+      "status": {
+        "in_transit": "En route",
+        "to_receive": "À réceptionner",
+        "received": "Reçu",
+        "cancelled": "Annulé"
+      },
+      "direction_out": "Vers {{shop}}",
+      "direction_in": "Depuis {{shop}}",
+      "lines_one": "{{count}} produit",
+      "lines_other": "{{count}} produits",
+      "empty_title": "Aucun transfert",
+      "empty_text": "Pour envoyer de la marchandise à une autre boutique, touchez « Transférer ».",
+      "form": {
+        "title": "Transférer du stock",
+        "intro": "La marchandise sort de {{shop}} tout de suite. Elle entre dans l'autre boutique quand celle-ci confirme la réception.",
+        "to_shop": "Boutique qui reçoit",
+        "to_shop_placeholder": "Choisissez la boutique",
+        "required_to_shop": "Choisissez la boutique qui reçoit.",
+        "no_other_shop": "Vous n'avez accès à aucune autre boutique.",
+        "note": "Note pour la boutique qui reçoit",
+        "submit": "Envoyer la marchandise",
+        "done": "{{reference}} envoyé à {{shop}}."
+      },
+      "detail": {
+        "title": "Transfert {{reference}}",
+        "route": "{{from}} → {{to}}",
+        "sent": "Envoyé le {{date}} par {{name}}",
+        "received": "Reçu le {{date}} par {{name}}",
+        "cancelled": "Annulé le {{date}} : {{reason}}",
+        "sent_qty": "Envoyé : {{value}}",
+        "received_qty": "Reçu : {{value}}",
+        "missing_qty": "Manque : {{value}}",
+        "missing_value": "Manque de {{amount}} FCFA, compté dans les pertes.",
+        "note": "Note : {{note}}",
+        "reception_note": "À la réception : {{note}}",
+        "waiting": "En attente de réception par {{shop}}."
+      },
+      "receive": {
+        "title": "Réceptionner",
+        "intro": "Indiquez ce que vous avez reçu. S'il manque quelque chose, le manque est compté dans les pertes.",
+        "received": "Quantité reçue",
+        "sent": "Envoyé : {{value}}",
+        "exceeds": "Pas plus que la quantité envoyée ({{value}}).",
+        "invalid": "Saisissez la quantité reçue.",
+        "note": "Remarque",
+        "submit": "Confirmer la réception",
+        "done": "Réception enregistrée : le stock de {{shop}} est à jour."
+      },
+      "cancel": {
+        "action": "Annuler le transfert",
+        "title": "Annuler ce transfert ?",
+        "text": "La marchandise revient dans le stock de {{shop}}.",
+        "done": "Transfert annulé : la marchandise est revenue dans le stock."
+      }
+    },
     "expiry": {
       "state": {
         "expired": "Périmé",
@@ -55,9 +126,6 @@
       "variant": "Variante",
       "empty_title": "Rien à surveiller",
       "empty_text": "Aucun produit n'est périmé ni proche de sa date de péremption."
-    },
-    "sources": {
-      "tracking_start": "Stock déjà présent"
     },
     "columns": {
       "product": "Produit",
@@ -92,7 +160,11 @@
         "sale": "Vente",
         "sale_cancel": "Vente annulée",
         "purchase": "Approvisionnement",
-        "purchase_cancel": "Approvisionnement annulé"
+        "purchase_cancel": "Approvisionnement annulé",
+        "transfer_out": "Transfert envoyé",
+        "transfer_in": "Transfert reçu",
+        "transfer_cancel": "Transfert annulé",
+        "tracking_start": "Début du suivi des dates"
       }
     },
     "form": {
