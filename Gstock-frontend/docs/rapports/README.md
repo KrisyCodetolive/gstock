@@ -38,7 +38,9 @@
 | B9 — Synchronisation hors ligne du backend (références définitives, idempotence, écarts « à vérifier », refus motivés) | [B9-hors-ligne-api.md](B9-hors-ligne-api.md) | `api-hors-ligne` |
 | B10 — Back-office de Genius Groups (Filament : tableau de bord, espaces, boutiques, utilisateurs, mode support, formules, factures, journal) | [B10-back-office.md](B10-back-office.md) | `back-office` |
 
-Hors phase : [creation-rapide-produits.md](creation-rapide-produits.md) (« Ajouter et créer un autre », stock de départ par variante).
+Hors phase : [transferts.md](transferts.md) (transferts de stock entre boutiques, envoi puis réception).
+
+Hors phase également : [creation-rapide-produits.md](creation-rapide-produits.md) (« Ajouter et créer un autre », stock de départ par variante).
 
 Hors phase également : [fin-donnees-simulees.md](fin-donnees-simulees.md) (données simulées retirées, `npm run dev` branché sur le backend).
 
@@ -124,6 +126,7 @@ Ces décisions complètent ou précisent le cahier. Celles marquées **[cahier]*
 | Tableau de bord (backend) | Calculé à la demande en SQL agrégé (`app/Domain/Reporting/DashboardService.php`), sans table de statistiques ; fuseau `Africa/Abidjan`. Voir [B7](B7-tableau-de-bord-api.md). |
 | GeniusPay (backend) | Sans documentation ni clés, le paiement passe par l'interface `PlatformGateway` ; seul le pilote `simulation` existe (page servie par l'API, refusée en production). Format du webhook provisoire. Voir [B8](B8-inscription-abonnement-api.md). |
 | Back-office (M01) | Filament 5 sur `/admin` (ou `ADMIN_DOMAIN`), garde `platform` séparée ; suspension par GStock distincte de l'impayé (`tenants.suspended_at`) ; mode support limité dans le temps avec bandeau. Voir [B10](B10-back-office.md). |
+| Transferts entre boutiques (§7.12) | Envoi puis réception, stock en route compté nulle part, manques en pertes, annulation avant réception ; permission `stock.transfer` au propriétaire. Voir [transferts.md](transferts.md). |
 | Données simulées (ADR-004) | Retirées le 5 novembre 2026 : le frontend parle toujours au backend ; comptes de test issus des seeders. Voir [fin-donnees-simulees.md](fin-donnees-simulees.md). |
 | Dates de péremption (§7.11) | Arrivages par entrée de marchandise pour les produits suivis, sortie de la date la plus proche, approvisionnement entamé non annulable, pertes à part du résultat. Voir [peremption.md](peremption.md). |
 | Connexion centrale (ADR-009) | Sur le domaine principal, `POST /auth/central-login` trouve les espaces du compte (seulement avec le bon mot de passe) et y renvoie par un lien à usage unique ; choix si plusieurs. Les sous-domaines restent. Voir [connexion-centrale.md](connexion-centrale.md). |
@@ -147,6 +150,7 @@ Le backend devra reproduire ce que font les handlers de `src/mocks/handlers/` (u
   - F7 : détail de la réponse du tableau de bord (`money_in.by_method`, `money_out`, `result.complete`, `recent`…), `GET /dashboard` réservé au propriétaire, filtres du journal (`filter[domain]`…). Détail dans [F7-tableau-de-bord-audit.md](F7-tableau-de-bord-audit.md).
   - F8 : `GET /register/check-slug`, `POST /auth/token-login` (lien à usage unique renvoyé par `/register`), `GET /onboarding` et ses actions, `tenant.subscription` dans `GET /me`, `usage` et `pending_invoice` dans `GET /subscription`, statut 402 en lecture seule, `max_products`. Détail dans [F8-inscription-abonnement.md](F8-inscription-abonnement.md).
   - F9 : résultats de `POST /shops/{id}/sync` (`created`, `duplicate`, `to_review`, `rejected`), `customers` et `tax_rate` dans `pos/bootstrap`, `sync_status` et `review_reasons` sur les ventes. Détail dans [F9-hors-ligne.md](F9-hors-ligne.md).
+  - Transferts : `GET|POST /shops/{id}/transfers`, `GET /shops/{id}/transfers/{id}`, `POST …/receive`, `POST …/cancel`. Détail dans [transferts.md](transferts.md).
   - Péremption : `GET|PUT /shops/{id}/stock/lots`, champs `track_expiry`, `expiry`, `exit_reason`, `losses`… Détail dans [peremption.md](peremption.md).
   - Connexion centrale : `POST /auth/central-login` (domaine principal). Détail dans [connexion-centrale.md](connexion-centrale.md).
   - F10 : `PUT /me/password`, `POST|DELETE /me/avatar`, `POST|DELETE /products/{id}/image`, `PUT /shops/{id}/purchases/{id}/installments` (avec `installments` et `overdue_amount`), `purchase_unit_id` / `purchase_unit` / `units` sur le produit, `unit_id` / `unit` / `base_quantity` sur les lignes d'approvisionnement, `variants` sur le produit et `variant_id` / `variant` sur toutes les lignes (vente, approvisionnement, mouvement de stock). Détail dans [F10-complements-v1.md](F10-complements-v1.md).
