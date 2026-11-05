@@ -21,6 +21,7 @@ L'inventaire de ce qui a été fait est dans `Gstock-frontend/docs/rapports/` : 
 
 ```bash
 docker compose up -d           # PostgreSQL 16 (port 54329, bases gstock et gstock_test)
+docker compose --profile app up -d --build   # + l'API dans l'image de production, sur http://localhost:8001 (back-office /admin)
 composer setup                 # install, .env, key:generate, migrate, npm install + build
 php artisan migrate:fresh --seed   # plans + espace de démonstration « alimentation-kone » (demo1234)
 composer dev                   # serve + queue:listen + pail (logs) + vite, en parallèle
