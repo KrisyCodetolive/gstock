@@ -31,6 +31,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Application commerçant : session Sanctum par cookie (ADR-008).
         $middleware->statefulApi();
+        // Non connecté : l'API répond 401 en JSON (jamais de redirection) ; le back-office renvoie à sa page de connexion.
+        $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : route('filament.admin.auth.login'));
         $middleware->alias([
             'tenant' => InitializeTenancyBySubdomain::class,
             'permission' => RequirePermission::class,

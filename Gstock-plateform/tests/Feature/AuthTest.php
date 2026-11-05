@@ -51,6 +51,8 @@ class AuthTest extends TestCase
     {
         $this->createTenant();
         $this->api('kone', 'GET', '/me')->assertUnauthorized()->assertJsonPath('message', 'Votre session a expiré. Reconnectez-vous.');
+        // Même sans « Accept: application/json » : 401 en JSON, pas de redirection.
+        $this->get('http://kone.'.self::DOMAIN.'/api/v1/me')->assertUnauthorized()->assertJsonPath('message', 'Votre session a expiré. Reconnectez-vous.');
 
         $this->api('kone', 'POST', '/auth/login', ['login' => 'owner@example.ci', 'password' => 'secret123'])->assertOk();
         $this->api('kone', 'GET', '/me')->assertOk();
