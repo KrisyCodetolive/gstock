@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Éditeur** | Genius Groups SAS |
-| **Version** | 3.1 — ajout des dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
+| **Version** | 3.2 — transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
 | **Date** | 5 novembre 2026 (connexion centrale, ADR-009 ; fin des données simulées, ADR-004) |
 | **Cible** | Boutiques de quartier, épiceries, mini-markets, commerces de proximité et petits détaillants |
 | **Statut** | Définitif pour la phase 1 — évolutif pour les phases suivantes |
@@ -171,7 +171,7 @@ Un utilisateur qui a accès à plusieurs boutiques voit la boutique courante en 
 | M04 | Utilisateurs, rôles et permissions |
 | M05 | Référentiels : catégories, unités, modes de paiement, catégories de dépenses |
 | M06 | Mes produits |
-| M07 | Mon stock : entrées, sorties, ajustements, historique, alertes, dates de péremption |
+| M07 | Mon stock : entrées, sorties, ajustements, historique, alertes, dates de péremption, transferts entre boutiques |
 | M08 | Ventes / Point de vente (POS), paiement immédiat, mixte ou à crédit, en ligne puis hors ligne |
 | M09 | Mes crédits clients : crédits, remboursements, échéances, reçus |
 | M10 | Mes clients |
@@ -184,7 +184,7 @@ Les approvisionnements et les dépenses sont avancés en phase 1 dans une versio
 
 ### 4.2 Phase 2 — Gestion approfondie
 
-Caisse (ouverture, clôture, mouvements, solde), recettes hors ventes, retours de marchandises, inventaire physique, transferts de stock entre boutiques, rapports et statistiques, import / export de produits, partage de reçus amélioré, prix différents par boutique (si validé, §17).
+Caisse (ouverture, clôture, mouvements, solde), recettes hors ventes, retours de marchandises, inventaire physique, rapports et statistiques, import / export de produits, partage de reçus amélioré, prix différents par boutique (si validé, §17).
 
 ### 4.3 Phase 3 — Extension
 
@@ -473,7 +473,7 @@ Liste fixe, non modifiable par les commerçants. Les permissions d'espace porten
 | Boutique | Général | `dashboard.view`, `records.view_all`, `audit.view` |
 | Boutique | Ventes | `sales.create`, `sales.view`, `sales.cancel`, `sales.edit_price`, `sales.give_discount` |
 | Boutique | Crédits | `credits.view`, `credits.create`, `credits.cancel`, `credits.opening_balance`, `repayments.create`, `repayments.cancel` |
-| Boutique | Stock | `stock.view`, `stock.entry`, `stock.exit`, `stock.adjust` |
+| Boutique | Stock | `stock.view`, `stock.entry`, `stock.exit`, `stock.adjust`, `stock.transfer` (envoyer du stock vers une autre boutique, §7.12) |
 | Boutique | Approvisionnements | `purchases.view`, `purchases.create`, `purchases.cancel`, `purchase_payments.create` |
 | Boutique | Dépenses | `expenses.view`, `expenses.create`, `expenses.cancel` |
 
@@ -517,6 +517,9 @@ Pour faciliter la prise en main, l'écran de création de rôle peut proposer de
 | Annulation de vente | + (restitution) |
 | Approvisionnement reçu | + |
 | Annulation d'approvisionnement | − |
+| Transfert envoyé (§7.12) | − dans la boutique de départ |
+| Transfert reçu | + dans la boutique d'arrivée (quantité reçue) |
+| Annulation d'un transfert en route | + dans la boutique de départ (restitution) |
 | Entrée manuelle | + |
 | Sortie manuelle, avec un motif choisi dans une liste : périmé, cassé, volé, consommé, autre (§7.11) | − |
 | Ajustement d'inventaire | + ou − (écart) |
@@ -604,7 +607,7 @@ GStock distingue toujours, dans le tableau de bord et les rapports :
 | Dépenses | Total des dépenses |
 | Reste à récupérer | Σ des soldes clients |
 | Résultat estimé | Ventes totales − coût d'achat des produits vendus − dépenses (si les prix d'achat sont renseignés) |
-| Pertes | Valeur, au prix d'achat, des produits sortis du stock comme périmés, cassés ou volés (§7.11) |
+| Pertes | Valeur, au prix d'achat, des produits sortis du stock comme périmés, cassés ou volés (§7.11), et des manques constatés à la réception d'un transfert (§7.12) |
 
 Une vente à crédit est une vente mais pas un encaissement. Un remboursement est un encaissement mais pas une vente. Une perte n'est ni une dépense ni une sortie d'argent : l'argent est sorti à l'achat de la marchandise. Elle est affichée sur une ligne distincte et n'est pas déduite du résultat estimé.
 
@@ -619,6 +622,7 @@ Une vente à crédit est une vente mais pas un encaissement. Un remboursement es
 | Remboursement | `RB-` |
 | Approvisionnement | `AP-` |
 | Mouvement de stock manuel | `MS-` |
+| Transfert entre boutiques | `TR-` |
 | Dépense | `DP-` |
 
 ### 7.10 Dates et fuseau
@@ -661,6 +665,36 @@ GStock suit les dates de péremption **par arrivage**, sans numéro de lot du fa
 - « Mon stock » : filtres « Bientôt périmés » et « Périmés » ; la fiche produit détaille le stock par date (ex. « 12 pce au 20/11, 30 pce au 15/12, 5 pce sans date »).
 - **À la caisse** : quand un produit qui a une quantité périmée dans la boutique est scanné ou ajouté au panier, une **alerte** s'affiche (ex. « Attention : 3 pce de Yaourt nature sont périmés depuis le 02/11 »). La vente reste possible ; le commerçant décide. L'alerte fonctionne aussi hors ligne, à partir des informations de péremption du cache de la caisse.
 - Aucune alerte n'est envoyée automatiquement en dehors de l'application (voir P13, §17).
+
+### 7.12 Transferts de stock entre boutiques
+
+Le propriétaire qui a plusieurs boutiques déplace de la marchandise de l'une à l'autre. Le catalogue étant commun à l'espace, **seul le stock se déplace** ; un produit n'a jamais à être recréé. Un transfert n'est **pas une opération financière** : ni vente, ni dépense, ni encaissement.
+
+**Périmètre**
+- Entre deux boutiques **actives et différentes d'un même espace**. Entre deux espaces (deux entreprises), il n'y a pas de transfert : c'est une vente pour l'un et un approvisionnement pour l'autre.
+- En ligne seulement (pas de transfert hors ligne).
+
+**Droits**
+- **Envoyer** : permission `stock.transfer`, et affectation à la boutique de départ. Créée par migration et accordée au seul rôle Owner (ADR-014) ; le propriétaire peut l'ajouter à n'importe quel rôle.
+- **Réceptionner** : affectation à la boutique d'arrivée et permission `stock.entry`.
+- **Annuler** un transfert en route : permission `stock.transfer` et affectation à la boutique de départ.
+- Consulter : `stock.view` dans l'une des deux boutiques.
+
+**Déroulement en deux temps**
+
+| Étape | Qui | Effet sur le stock | Statut |
+|---|---|---|---|
+| Envoi : boutique d'arrivée, produits, quantités, note facultative | Boutique de départ | Sort **tout de suite** de la boutique de départ (refusé si insuffisant, §7.2) | `in_transit` (« En route ») |
+| Réception : quantité reçue par ligne (par défaut, la quantité envoyée), note facultative | Boutique d'arrivée | Entre dans la boutique d'arrivée pour la quantité reçue | `received` (« Reçu ») |
+| Annulation, avant la réception, motif obligatoire | Boutique de départ | Revient dans la boutique de départ, dans ses arrivages d'origine | `cancelled` (« Annulé ») |
+
+- Pendant le transport, la marchandise **en route** n'est comptée dans le stock d'aucune boutique ; elle est visible des deux côtés (« en route vers… », « à réceptionner »).
+- La réception se fait **en une seule fois**. La quantité reçue ne dépasse jamais la quantité envoyée ; un **manque** (casse, perte en route) est enregistré sur le transfert, et sa valeur au prix d'achat compte dans les **Pertes** (§7.8).
+- Un transfert reçu ne s'annule plus : une erreur se corrige par un transfert dans l'autre sens ou par un inventaire.
+- Le **prix d'achat** suit la marchandise : la valeur du stock reste juste dans les deux boutiques.
+- **Dates de péremption** (§7.11) : la marchandise envoyée part des dates les plus proches ; à la réception, chaque arrivage est recréé dans la boutique d'arrivée **avec sa date**. Un manque est retiré des dates les plus lointaines.
+- Variantes : chaque ligne porte une variante précise ; quantités en unité de base.
+- Référence `TR-N` (§7.9). Envoi, réception (avec ses écarts) et annulation sont journalisés (ADR-012).
 
 ---
 
@@ -714,10 +748,12 @@ GStock suit les dates de péremption **par arrivage**, sans numéro de lot du fa
 | `products` | type (`simple`, `variable`, `service`), name, code (unique par espace, généré si vide), barcode, category_id, brand_id, unit_id, sale_unit_id, purchase_unit_id, cost, price, tax_rate, tax_method, stock_alert, image, is_active, track_expiry, expiry_alert_days (facultatif) |
 | `product_variants` | product_id, name, code, barcode, cost, price, is_active |
 | `shop_stock` | shop_id, product_id, product_variant_id, quantity, stock_alert (surcharge du seuil par boutique, facultatif) |
-| `stock_movements` | shop_id, product_id, product_variant_id, quantity (signée), unit_cost, source_type, source_id, user_id, occurred_at |
+| `stock_movements` | shop_id, product_id, product_variant_id, quantity (signée), unit_cost, source_type (dont `transfer_out`, `transfer_in`, `transfer_cancel`), source_id, user_id, occurred_at |
 | `stock_lots` | shop_id, product_id, product_variant_id, expiry_date (facultative), initial_quantity, quantity (restante, jamais négative), unit_cost, source_type, source_id (entrée d'origine), received_at |
 | `stock_lot_movements` | stock_lot_id, stock_movement_id, quantity (signée) — répartition d'un mouvement sur les arrivages (§7.11) |
 | `adjustments` | shop_id, reference, kind (`entry`, `exit`, `inventory`), exit_reason (`expired`, `damaged`, `stolen`, `consumed`, `other`), reason, occurred_at, user_id, status, offline_uuid |
+| `stock_transfers` | from_shop_id, to_shop_id, reference, status (`in_transit`, `received`, `cancelled`), note, sent_at, sent_by, received_at, received_by, reception_note, cancelled_at, cancelled_by, cancel_reason |
+| `stock_transfer_items` | stock_transfer_id, product_id, product_variant_id, quantity (envoyée), received_quantity, unit_cost |
 | `adjustment_items` | adjustment_id, product_id, product_variant_id, quantity, counted_quantity (inventaire), expiry_date (entrée, facultative), stock_lot_id (sortie d'un arrivage précis, facultatif) |
 
 ### 8.5 Ventes et paiements
@@ -753,7 +789,7 @@ GStock suit les dates de péremption **par arrivage**, sans numéro de lot du fa
 
 ### 8.8 Tables de la phase 2 (prévues)
 
-`cash_sessions` (ouverture / clôture de caisse), `cash_movements`, `incomes` (recettes hors ventes), `sale_returns` et `sale_return_items`, `stock_transfers` et `stock_transfer_items`, `stock_counts` (inventaires), `shop_product_prices` (prix par boutique, si validé).
+`cash_sessions` (ouverture / clôture de caisse), `cash_movements`, `incomes` (recettes hors ventes), `sale_returns` et `sale_return_items`, `stock_counts` (inventaires), `shop_product_prices` (prix par boutique, si validé).
 
 ### 8.9 Relations principales
 
@@ -762,6 +798,7 @@ GStock suit les dates de péremption **par arrivage**, sans numéro de lot du fa
 - `roles` N–N `permissions` via `permission_role`.
 - `products` → `categories`, `brands`, `units` ; `product_variants` → `products` ; `shop_stock` relie produit / variante et boutique.
 - `stock_lots` → `shops`, `products`, `product_variants` ; `stock_lot_movements` relie arrivages et mouvements de stock.
+- `stock_transfers` → `shops` (départ et arrivée) ; `stock_transfer_items` → `stock_transfers`, `products`, `product_variants`.
 - `sales` → `shops`, `customers`, `users` ; `sale_items` et `sale_payments` → `sales`.
 - `customer_credits` → `customers`, `shops`, `sales` (facultatif).
 - `credit_repayments` → `customers` ; `credit_repayment_allocations` relie remboursements et crédits.
@@ -936,13 +973,14 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 - Historique des mouvements d'un produit.
 - Alertes de stock faible et de rupture.
 - Vue « Toutes mes boutiques » pour le propriétaire.
+- Transferts entre boutiques (§7.12) : « Transférer » depuis Mon stock (choix de la boutique d'arrivée, des produits et des quantités) ; liste des transferts envoyés et reçus [LISTE] avec leur statut ; détail ; réception avec quantités reçues ; annulation avant réception ; indication « en route » et « à réceptionner » dans les deux boutiques.
 - Dates de péremption (§7.11) : date facultative à chaque entrée d'un produit suivi ; filtres « Bientôt périmés » et « Périmés » ; stock par date d'un produit ; date d'un arrivage renseignée ou corrigée ; sortie « Périmé » d'un arrivage précis.
 
-**Tables.** `shop_stock`, `stock_movements`, `stock_lots`, `stock_lot_movements`, `adjustments`, `adjustment_items`.
+**Tables.** `shop_stock`, `stock_movements`, `stock_lots`, `stock_lot_movements`, `adjustments`, `adjustment_items`, `stock_transfers`, `stock_transfer_items`.
 
-**Endpoints.** `GET /shops/{shop_id}/stock` (avec `filter[expiry]=soon|expired`), `GET /shops/{shop_id}/stock/alerts`, `GET /shops/{shop_id}/stock/movements?product_id=`, `GET /shops/{shop_id}/stock/lots?product_id=`, `PUT /shops/{shop_id}/stock/lots/{id}` (date de péremption), `POST /shops/{shop_id}/adjustments` (avec `exit_reason`, et par ligne `expiry_date` ou `stock_lot_id`), `POST /shops/{shop_id}/adjustments/{id}/cancel`.
+**Endpoints.** `GET /shops/{shop_id}/stock` (avec `filter[expiry]=soon|expired`), `GET /shops/{shop_id}/stock/alerts`, `GET /shops/{shop_id}/stock/movements?product_id=`, `GET /shops/{shop_id}/stock/lots?product_id=`, `PUT /shops/{shop_id}/stock/lots/{id}` (date de péremption), `POST /shops/{shop_id}/adjustments` (avec `exit_reason`, et par ligne `expiry_date` ou `stock_lot_id`), `POST /shops/{shop_id}/adjustments/{id}/cancel`, `GET /shops/{shop_id}/transfers?direction=out|in&filter[status]=` (transferts envoyés par la boutique ou reçus par elle), `POST /shops/{shop_id}/transfers` (envoi depuis cette boutique), `GET /shops/{shop_id}/transfers/{id}`, `POST /shops/{shop_id}/transfers/{id}/receive` (boutique d'arrivée), `POST /shops/{shop_id}/transfers/{id}/cancel` (boutique de départ).
 
-**Critères d'acceptation.** Après chaque opération, `shop_stock.quantity` est égal à la somme des mouvements et n'est jamais négatif. Toute opération de stock est transactionnelle. Pour un produit suivi, la somme des arrivages est égale à `shop_stock.quantity`, et une vente puise d'abord dans la date la plus proche.
+**Critères d'acceptation.** Après chaque opération, `shop_stock.quantity` est égal à la somme des mouvements et n'est jamais négatif. Toute opération de stock est transactionnelle. Pour un produit suivi, la somme des arrivages est égale à `shop_stock.quantity`, et une vente puise d'abord dans la date la plus proche. Un transfert ne crée ni ne détruit de stock : envoyé = reçu + manque ; une annulation rend exactement ce qui était parti.
 
 ### M08 — Ventes / Point de vente (POS)
 
@@ -1055,7 +1093,8 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 | Péremption | Produits bientôt périmés et périmés (quantité, valeur) ; pertes de la période (§7.8) | Mon stock filtré |
 
 - **Actions rapides** : Vendre, Ajouter un produit, Ajouter un client, Enregistrer un remboursement, Ajouter un approvisionnement, Enregistrer une dépense.
-- **Activité récente** : ventes, ventes à crédit, remboursements, approvisionnements, dépenses, mouvements de stock ; chaque élément ouvre son détail.
+- **Activité récente** : ventes, ventes à crédit, remboursements, approvisionnements, dépenses, mouvements de stock, transferts entre boutiques ; chaque élément ouvre son détail.
+- **Transferts à réceptionner** : rappel dans la boutique d'arrivée tant qu'un transfert est en route (§7.12).
 - **Échéances** en retard et à venir (7 jours).
 - Les cartes et actions affichées dépendent des permissions.
 
@@ -1063,7 +1102,7 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 
 ### M14 — Journal d'audit
 
-**Fonctionnalités.** Journalisation automatique des actions sensibles : annulation de vente, modification de prix, mouvement de stock manuel, annulation ou régularisation de crédit, annulation de remboursement, modification des rôles, permissions et affectations, changement des clés de paiement. Consultation [LISTE] par le propriétaire (permission `audit.view`) : date, utilisateur, boutique, action, objet, motif, avant / après.
+**Fonctionnalités.** Journalisation automatique des actions sensibles : annulation de vente, modification de prix, mouvement de stock manuel, envoi, réception (avec écarts) et annulation d'un transfert, annulation ou régularisation de crédit, annulation de remboursement, modification des rôles, permissions et affectations, changement des clés de paiement. Consultation [LISTE] par le propriétaire (permission `audit.view`) : date, utilisateur, boutique, action, objet, motif, avant / après.
 
 **Tables.** `audit_logs`.
 
@@ -1077,7 +1116,6 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 | Recettes | Entrées d'argent hors ventes |
 | Retours de marchandises | Retour en stock vendable ou sortie spécifique selon l'état du produit, remboursement ou avoir |
 | Inventaire physique | Comptage, écarts, ajustement automatique |
-| Transferts entre boutiques | Envoi, réception, mouvements des deux côtés |
 | Rapports et statistiques | Ventes (jour, semaine, mois, top produits), stock (valeur, ruptures, mouvements), crédits (accordés, remboursés, restant, ancienneté, par client), finance (encaissements, dépenses, solde de caisse, marge) ; filtres par période et par boutique ; export PDF et Excel |
 | Import / export | Import de produits et de clients (CSV), export du catalogue |
 
@@ -1328,6 +1366,7 @@ La réussite se mesure à l'adoption réelle, pas au nombre de comptes créés. 
 | P11 | Transfert de propriété ou second propriétaire | Prévoir un transfert du rôle Owner via le support (back-office) | M04, M01 |
 | P12 | Gestion des produits périssables | **Décidé : dates de péremption par arrivage, sans numéro de lot, accessibles sans le mode avancé, champs facultatifs ; alerte à la caisse sans blocage ; pertes (périmé, cassé, volé) sur une ligne distincte du tableau de bord ; annulation d'un approvisionnement refusée si ses arrivages sont entamés** (§7.11) | M06, M07, M08, M11, M13 |
 | P13 | Alerte de péremption envoyée chaque jour par WhatsApp | Envisagé pour plus tard ; demande l'API WhatsApp Business, écartée par l'ADR-013 en phase 1 | M07, ADR-013 |
+| P14 | Déplacer du stock d'une boutique à une autre | **Décidé : transfert entre boutiques d'un même espace, en deux temps (envoi puis réception), permission `stock.transfer` accordée par défaut au propriétaire seul ; avancé de la phase 2 à la phase 1** (§7.12) | M07, M04 |
 
 ---
 
