@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronDown, Eye, EyeOff, History } from 'lucide-react'
+import { ChevronDown, ClipboardCheck, Eye, EyeOff, History, PackageMinus, PackagePlus } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -21,10 +21,12 @@ import { useCan, useSession } from '@/features/auth/hooks'
 import { useReferentialList } from '@/features/referentials/hooks'
 import { useCurrentShop } from '@/features/shops/hooks'
 import { MovementsPreview } from '@/features/stock/components/MovementsPreview'
+import { StockQuickSheet } from '@/features/stock/components/StockQuickSheet'
 import { apiErrorMessage, applyApiErrors } from '@/lib/form-errors'
 import { formatQuantity } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { Product } from '@/types/catalog'
+import type { AdjustmentKind } from '@/types/stock'
 import { ProductThumb } from '../components/ProductThumb'
 import { StockStateBadge } from '../components/StockStateBadge'
 import { VariantsEditor } from '../components/VariantsEditor'
@@ -94,8 +96,13 @@ function ProductFormBody({ product }: { product?: Product }) {
   const type = useWatch({ control: form.control, name: 'type' })
   const unitId = useWatch({ control: form.control, name: 'unit_id' })
   // Unités d'achat possibles : celles dérivées de l'unité du produit (Carton = Unité × 12).
-  const baseUnitId = unitId ? Number(unitId) : units.data?.data.find((u) => u.base_unit_id === null)?.id
+  // Sans unité choisie, le serveur prend l'unité de base au plus petit identifiant (la liste, elle, est triée par nom).
+  const baseUnitId = unitId
+    ? Number(unitId)
+    : units.data?.data.filter((u) => u.base_unit_id === null).reduce<number | undefined>((min, u) => (min === undefined || u.id < min ? u.id : min), undefined)
   const purchaseUnits = units.data?.data.filter((u) => u.base_unit_id !== null && u.base_unit_id === baseUnitId) ?? []
+  const baseUnit = units.data?.data.find((u) => u.id === baseUnitId)
+  const canSetInitialQuantity = !product && type === 'simple' && can('stock.entry')
 
   const submit = form.handleSubmit((values) => {
     setFormError(null)
@@ -135,6 +142,18 @@ function ProductFormBody({ product }: { product?: Product }) {
               ) : (
                 <FormField id="price" label={`${t('products.form.price')} (FCFA)`} error={errors.price?.message}>
                   <Input inputMode="numeric" className="tabular text-lg font-bold" {...form.register('price')} />
+                </FormField>
+              )}
+              {/* La marchandise est souvent déjà là : sa quantité se saisit avec le produit, sans détour par « Mon stock ». */}
+              {canSetInitialQuantity && shop && (
+                <FormField
+                  id="initial_quantity"
+                  label={baseUnit ? `${t('products.form.initial_quantity')} (${baseUnit.short_name})` : t('products.form.initial_quantity')}
+                  optional
+                  hint={t('products.form.initial_quantity_hint', { shop: shop.name })}
+                  error={errors.initial_quantity?.message}
+                >
+                  <Input inputMode="decimal" className="tabular" {...form.register('initial_quantity')} />
                 </FormField>
               )}
               <SelectField
@@ -206,17 +225,6 @@ function ProductFormBody({ product }: { product?: Product }) {
                 {type !== 'service' && (
                   <FormField id="stock_alert" label={t('products.form.stock_alert')} optional hint={t('products.form.stock_alert_hint')} error={errors.stock_alert?.message}>
                     <Input inputMode="decimal" className="tabular" {...form.register('stock_alert')} />
-                  </FormField>
-                )}
-                {!product && type === 'simple' && shop && can('stock.entry') && (
-                  <FormField
-                    id="initial_quantity"
-                    label={t('products.form.initial_quantity')}
-                    optional
-                    hint={t('products.form.initial_quantity_hint', { shop: shop.name })}
-                    error={errors.initial_quantity?.message}
-                  >
-                    <Input inputMode="decimal" className="tabular" {...form.register('initial_quantity')} />
                   </FormField>
                 )}
               </div>
@@ -311,7 +319,19 @@ function ProductFormBody({ product }: { product?: Product }) {
 
 function ShopStockSection({ product }: { product: Product }) {
   const { t } = useTranslation()
+  const can = useCan()
+  const { shop } = useCurrentShop()
   const stock = useProductStock(product.id, product.type !== 'service')
+  const [kind, setKind] = useState<AdjustmentKind | null>(null)
+  // Les mouvements se font dans la boutique courante, celle de l'en-tête.
+  const here = shop ? stock.data?.find((s) => s.shop.id === shop.id) : undefined
+  const actions = (
+    [
+      { kind: 'entry', permission: 'stock.entry', icon: PackagePlus },
+      { kind: 'exit', permission: 'stock.exit', icon: PackageMinus },
+      { kind: 'inventory', permission: 'stock.adjust', icon: ClipboardCheck },
+    ] as const
+  ).filter((a) => can(a.permission))
   return (
     <FormSection title={t('products.stock_by_shop')}>
       {product.type === 'service' ? (
@@ -353,6 +373,20 @@ function ShopStockSection({ product }: { product: Product }) {
           ))}
         </ul>
       )}
+      {here && shop && actions.length > 0 &&
+        (product.is_active ? (
+          <div className="flex flex-wrap gap-3">
+            {actions.map((a, i) => (
+              <Button key={a.kind} type="button" variant={i === 0 ? 'default' : 'outline'} onClick={() => setKind(a.kind)}>
+                <a.icon aria-hidden="true" />
+                {t(`products.stock_actions.${a.kind}`)}
+              </Button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t('products.stock_actions.inactive')}</p>
+        ))}
+      {here && shop && <StockQuickSheet kind={kind} onClose={() => setKind(null)} product={product} shop={shop} stock={here} />}
     </FormSection>
   )
 }

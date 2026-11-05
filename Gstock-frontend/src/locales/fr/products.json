@@ -45,8 +45,8 @@
       "code_hint": "Laissez vide : un code est créé automatiquement.",
       "stock_alert": "Seuil d'alerte",
       "stock_alert_hint": "En dessous, le produit passe en « Stock faible ».",
-      "initial_quantity": "Quantité déjà en boutique",
-      "initial_quantity_hint": "Dans {{shop}}. Crée une entrée de stock « Stock initial ».",
+      "initial_quantity": "Quantité en stock",
+      "initial_quantity_hint": "Ce que vous avez déjà dans {{shop}}. Laissez vide si vous n'en avez pas encore.",
       "advanced": "Options avancées",
       "type": "Type",
       "type_simple": "Produit",
@@ -72,6 +72,15 @@
     },
     "stock_by_shop": "Stock par boutique",
     "stock_by_shop_service": "Un service n'a pas de stock.",
+    "stock_actions": {
+      "entry": "Ajouter du stock",
+      "exit": "Retirer du stock",
+      "inventory": "Corriger après comptage",
+      "inactive": "Réactivez le produit pour changer son stock.",
+      "variant": "Variante",
+      "variant_required": "Choisissez la variante.",
+      "current": "En stock dans {{shop}} : {{value}}"
+    },
     "recent_movements": "Derniers mouvements dans {{shop}}",
     "see_movements": "Voir tous les mouvements",
     "status": {
