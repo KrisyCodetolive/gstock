@@ -21,17 +21,20 @@ import { cn } from '@/lib/utils'
 import type { ProductSearchResult } from '@/types/catalog'
 import type { AdjustmentKind } from '@/types/stock'
 import { useCreateAdjustment } from '../hooks'
-import { ADJUSTMENT_REASONS as REASONS } from '../reasons'
+import { EXIT_REASON, expiryOrNull, ADJUSTMENT_REASONS as REASONS } from '../reasons'
 
 interface Line {
   product: ProductSearchResult
   value: string
+  /** Produit suivi, entrée ou inventaire : date de péremption facultative (§7.11). */
+  expiry: string
 }
 
 const parse = (v: string) => Number(v.replace(',', '.'))
 /** Une ligne par article : produit, ou variante d'un produit à variantes. */
 const keyOf = (l: Line) => articleKey(l.product.id, l.product.variant_id)
 const variantOf = (l: Line) => (l.product.variant_id ? { variant_id: l.product.variant_id } : {})
+const datedOf = (kind: AdjustmentKind, l: Line) => (kind !== 'exit' && l.product.track_expiry ? { expiry_date: expiryOrNull(l.expiry) } : {})
 
 /** Entrée, sortie ou inventaire : une référence MS-N par validation (M07). */
 export function AdjustmentFormPage({ kind }: { kind: AdjustmentKind }) {
@@ -76,11 +79,12 @@ export function AdjustmentFormPage({ kind }: { kind: AdjustmentKind }) {
       {
         kind,
         reason,
+        ...(kind === 'exit' ? { exit_reason: EXIT_REASON[reasonKey] ?? 'other' } : {}),
         offline_uuid: offlineUuid,
         items: lines.map((l) =>
           kind === 'inventory'
-            ? { product_id: l.product.id, ...variantOf(l), counted_quantity: String(parse(l.value)) }
-            : { product_id: l.product.id, ...variantOf(l), quantity: String(parse(l.value)) },
+            ? { product_id: l.product.id, ...variantOf(l), ...datedOf(kind, l), counted_quantity: String(parse(l.value)) }
+            : { product_id: l.product.id, ...variantOf(l), ...datedOf(kind, l), quantity: String(parse(l.value)) },
         ),
       },
       {
@@ -95,6 +99,7 @@ export function AdjustmentFormPage({ kind }: { kind: AdjustmentKind }) {
   }
 
   const update = (k: string, value: string) => setLines((ls) => ls.map((l) => (keyOf(l) === k ? { ...l, value } : l)))
+  const updateExpiry = (k: string, expiry: string) => setLines((ls) => ls.map((l) => (keyOf(l) === k ? { ...l, expiry } : l)))
 
   return (
     <div className="grid gap-6">
@@ -149,6 +154,11 @@ export function AdjustmentFormPage({ kind }: { kind: AdjustmentKind }) {
                       />
                       {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
                     </div>
+                    {kind !== 'exit' && line.product.track_expiry && (
+                      <FormField id={`expiry-${k}`} label={t('stock.expiry.date')} optional className="sm:col-span-2">
+                        <Input type="date" value={line.expiry} onChange={(e) => updateExpiry(k, e.target.value)} />
+                      </FormField>
+                    )}
                   </li>
                 )
               })}
@@ -196,7 +206,7 @@ export function AdjustmentFormPage({ kind }: { kind: AdjustmentKind }) {
         onOpenChange={setPickerOpen}
         exclude={lines.map(keyOf)}
         onPick={(product) =>
-          setLines((ls) => [...ls, { product, value: kind === 'inventory' ? (product.quantity === null ? '0' : String(Number(product.quantity))) : '1' }])
+          setLines((ls) => [...ls, { product, expiry: '', value: kind === 'inventory' ? (product.quantity === null ? '0' : String(Number(product.quantity))) : '1' }])
         }
       />
     </div>

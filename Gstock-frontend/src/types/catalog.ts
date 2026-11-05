@@ -71,6 +71,10 @@ export interface Product {
   stock_alert: string | null
   image_url: string | null
   is_active: boolean
+  /** Dates de péremption suivies (§7.11). Absent des données simulées. */
+  track_expiry?: boolean
+  /** Délai d'alerte propre au produit, en jours ; null : celui de l'espace. */
+  expiry_alert_days?: number | null
   /** Stock dans la boutique demandée (`?shop_id=`), null pour un service. Variantes : total. */
   stock: ShopStockLevel | null
   /** Produit `variable` : ses variantes ; vide sinon. `price` est alors le plus bas prix des variantes. */
@@ -99,6 +103,8 @@ export interface ProductPayload {
   tax_rate: string | null
   stock_alert: string | null
   is_active: boolean
+  track_expiry?: boolean
+  expiry_alert_days?: number | null
   /** Produit `variable` : toutes ses variantes (au moins une active). Le type ne change plus après la création. */
   variants?: ProductVariantPayload[]
 }
@@ -106,7 +112,23 @@ export interface ProductPayload {
 export interface ProductCreatePayload extends ProductPayload {
   /** Quantité de départ dans la boutique courante (crée un mouvement d'entrée). */
   initial_quantity?: string | null
+  /** Produit suivi : date de péremption de la quantité initiale (Y-m-d), facultative. */
+  initial_expiry_date?: string | null
   shop_id?: Id
+}
+
+/** État d'un arrivage (§7.11) : périmé dès le jour de sa date. */
+export type ExpiryState = 'expired' | 'soon' | 'ok' | 'undated'
+
+/** Péremption d'un article dans une boutique : null si le produit n'est pas suivi. */
+export interface ExpirySummary {
+  expired_quantity: string
+  /** Plus ancienne date dépassée (Y-m-d). */
+  expired_since: string | null
+  soon_quantity: string
+  /** Prochaine date à venir (Y-m-d). */
+  next_expiry_date: string | null
+  undated_quantity: string
 }
 
 /** GET /products/{id}/stock : le stock de chaque boutique (variantes : total, puis détail). */
@@ -141,4 +163,6 @@ export interface ProductSearchResult {
   image_url: string | null
   quantity: string | null
   state: StockState | null
+  track_expiry?: boolean
+  expiry?: ExpirySummary | null
 }

@@ -115,6 +115,7 @@
       "out_of_stock": "{{name}} est en rupture de stock.",
       "barcode_added": "{{name}} ajouté.",
       "barcode_unknown": "Aucun produit pour ce code-barres.",
+      "expired_alert": "Attention : {{value}} de {{name}} sont périmés depuis le {{date}}. Vérifiez l'article avant de le vendre.",
       "cart": "Panier",
       "cart_empty": "Touchez un produit pour l'ajouter au panier.",
       "items_one": "{{count}} article",

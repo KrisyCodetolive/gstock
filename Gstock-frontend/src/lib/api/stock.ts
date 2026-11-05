@@ -1,6 +1,6 @@
 // Endpoints du module M07 : stock d'une boutique, mouvements, ajustements.
 import type { Id, ListParams, Paginated, Resource } from '@/types/api'
-import type { Adjustment, AdjustmentPayload, StockList, StockMovement, StockOverviewItem } from '@/types/stock'
+import type { Adjustment, AdjustmentPayload, StockList, StockLot, StockMovement, StockOverviewItem } from '@/types/stock'
 import { http } from './client'
 
 export function listShopStock(shopId: Id, params: ListParams = {}): Promise<StockList> {
@@ -33,4 +33,14 @@ export async function createAdjustment(shopId: Id, payload: AdjustmentPayload): 
 /** Annulation avec motif obligatoire : jamais de suppression (ADR-012). */
 export async function cancelAdjustment(shopId: Id, id: Id, reason: string): Promise<Adjustment> {
   return (await http.post<Resource<Adjustment>>(`/shops/${shopId}/adjustments/${id}/cancel`, { reason })).data
+}
+
+/** Arrivages en stock d'un article (produit suivi, §7.11), dans l'ordre de sortie. */
+export async function listStockLots(shopId: Id, productId: Id, variantId?: Id | null): Promise<StockLot[]> {
+  return (await http.get<{ data: StockLot[] }>(`/shops/${shopId}/stock/lots`, { product_id: productId, variant_id: variantId ?? undefined })).data
+}
+
+/** Renseigner ou corriger la date de péremption d'un arrivage (null : sans date). */
+export async function updateStockLot(shopId: Id, lotId: Id, expiryDate: string | null): Promise<StockLot> {
+  return (await http.put<Resource<StockLot>>(`/shops/${shopId}/stock/lots/${lotId}`, { expiry_date: expiryDate })).data
 }

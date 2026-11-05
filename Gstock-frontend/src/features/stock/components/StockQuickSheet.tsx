@@ -8,18 +8,19 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { apiErrorMessage } from '@/lib/form-errors'
-import { formatQuantity } from '@/lib/format'
+import { formatDay, formatQuantity } from '@/lib/format'
 import type { Id } from '@/types/api'
 import type { Product, ProductShopStock } from '@/types/catalog'
-import type { AdjustmentKind } from '@/types/stock'
+import type { AdjustmentKind, StockLot } from '@/types/stock'
 import { useCreateAdjustment } from '../hooks'
-import { ADJUSTMENT_REASONS } from '../reasons'
+import { ADJUSTMENT_REASONS, EXIT_REASON, expiryOrNull } from '../reasons'
 
 const parse = (v: string) => Number(v.replace(',', '.'))
 
 /**
  * Mouvement de stock d'un seul produit depuis sa fiche, sans passer par « Mon stock » :
  * ajout, retrait ou correction après comptage. Même endpoint que les mouvements MS-N (M07).
+ * Avec `lot` : retrait d'un arrivage précis (produits périmés, §7.11).
  */
 export function StockQuickSheet({
   kind,
@@ -27,6 +28,7 @@ export function StockQuickSheet({
   product,
   shop,
   stock,
+  lot = null,
 }: {
   /** null : panneau fermé. */
   kind: AdjustmentKind | null
@@ -34,6 +36,7 @@ export function StockQuickSheet({
   product: Product
   shop: { id: Id; name: string }
   stock: ProductShopStock
+  lot?: (StockLot & { variant_id: Id | null }) | null
 }) {
   const { t } = useTranslation()
   return (
@@ -44,7 +47,7 @@ export function StockQuickSheet({
       description={`${product.name} · ${shop.name}`}
     >
       {/* Remonté à chaque ouverture : le formulaire repart de zéro et reçoit un nouvel identifiant d'envoi. */}
-      {kind && <QuickForm key={kind} kind={kind} onDone={onClose} product={product} shop={shop} stock={stock} />}
+      {kind && <QuickForm key={`${kind}-${lot?.id ?? ''}`} kind={kind} onDone={onClose} product={product} shop={shop} stock={stock} lot={lot} />}
     </ResponsiveSheet>
   )
 }
@@ -55,23 +58,29 @@ function QuickForm({
   product,
   shop,
   stock,
+  lot,
 }: {
   kind: AdjustmentKind
   onDone: () => void
   product: Product
   shop: { id: Id; name: string }
   stock: ProductShopStock
+  lot: (StockLot & { variant_id: Id | null }) | null
 }) {
   const { t } = useTranslation()
   const create = useCreateAdjustment(shop.id)
   // Idempotence : un double appui n'enregistre qu'un mouvement (ADR-005).
   const [offlineUuid] = useState(() => crypto.randomUUID())
   const variants = stock.variants
-  const [variantId, setVariantId] = useState(variants.length === 1 ? String(variants[0]!.id) : '')
+  const [variantId, setVariantId] = useState(lot?.variant_id ? String(lot.variant_id) : variants.length === 1 ? String(variants[0]!.id) : '')
   const variant = variants.find((v) => String(v.id) === variantId)
-  const current = Number(product.type === 'variable' ? (variant?.quantity ?? 0) : stock.quantity)
-  const [value, setValue] = useState(kind === 'inventory' ? String(current) : '1')
-  const [reasonKey, setReasonKey] = useState(ADJUSTMENT_REASONS[kind][0]!)
+  // Retrait d'un arrivage : on ne peut pas prendre plus que ce qu'il contient.
+  const current = Number(lot ? lot.quantity : product.type === 'variable' ? (variant?.quantity ?? 0) : stock.quantity)
+  const [value, setValue] = useState(kind === 'inventory' || lot ? String(current) : '1')
+  const [reasonKey, setReasonKey] = useState(lot ? 'exit_expired' : ADJUSTMENT_REASONS[kind][0]!)
+  // Produit suivi : date de l'arrivage créé par une entrée, ou par un inventaire qui ajoute (§7.11).
+  const withDate = Boolean(product.track_expiry) && kind !== 'exit'
+  const [expiry, setExpiry] = useState('')
   const [otherReason, setOtherReason] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
@@ -102,11 +111,17 @@ function QuickForm({
     setSubmitted(true)
     setServerError(null)
     if (errors.variant || errors.quantity || errors.reason) return
-    const item = { product_id: product.id, ...(variant ? { variant_id: variant.id } : {}) }
+    const item = {
+      product_id: product.id,
+      ...(variant ? { variant_id: variant.id } : {}),
+      ...(withDate ? { expiry_date: expiryOrNull(expiry) } : {}),
+      ...(lot ? { stock_lot_id: lot.id } : {}),
+    }
     create.mutate(
       {
         kind,
         reason,
+        ...(kind === 'exit' ? { exit_reason: EXIT_REASON[reasonKey] ?? 'other' } : {}),
         offline_uuid: offlineUuid,
         items: [kind === 'inventory' ? { ...item, counted_quantity: String(n) } : { ...item, quantity: String(n) }],
       },
@@ -126,7 +141,15 @@ function QuickForm({
     <form onSubmit={submit} noValidate className="grid gap-5">
       {serverError && <FormAlert>{serverError}</FormAlert>}
 
-      {product.type === 'variable' && (
+      {lot && (
+        <p className="rounded-md border-2 border-foreground bg-muted px-3 py-2 font-semibold">
+          {lot.expiry_date
+            ? t('stock.expiry.lot_line', { value: `${formatQuantity(lot.quantity)} ${product.unit.short_name}`, date: formatDay(lot.expiry_date) })
+            : t('stock.expiry.lot_undated', { value: `${formatQuantity(lot.quantity)} ${product.unit.short_name}` })}
+        </p>
+      )}
+
+      {product.type === 'variable' && !lot && (
         <div className="grid gap-2">
           <span className="font-semibold">{t('products.stock_actions.variant')}</span>
           <Select
@@ -164,7 +187,9 @@ function QuickForm({
           describedBy={show(errors.quantity) ? 'quick-qty-error' : undefined}
         />
         <p className="text-sm text-muted-foreground">
-          {t('products.stock_actions.current', { shop: shop.name, value: `${formatQuantity(current)} ${unit}` })}
+          {lot
+            ? t('stock.form.in_stock', { value: `${formatQuantity(current)} ${unit}` })
+            : t('products.stock_actions.current', { shop: shop.name, value: `${formatQuantity(current)} ${unit}` })}
           {kind === 'inventory' && value.trim() !== '' && n >= 0 && (
             <span className="ml-2 font-bold">
               {gap === 0 ? t('stock.form.gap_none') : t('stock.form.gap', { value: `${gap > 0 ? '+' : '−'}${formatQuantity(Math.abs(gap))}` })}
@@ -173,6 +198,12 @@ function QuickForm({
         </p>
         {show(errors.quantity) && <FieldError id="quick-qty-error">{errors.quantity}</FieldError>}
       </div>
+
+      {withDate && (
+        <FormField id="quick-expiry" label={t('stock.expiry.date')} optional hint={t('stock.expiry.date_hint')}>
+          <Input type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+        </FormField>
+      )}
 
       <div className="grid gap-2">
         <span className="font-semibold">{t('stock.form.reason')}</span>

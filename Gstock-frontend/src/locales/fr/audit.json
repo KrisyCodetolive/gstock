@@ -32,6 +32,7 @@
       "sale.price_changed": "Prix modifié à la caisse",
       "stock.adjusted": "Mouvement de stock manuel",
       "stock.adjustment_cancelled": "Mouvement de stock annulé",
+      "stock.lot_dated": "Date de péremption modifiée",
       "credit.opening_balance": "Ancienne dette saisie",
       "credit.cancelled": "Crédit annulé",
       "credit.adjusted": "Crédit régularisé",

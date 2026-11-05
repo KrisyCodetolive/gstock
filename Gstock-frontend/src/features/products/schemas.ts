@@ -40,6 +40,13 @@ export const productSchema = z
     tax_rate: decimal(false, i18n.t('products.form.invalid_number')),
     brand_id: z.string(),
     variants: z.array(variantSchema),
+    /** Dates de péremption (§7.11) : tout est facultatif. */
+    track_expiry: z.boolean(),
+    expiry_alert_days: z
+      .string()
+      .trim()
+      .refine((v) => v === '' || (/^\d+$/.test(v) && Number(v) <= 365), i18n.t('products.form.invalid_alert_days')),
+    initial_expiry_date: z.string(),
   })
   .superRefine((v, ctx) => {
     if (v.type !== 'variable') {
@@ -58,6 +65,7 @@ export type ProductForm = z.infer<typeof productSchema>
 
 export const PRODUCT_FIELDS = [
   'name', 'price', 'category_id', 'cost', 'unit_id', 'purchase_unit_id', 'barcode', 'code', 'stock_alert', 'initial_quantity', 'type', 'tax_rate', 'brand_id', 'variants',
+  'track_expiry', 'expiry_alert_days', 'initial_expiry_date',
 ] as const
 
 const trimNumber = (v: string | null) => (v === null ? '' : String(Number(v)))
@@ -77,6 +85,9 @@ export function productToForm(p?: Product): ProductForm {
     type: p?.type ?? 'simple',
     tax_rate: p ? trimNumber(p.tax_rate) : '',
     brand_id: p?.brand ? String(p.brand.id) : '',
+    track_expiry: p?.track_expiry ?? false,
+    expiry_alert_days: p?.expiry_alert_days == null ? '' : String(p.expiry_alert_days),
+    initial_expiry_date: '',
     variants: (p?.variants ?? []).map((x) => ({
       id: x.id,
       name: x.name,
@@ -108,6 +119,8 @@ export function formToPayload(v: ProductForm, product?: Product, shopId?: number
     tax_rate: dec(v.tax_rate),
     stock_alert: dec(v.stock_alert),
     is_active: product?.is_active ?? true,
+    track_expiry: v.type !== 'service' && v.track_expiry,
+    expiry_alert_days: v.type !== 'service' && v.track_expiry && v.expiry_alert_days !== '' ? Number(v.expiry_alert_days) : null,
     ...(v.type === 'variable'
       ? {
           variants: v.variants.map((x) => ({
@@ -120,6 +133,12 @@ export function formToPayload(v: ProductForm, product?: Product, shopId?: number
           })),
         }
       : {}),
-    ...(product ? {} : { initial_quantity: dec(v.initial_quantity), shop_id: shopId }),
+    ...(product
+      ? {}
+      : {
+          initial_quantity: dec(v.initial_quantity),
+          initial_expiry_date: v.track_expiry && v.initial_expiry_date !== '' ? v.initial_expiry_date : null,
+          shop_id: shopId,
+        }),
   }
 }
