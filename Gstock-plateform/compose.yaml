@@ -1,5 +1,9 @@
 # Développement local : PostgreSQL 16 (ADR-001). L'application tourne avec `composer dev`.
 # Base « gstock » pour le développement, « gstock_test » pour les tests (créée au premier démarrage).
+#
+# `docker compose up -d`                    : la base seulement.
+# `docker compose --profile app up -d --build` : la base et l'API dans l'image de production
+#   (http://localhost:8001, back-office sur /admin) ; APP_KEY est lue dans .env.
 services:
   pgsql:
     image: postgres:16-alpine
@@ -17,6 +21,37 @@ services:
       test: ["CMD", "pg_isready", "-U", "gstock", "-d", "gstock"]
       interval: 5s
       retries: 10
+
+  app:
+    profiles: [app]
+    build: .
+    image: gstock-api:local
+    container_name: gstock-api
+    depends_on:
+      pgsql:
+        condition: service_healthy
+    ports:
+      - "${FORWARD_APP_PORT:-8001}:8080"
+    environment:
+      APP_KEY: ${APP_KEY}
+      # Image de production lancée en local : la page de paiement simulée reste permise.
+      APP_ENV: local
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:${FORWARD_APP_PORT:-8001}
+      APP_LOCALE: fr
+      DB_CONNECTION: pgsql
+      DB_HOST: pgsql
+      DB_PORT: 5432
+      DB_DATABASE: gstock
+      DB_USERNAME: gstock
+      DB_PASSWORD: gstock
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      MAIL_MAILER: log
+      TENANCY_CENTRAL_DOMAINS: localhost
+      SANCTUM_STATEFUL_DOMAINS: "*.localhost,*.localhost:*"
+      FRONTEND_URL: "http://{tenant}.localhost:5173"
 
 volumes:
   gstock-pgsql:
