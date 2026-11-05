@@ -99,6 +99,14 @@ export interface Me {
   support: { admin_name: string; expires_at: IsoDate } | null
 }
 
+/** POST /auth/central-login : un espace où le compte existe, avec son lien de connexion à usage unique. */
+export interface CentralSpace {
+  name: string
+  slug: string
+  url: string
+  login_url: string
+}
+
 export interface LoginPayload {
   /** E-mail ou numéro de téléphone. */
   login: string

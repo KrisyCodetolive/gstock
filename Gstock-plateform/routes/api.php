@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AdjustmentController;
 use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\CentralLoginController;
 use App\Http\Controllers\Api\V1\CreditController;
 use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\DashboardController;
@@ -41,6 +42,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('plans', [RegistrationController::class, 'plans']);
 Route::get('register/check-slug', [RegistrationController::class, 'checkSlug'])->middleware('throttle:60,1');
 Route::post('register', [RegistrationController::class, 'register'])->middleware('throttle:10,1');
+// Connexion sur le domaine principal : trouve l'espace de la personne et l'y envoie déjà connectée (ADR-009).
+Route::post('auth/central-login', [CentralLoginController::class, 'login'])->middleware('throttle:auth');
 
 // Webhook GeniusPay des abonnements (ADR-003) : authentifié par sa signature.
 Route::post('webhooks/geniuspay/platform', [GeniusPayWebhookController::class, 'platform'])->middleware('throttle:120,1');
