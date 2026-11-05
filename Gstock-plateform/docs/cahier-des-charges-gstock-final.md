@@ -5,8 +5,8 @@
 | | |
 |---|---|
 | **Éditeur** | Genius Groups SAS |
-| **Version** | 3.0 — fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
-| **Date** | 3 novembre 2026 |
+| **Version** | 3.1 — ajout des dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
+| **Date** | 5 novembre 2026 |
 | **Cible** | Boutiques de quartier, épiceries, mini-markets, commerces de proximité et petits détaillants |
 | **Statut** | Définitif pour la phase 1 — évolutif pour les phases suivantes |
 
@@ -171,7 +171,7 @@ Un utilisateur qui a accès à plusieurs boutiques voit la boutique courante en 
 | M04 | Utilisateurs, rôles et permissions |
 | M05 | Référentiels : catégories, unités, modes de paiement, catégories de dépenses |
 | M06 | Mes produits |
-| M07 | Mon stock : entrées, sorties, ajustements, historique, alertes |
+| M07 | Mon stock : entrées, sorties, ajustements, historique, alertes, dates de péremption |
 | M08 | Ventes / Point de vente (POS), paiement immédiat, mixte ou à crédit, en ligne puis hors ligne |
 | M09 | Mes crédits clients : crédits, remboursements, échéances, reçus |
 | M10 | Mes clients |
@@ -514,12 +514,13 @@ Pour faciliter la prise en main, l'écran de création de rôle peut proposer de
 | Approvisionnement reçu | + |
 | Annulation d'approvisionnement | − |
 | Entrée manuelle | + |
-| Sortie manuelle (perte, casse, consommation) | − |
+| Sortie manuelle, avec un motif choisi dans une liste : périmé, cassé, volé, consommé, autre (§7.11) | − |
 | Ajustement d'inventaire | + ou − (écart) |
 | Remboursement de crédit | aucun |
 
 - La création d'un produit crée une ligne de stock à 0 dans chaque boutique ; la création d'une boutique crée une ligne à 0 pour chaque produit.
 - **Le stock ne peut jamais devenir négatif** (décision P1, §17). Toute opération qui ferait passer `shop_stock.quantity` sous 0 est refusée par le serveur (`422`, message en français simple, ex. « Stock insuffisant : il reste 3 unités de Riz 5 kg ») : vente, sortie manuelle, annulation d'approvisionnement. Le contrôle est fait dans la transaction, avec verrouillage de la ligne `shop_stock`, pour être sûr en concurrence. Le POS empêche d'ajouter au panier une quantité supérieure au stock disponible.
+- Pour un produit dont les dates de péremption sont suivies, le stock de chaque boutique est en plus découpé par arrivage et par date (§7.11).
 
 ### 7.3 Unités
 
@@ -599,8 +600,9 @@ GStock distingue toujours, dans le tableau de bord et les rapports :
 | Dépenses | Total des dépenses |
 | Reste à récupérer | Σ des soldes clients |
 | Résultat estimé | Ventes totales − coût d'achat des produits vendus − dépenses (si les prix d'achat sont renseignés) |
+| Pertes | Valeur, au prix d'achat, des produits sortis du stock comme périmés, cassés ou volés (§7.11) |
 
-Une vente à crédit est une vente mais pas un encaissement. Un remboursement est un encaissement mais pas une vente.
+Une vente à crédit est une vente mais pas un encaissement. Un remboursement est un encaissement mais pas une vente. Une perte n'est ni une dépense ni une sortie d'argent : l'argent est sorti à l'achat de la marchandise. Elle est affichée sur une ligne distincte et n'est pas déduite du résultat estimé.
 
 ### 7.9 Références automatiques
 
@@ -619,6 +621,42 @@ Une vente à crédit est une vente mais pas un encaissement. Un remboursement es
 
 - Chaque opération a une **date métier** (date et heure de l'opération), distincte de sa date d'enregistrement (utile pour les opérations hors ligne).
 - Fuseau horaire paramétrable par espace (défaut : `Africa/Abidjan`).
+
+### 7.11 Dates de péremption
+
+GStock suit les dates de péremption **par arrivage**, sans numéro de lot du fabricant. La fonction est accessible à tous, sans le mode avancé, et **tous ses champs sont facultatifs**.
+
+**Activation par produit**
+- Chaque produit stocké a un interrupteur « Suivre les dates de péremption » (`track_expiry`), **désactivé par défaut**. Un service ne l'a jamais. Pour un produit à variantes, il s'applique à toutes les variantes.
+- Le délai d'alerte « Prévenir X jours avant » est réglable par produit ; à défaut, le délai de l'espace s'applique (7 jours par défaut).
+- À l'activation, le stock déjà présent dans chaque boutique devient un arrivage **sans date**. À la désactivation, les arrivages sont gardés dans l'historique mais ne sont plus tenus ni affichés.
+
+**Arrivages**
+- Pour un produit suivi, chaque entrée de marchandise crée un **arrivage** (`stock_lots`) dans la boutique : quantité initiale (à la création du produit), entrée de stock, approvisionnement, ajustement d'inventaire positif.
+- La **date de péremption est facultative** à chaque entrée. Sans date, l'arrivage est « sans date » ; sa date peut être renseignée plus tard (permission `stock.adjust`, action journalisée).
+- Un arrivage contenant deux dates se saisit en deux lignes.
+- La somme des quantités restantes des arrivages d'un (produit, variante, boutique) est **toujours égale** à `shop_stock.quantity`. Aucun arrivage ne devient négatif.
+
+**Sorties**
+- Une vente, une sortie manuelle ou un ajustement d'inventaire négatif puise automatiquement dans les arrivages, dans cet ordre : **dates les plus proches d'abord**, puis les arrivages sans date ; à date égale, le plus ancien arrivage d'abord. Le vendeur ne choisit jamais d'arrivage à la caisse.
+- Chaque sortie garde la trace des arrivages où elle a puisé (`stock_lot_movements`). Son annulation remet chaque quantité dans son arrivage d'origine.
+- **Retirer les produits périmés** : sortie de stock avec le motif « Périmé », qui vise un arrivage précis (proposé depuis l'alerte). Sa valeur au prix d'achat compte dans les **Pertes** (§7.8).
+- **Motif d'une sortie manuelle** : choisi dans une liste (`exit_reason`) : Périmé (`expired`), Cassé (`damaged`), Volé (`stolen`), Consommé (`consumed`, usage de la boutique ou du commerçant), Autre (`other`), avec une précision écrite facultative. Ce motif vaut pour tous les produits, suivis ou non. Seuls Périmé, Cassé et Volé comptent dans les **Pertes** (§7.8).
+
+**Annulation d'un approvisionnement**
+- Elle retire du stock les quantités de **ses propres arrivages**. Si une partie de ces arrivages a déjà été vendue ou sortie, l'annulation est **refusée** (`422`, ex. « 15 Yaourt nature de cet approvisionnement sont déjà vendus. Corrigez le stock par un inventaire. »). Les dates de péremption restent ainsi toujours justes.
+
+**Alertes**
+
+| État d'un arrivage | Condition |
+|---|---|
+| Bientôt périmé | Date de péremption dans le délai d'alerte |
+| Périmé | Date de péremption dépassée (le jour même compte comme périmé) |
+
+- Tableau de bord : carte « Péremption » (produits bientôt périmés et périmés, quantité et valeur), qui ouvre « Mon stock » filtré.
+- « Mon stock » : filtres « Bientôt périmés » et « Périmés » ; la fiche produit détaille le stock par date (ex. « 12 pce au 20/11, 30 pce au 15/12, 5 pce sans date »).
+- **À la caisse** : quand un produit qui a une quantité périmée dans la boutique est scanné ou ajouté au panier, une **alerte** s'affiche (ex. « Attention : 3 pce de Yaourt nature sont périmés depuis le 02/11 »). La vente reste possible ; le commerçant décide. L'alerte fonctionne aussi hors ligne, à partir des informations de péremption du cache de la caisse.
+- Aucune alerte n'est envoyée automatiquement en dehors de l'application (voir P13, §17).
 
 ---
 
@@ -646,7 +684,7 @@ Une vente à crédit est une vente mais pas un encaissement. Un remboursement es
 
 | Table | Colonnes principales |
 |---|---|
-| `tenant_settings` | logo, phone, email, address, receipt_footer, advanced_mode (variantes, taxes, unités multiples), default_payment_method_id |
+| `tenant_settings` | logo, phone, email, address, receipt_footer, advanced_mode (variantes, taxes, unités multiples), default_payment_method_id, expiry_alert_days (délai d'alerte de péremption, 7 par défaut) |
 | `tenant_payment_settings` | provider (`geniuspay`), api_key, api_secret, webhook_secret (chiffrés), is_sandbox, is_active |
 | `shops` | name, city, district, address, phone, receipt_note, receipt_show_customer, receipt_show_phone, auto_print_receipt, default_customer_id, is_active |
 | `document_sequences` | document_type, next_number |
@@ -669,12 +707,14 @@ Une vente à crédit est une vente mais pas un encaissement. Un remboursement es
 | `categories` | name, color |
 | `brands` | name (option avancée) |
 | `units` | name, short_name, base_unit_id, operator (`*`, `/`), operator_value |
-| `products` | type (`simple`, `variable`, `service`), name, code (unique par espace, généré si vide), barcode, category_id, brand_id, unit_id, sale_unit_id, purchase_unit_id, cost, price, tax_rate, tax_method, stock_alert, image, is_active |
+| `products` | type (`simple`, `variable`, `service`), name, code (unique par espace, généré si vide), barcode, category_id, brand_id, unit_id, sale_unit_id, purchase_unit_id, cost, price, tax_rate, tax_method, stock_alert, image, is_active, track_expiry, expiry_alert_days (facultatif) |
 | `product_variants` | product_id, name, code, barcode, cost, price, is_active |
 | `shop_stock` | shop_id, product_id, product_variant_id, quantity, stock_alert (surcharge du seuil par boutique, facultatif) |
 | `stock_movements` | shop_id, product_id, product_variant_id, quantity (signée), unit_cost, source_type, source_id, user_id, occurred_at |
-| `adjustments` | shop_id, reference, kind (`entry`, `exit`, `inventory`), reason, occurred_at, user_id, status, offline_uuid |
-| `adjustment_items` | adjustment_id, product_id, product_variant_id, quantity, counted_quantity (inventaire) |
+| `stock_lots` | shop_id, product_id, product_variant_id, expiry_date (facultative), initial_quantity, quantity (restante, jamais négative), unit_cost, source_type, source_id (entrée d'origine), received_at |
+| `stock_lot_movements` | stock_lot_id, stock_movement_id, quantity (signée) — répartition d'un mouvement sur les arrivages (§7.11) |
+| `adjustments` | shop_id, reference, kind (`entry`, `exit`, `inventory`), exit_reason (`expired`, `damaged`, `stolen`, `consumed`, `other`), reason, occurred_at, user_id, status, offline_uuid |
+| `adjustment_items` | adjustment_id, product_id, product_variant_id, quantity, counted_quantity (inventaire), expiry_date (entrée, facultative), stock_lot_id (sortie d'un arrivage précis, facultatif) |
 
 ### 8.5 Ventes et paiements
 
@@ -702,7 +742,7 @@ Une vente à crédit est une vente mais pas un encaissement. Un remboursement es
 |---|---|
 | `suppliers` | name, phone, address, note, is_active |
 | `purchases` | shop_id, supplier_id (facultatif), reference, occurred_at, subtotal, discount, tax_amount, total, paid_amount, payment_status (`paid`, `partial`, `unpaid`), status (`received`, `cancelled`), user_id, note |
-| `purchase_items` | purchase_id, product_id, product_variant_id, unit_id, quantity, base_quantity, cost, discount, discount_method, tax_rate, tax_method, tax_amount, subtotal |
+| `purchase_items` | purchase_id, product_id, product_variant_id, unit_id, quantity, base_quantity, cost, discount, discount_method, tax_rate, tax_method, tax_amount, subtotal, expiry_date (facultative, produits suivis) |
 | `purchase_payments` | purchase_id, payment_method_id, amount, paid_at, user_id, note, status |
 | `expense_categories` | name (par défaut : Transport, Électricité, Loyer, Internet, Personnel, Autres dépenses) |
 | `expenses` | shop_id, reference, offline_uuid, occurred_at, expense_category_id, amount, payment_method_id, note, user_id, status |
@@ -717,6 +757,7 @@ Une vente à crédit est une vente mais pas un encaissement. Un remboursement es
 - `users` N–1 `roles` ; `users` N–N `shops` via `shop_user`.
 - `roles` N–N `permissions` via `permission_role`.
 - `products` → `categories`, `brands`, `units` ; `product_variants` → `products` ; `shop_stock` relie produit / variante et boutique.
+- `stock_lots` → `shops`, `products`, `product_variants` ; `stock_lot_movements` relie arrivages et mouvements de stock.
 - `sales` → `shops`, `customers`, `users` ; `sale_items` et `sale_payments` → `sales`.
 - `customer_credits` → `customers`, `shops`, `sales` (facultatif).
 - `credit_repayments` → `customers` ; `credit_repayment_allocations` relie remboursements et crédits.
@@ -869,6 +910,7 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 **Fonctionnalités.**
 - Liste [LISTE] : recherche par nom, code ou code-barres ; filtre par catégorie ; colonnes image, nom, catégorie, prix de vente, quantité dans la boutique courante, état du stock.
 - Création rapide avec **seulement le nom et le prix de vente obligatoires** ; facultatifs : catégorie, prix d'achat, unité, code-barres, seuil d'alerte, image, quantité initiale dans la boutique courante.
+- Suivi des dates de péremption (§7.11), accessible sans le mode avancé : interrupteur « Suivre les dates de péremption » et délai d'alerte, facultatifs ; date de péremption facultative à côté de la quantité initiale ; la fiche affiche le stock par date.
 - Mode avancé : type (simple, variable, service), variantes, marque, unités de vente et d'achat, taxe.
 - Modifier, désactiver ; scan du code-barres par la caméra.
 - Le catalogue est commun à toutes les boutiques ; la fiche affiche le stock par boutique.
@@ -889,12 +931,13 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 - Historique des mouvements d'un produit.
 - Alertes de stock faible et de rupture.
 - Vue « Toutes mes boutiques » pour le propriétaire.
+- Dates de péremption (§7.11) : date facultative à chaque entrée d'un produit suivi ; filtres « Bientôt périmés » et « Périmés » ; stock par date d'un produit ; date d'un arrivage renseignée ou corrigée ; sortie « Périmé » d'un arrivage précis.
 
-**Tables.** `shop_stock`, `stock_movements`, `adjustments`, `adjustment_items`.
+**Tables.** `shop_stock`, `stock_movements`, `stock_lots`, `stock_lot_movements`, `adjustments`, `adjustment_items`.
 
-**Endpoints.** `GET /shops/{shop_id}/stock`, `GET /shops/{shop_id}/stock/alerts`, `GET /shops/{shop_id}/stock/movements?product_id=`, `POST /shops/{shop_id}/adjustments`, `POST /shops/{shop_id}/adjustments/{id}/cancel`.
+**Endpoints.** `GET /shops/{shop_id}/stock` (avec `filter[expiry]=soon|expired`), `GET /shops/{shop_id}/stock/alerts`, `GET /shops/{shop_id}/stock/movements?product_id=`, `GET /shops/{shop_id}/stock/lots?product_id=`, `PUT /shops/{shop_id}/stock/lots/{id}` (date de péremption), `POST /shops/{shop_id}/adjustments` (avec `exit_reason`, et par ligne `expiry_date` ou `stock_lot_id`), `POST /shops/{shop_id}/adjustments/{id}/cancel`.
 
-**Critères d'acceptation.** Après chaque opération, `shop_stock.quantity` est égal à la somme des mouvements et n'est jamais négatif. Toute opération de stock est transactionnelle.
+**Critères d'acceptation.** Après chaque opération, `shop_stock.quantity` est égal à la somme des mouvements et n'est jamais négatif. Toute opération de stock est transactionnelle. Pour un produit suivi, la somme des arrivages est égale à `shop_stock.quantity`, et une vente puise d'abord dans la date la plus proche.
 
 ### M08 — Ventes / Point de vente (POS)
 
@@ -909,6 +952,7 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 - Reçu : impression (58 / 80 mm) ou partage WhatsApp (ADR-013).
 - Historique des ventes [LISTE] : filtres période, client, vendeur, statut de paiement ; détail d'une vente.
 - Annulation d'une vente avec motif (permission `sales.cancel`) : restitution du stock, annulation du crédit associé.
+- **Alerte de péremption** (§7.11) : un produit qui a une quantité périmée dans la boutique déclenche une alerte quand il est scanné ou ajouté au panier ; la vente reste possible. `pos/bootstrap` fournit pour cela les informations de péremption de chaque produit.
 - **Mode hors ligne** (ADR-005) : indicateur de connexion, file des opérations à synchroniser, synchronisation automatique, liste des opérations « à vérifier ».
 
 **Tables.** `sales`, `sale_items`, `sale_payments`, `customer_credits`.
@@ -970,7 +1014,8 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 **Fonctionnalités.**
 - Approvisionnement : boutique, fournisseur facultatif, date, produits, quantités, prix d'achat, total ; référence `AP-xxxx`. Le stock augmente à l'enregistrement ; le prix d'achat du produit peut être mis à jour.
 - Montant payé au fournisseur, reste dû, paiements ultérieurs ; échéancier facultatif.
-- Historique des approvisionnements [LISTE] ; annulation avec motif (retrait du stock).
+- Date de péremption facultative par ligne, pour les produits suivis (§7.11).
+- Historique des approvisionnements [LISTE] ; annulation avec motif (retrait du stock), refusée si une partie de ses arrivages a déjà été vendue ou sortie (§7.11).
 - Fournisseurs [LISTE] : nom, téléphone, adresse, note ; total acheté, payé, dû.
 
 **Tables.** `suppliers`, `purchases`, `purchase_items`, `purchase_payments`, `installments`.
@@ -1002,6 +1047,7 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 | Crédits clients | Reste à récupérer, nombre de clients | Mes crédits clients |
 | Dépenses | Total de la période | Liste des dépenses |
 | Résultat estimé | Résultat si les prix d'achat sont renseignés | Détail du calcul |
+| Péremption | Produits bientôt périmés et périmés (quantité, valeur) ; pertes de la période (§7.8) | Mon stock filtré |
 
 - **Actions rapides** : Vendre, Ajouter un produit, Ajouter un client, Enregistrer un remboursement, Ajouter un approvisionnement, Enregistrer une dépense.
 - **Activité récente** : ventes, ventes à crédit, remboursements, approvisionnements, dépenses, mouvements de stock ; chaque élément ouvre son détail.
@@ -1273,6 +1319,8 @@ La réussite se mesure à l'adoption réelle, pas au nombre de comptes créés. 
 | P9 | Nom de domaine de la plateforme | — | ADR-009, ADR-010 |
 | P10 | Reprise de données de commerçants existants | À confirmer | Planning |
 | P11 | Transfert de propriété ou second propriétaire | Prévoir un transfert du rôle Owner via le support (back-office) | M04, M01 |
+| P12 | Gestion des produits périssables | **Décidé : dates de péremption par arrivage, sans numéro de lot, accessibles sans le mode avancé, champs facultatifs ; alerte à la caisse sans blocage ; pertes (périmé, cassé, volé) sur une ligne distincte du tableau de bord ; annulation d'un approvisionnement refusée si ses arrivages sont entamés** (§7.11) | M06, M07, M08, M11, M13 |
+| P13 | Alerte de péremption envoyée chaque jour par WhatsApp | Envisagé pour plus tard ; demande l'API WhatsApp Business, écartée par l'ADR-013 en phase 1 | M07, ADR-013 |
 
 ---
 
