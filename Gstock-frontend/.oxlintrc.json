@@ -52,8 +52,7 @@
   "overrides": [
     {
       "files": [
-        "src/lib/api/client.ts",
-        "src/mocks/**"
+        "src/lib/api/client.ts"
       ],
       "rules": {
         "no-restricted-globals": "off",

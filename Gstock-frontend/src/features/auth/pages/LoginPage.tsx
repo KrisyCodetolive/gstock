@@ -14,10 +14,10 @@ import type { CentralSpace } from '@/types/auth'
 import { useCentralLogin, useLogin, useMe } from '../hooks'
 import { loginSchema, type LoginForm } from '../schemas'
 
-// Comptes de démonstration : chargés seulement avec les données simulées,
-// pour que le build de production ne contienne aucune donnée de démonstration.
+// Comptes de test des seeders : chargés en développement seulement,
+// pour que le build de production n'en contienne aucun.
 const DemoAccounts =
-  import.meta.env.VITE_USE_MOCKS === 'true'
+  import.meta.env.DEV
     ? lazy(() => import('../components/DemoAccounts').then((m) => ({ default: m.DemoAccounts })))
     : null
 

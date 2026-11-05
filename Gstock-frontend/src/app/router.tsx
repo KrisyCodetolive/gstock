@@ -54,11 +54,6 @@ const RegisterPage = lazy(() => import('@/features/onboarding/pages/RegisterPage
 const TokenLoginPage = lazy(() => import('@/features/onboarding/pages/TokenLoginPage').then((m) => ({ default: m.TokenLoginPage })))
 const OnboardingPage = lazy(() => import('@/features/onboarding/pages/OnboardingPage').then((m) => ({ default: m.OnboardingPage })))
 const SubscriptionPage = lazy(() => import('@/features/onboarding/pages/SubscriptionPage').then((m) => ({ default: m.SubscriptionPage })))
-// Page de paiement GeniusPay simulée : seulement avec les données simulées.
-const GeniusPaySimulatorPage =
-  import.meta.env.VITE_USE_MOCKS === 'true'
-    ? lazy(() => import('@/mocks/components/GeniusPaySimulatorPage').then((m) => ({ default: m.GeniusPaySimulatorPage })))
-    : null
 const ForgotPasswordPage = lazy(() => import('@/features/auth/pages/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })))
 const ResetPasswordPage = lazy(() => import('@/features/auth/pages/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })))
 const ProfilePage = lazy(() => import('@/features/profile/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })))
@@ -146,9 +141,6 @@ export const router = createBrowserRouter([
   { path: '/inscription', element: <Suspense fallback={<SplashScreen />}><RegisterPage /></Suspense>, errorElement: <RouteErrorPage /> },
   // Lien de connexion à usage unique, reçu à l'inscription.
   { path: '/connexion/lien', element: <Suspense fallback={<SplashScreen />}><TokenLoginPage /></Suspense>, errorElement: <RouteErrorPage /> },
-  ...(GeniusPaySimulatorPage
-    ? [{ path: '/simulation/geniuspay/:invoiceId', element: <Suspense fallback={<SplashScreen />}><GeniusPaySimulatorPage /></Suspense>, errorElement: <RouteErrorPage /> }]
-    : []),
   // Reçu partagé par WhatsApp : public, protégé par un lien signé et expirant (ADR-013).
   {
     path: '/recu/:token',

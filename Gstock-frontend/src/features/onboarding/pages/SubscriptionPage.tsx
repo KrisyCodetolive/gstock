@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { CircleAlert, CreditCard, Loader2, ReceiptText, Repeat } from 'lucide-react'
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { BackLink } from '@/components/BackLink'
@@ -21,12 +21,6 @@ import { cn } from '@/lib/utils'
 import type { Invoice, InvoiceStatus, Plan, Subscription } from '@/types/subscription'
 import { PlanOption } from '../components/PlanCard'
 import { useCheckout, useInvoices, usePlans, useSubscription } from '../hooks'
-
-// Outils pour faire avancer le temps : seulement avec les données simulées.
-const SimulationTools =
-  import.meta.env.VITE_USE_MOCKS === 'true'
-    ? lazy(() => import('@/mocks/components/SubscriptionSimulation').then((m) => ({ default: m.SubscriptionSimulation })))
-    : null
 
 const INVOICE_TONE: Record<InvoiceStatus, 'paid' | 'warn' | 'danger'> = { paid: 'paid', pending: 'warn', failed: 'danger' }
 
@@ -71,11 +65,6 @@ export function SubscriptionPage() {
           <StatusCard subscription={subscription.data} />
           <Usage subscription={subscription.data} />
           <Invoices />
-          {SimulationTools && (
-            <Suspense>
-              <SimulationTools />
-            </Suspense>
-          )}
         </>
       )}
     </div>

@@ -1,128 +1,64 @@
-// Comptes de démonstration, affichés uniquement avec les données simulées.
-import { ChevronRight, RotateCcw, Store } from 'lucide-react'
+// Comptes de test de l'espace de démonstration, créés par les seeders du backend
+// (`php artisan migrate:fresh --seed`, `DemoTenantSeeder`). Affichés en développement seulement.
+import { ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 import { StatusBadge } from '@/components/StatusBadge'
-import { Button } from '@/components/ui/button'
-import { resetAllMocks } from '@/mocks/db'
-import { DEMO_SLUG, platform, PLATFORM_DOMAIN, switchCurrentTenant } from '@/mocks/platform'
-import { roleLabel } from '@/lib/roles'
-import { shops } from '@/mocks/data/tenant'
-import { DEMO_PASSWORD, roles, users } from '@/mocks/data/users'
-import { idbStorage } from '@/offline/storage'
 import type { LoginForm } from '../schemas'
-import { UserAvatar } from './UserAvatar'
 
-/** Ouvre un autre espace simulé, comme si l'on allait sur son sous-domaine. */
-function openSpace(slug: string) {
-  switchCurrentTenant(slug)
-  // Le cache de l'appareil appartient à l'espace quitté (en vrai, chaque sous-domaine a le sien).
-  void clearDeviceData().then(() => window.location.reload())
-}
+const PASSWORD = 'demo1234'
 
-function clearDeviceData() {
-  return Promise.all([idbStorage.removeItem('gstock.query.cache'), idbStorage.removeItem('gstock.offline.queue')])
-}
+const ACCOUNTS = [
+  { name: 'Aminata Koné', email: 'aminata@demo.gstock.app', role: 'Propriétaire', shops: 'Cocody, Yopougon' },
+  { name: 'Ibrahim Traoré', email: 'ibrahim@demo.gstock.app', role: 'Gérant', shops: 'Cocody, Yopougon' },
+  { name: 'Fatou Bamba', email: 'fatou@demo.gstock.app', role: 'Vendeur', shops: 'Cocody' },
+  { name: "Koffi N'Guessan", email: 'koffi@demo.gstock.app', role: 'Caissier', shops: 'Yopougon' },
+  { name: 'Moussa Diallo', email: 'moussa@demo.gstock.app', role: 'Gestionnaire de stock', shops: 'Cocody, Yopougon' },
+  { name: 'Paul Yao', email: 'paul@demo.gstock.app', role: 'Vendeur', shops: 'Cocody', inactive: true },
+]
+
+const initials = (name: string) =>
+  name
+    .split(' ')
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
 
 export function DemoAccounts({ onPick, disabled }: { onPick: (account: LoginForm) => void; disabled?: boolean }) {
   const { t } = useTranslation()
-  if (platform.current !== DEMO_SLUG) return <SpaceSwitcher />
   return (
     <section className="grid gap-3" aria-labelledby="demo-title">
       <div className="grid gap-0.5">
         <h2 id="demo-title" className="text-lg font-bold">
           {t('auth.demo_title')}
         </h2>
-        <p className="text-sm text-muted-foreground">{t('auth.demo_text', { password: DEMO_PASSWORD })}</p>
+        <p className="text-sm text-muted-foreground">{t('auth.demo_text', { password: PASSWORD })}</p>
       </div>
       <ul className="grid gap-2.5">
-        {users.map((user) => {
-          const role = roles.find((r) => r.id === user.role_id)
-          const userShops = role?.is_owner ? shops : shops.filter((s) => user.shop_ids.includes(s.id))
-          return (
-            <li key={user.id}>
-              <button
-                type="button"
-                disabled={disabled}
-                onClick={() => onPick({ login: user.email ?? '', password: user.password })}
-                className="pressable flex min-h-16 w-full items-center gap-3 rounded-md bg-card px-3 py-2 text-left disabled:opacity-60"
-              >
-                <UserAvatar user={user} />
-                <span className="grid min-w-0 flex-1">
-                  <span className="flex flex-wrap items-center gap-2 font-bold">
-                    {user.firstname} {user.lastname}
-                    {!user.is_active && <StatusBadge tone="danger">{t('auth.demo_inactive')}</StatusBadge>}
-                  </span>
-                  <span className="truncate text-sm text-muted-foreground">
-                    {role && roleLabel(role)} · {userShops.map((s) => s.name.replace('Boutique ', '')).join(', ')}
-                  </span>
-                </span>
-                <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="justify-self-start"
-        onClick={() => {
-          resetAllMocks()
-          toast.success(t('auth.demo_reset_done'))
-          void clearDeviceData().then(() => setTimeout(() => window.location.reload(), 600))
-        }}
-      >
-        <RotateCcw aria-hidden="true" />
-        {t('auth.demo_reset')}
-      </Button>
-      <OtherSpaces />
-    </section>
-  )
-}
-
-function OtherSpaces() {
-  const { t } = useTranslation()
-  const others = platform.tenants.filter((x) => x.slug !== platform.current)
-  if (others.length === 0) return null
-  return (
-    <div className="grid gap-2">
-      <h3 className="text-sm font-bold">{t('simulation.other_spaces')}</h3>
-      <ul className="grid gap-2">
-        {others.map((x) => (
-          <li key={x.slug}>
-            <button type="button" onClick={() => openSpace(x.slug)} className="pressable flex min-h-14 w-full items-center gap-3 rounded-md bg-card px-3 text-left">
-              <Store className="size-5 shrink-0" aria-hidden="true" />
+        {ACCOUNTS.map((a) => (
+          <li key={a.email}>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => onPick({ login: a.email, password: PASSWORD })}
+              className="pressable flex min-h-16 w-full items-center gap-3 rounded-md bg-card px-3 py-2 text-left disabled:opacity-60"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-primary-foreground" aria-hidden="true">
+                {initials(a.name)}
+              </span>
               <span className="grid min-w-0 flex-1">
-                <span className="truncate font-bold">{x.name}</span>
+                <span className="flex flex-wrap items-center gap-2 font-bold">
+                  {a.name}
+                  {a.inactive && <StatusBadge tone="danger">{t('auth.demo_inactive')}</StatusBadge>}
+                </span>
                 <span className="truncate text-sm text-muted-foreground">
-                  {x.slug}.{PLATFORM_DOMAIN}
+                  {a.role} · {a.shops}
                 </span>
               </span>
-              <span className="text-sm font-bold text-primary">{t('simulation.open_space')}</span>
+              <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
             </button>
           </li>
         ))}
       </ul>
-    </div>
-  )
-}
-
-/** Espace créé par une inscription : ses comptes ne sont pas ceux de la démonstration. */
-function SpaceSwitcher() {
-  const { t } = useTranslation()
-  const tenant = platform.tenants.find((x) => x.slug === platform.current)
-  return (
-    <section className="grid gap-3 rounded-lg border-2 border-dashed border-muted-foreground p-4">
-      <div className="grid gap-0.5">
-        <h2 className="text-lg font-bold">{t('simulation.space', { name: tenant?.name ?? platform.current })}</h2>
-        <p className="text-sm text-muted-foreground">{t('simulation.space_url', { url: `${platform.current}.${PLATFORM_DOMAIN}` })}</p>
-      </div>
-      <Button type="button" variant="outline" className="justify-self-start" onClick={() => openSpace(DEMO_SLUG)}>
-        {t('simulation.to_demo')}
-      </Button>
-      <OtherSpaces />
     </section>
   )
 }
