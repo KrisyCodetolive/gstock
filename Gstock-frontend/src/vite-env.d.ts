@@ -5,8 +5,6 @@ interface ImportMetaEnv {
   readonly VITE_API_URL?: string
   /** URL du cookie CSRF Sanctum, par défaut /sanctum/csrf-cookie. */
   readonly VITE_CSRF_URL?: string
-  /** "true" active les données simulées (MSW). */
-  readonly VITE_USE_MOCKS?: string
 }
 
 interface ImportMeta {
