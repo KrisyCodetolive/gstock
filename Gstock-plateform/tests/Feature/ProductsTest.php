@@ -46,6 +46,30 @@ class ProductsTest extends TestCase
         $this->api('kone', 'POST', '/products', ['name' => 'Savon', 'price' => '300'], as: $clerk)->assertCreated();
     }
 
+    public function test_each_variant_can_start_with_its_own_stock(): void
+    {
+        ['tenant' => $tenant, 'owner' => $owner, 'shop' => $shop] = $this->createTenant();
+        $tomorrow = now('Africa/Abidjan')->addDay()->toDateString();
+        $body = fn (array $extra = []) => ['name' => 'Jus de fruits 1 L', 'type' => 'variable', 'shop_id' => $shop->id, 'track_expiry' => true, 'variants' => [
+            ['name' => 'Bissap', 'price' => '900', 'initial_quantity' => '12', 'initial_expiry_date' => $tomorrow],
+            ['name' => 'Gingembre', 'price' => '900', 'initial_quantity' => '8'],
+            ['name' => 'Ananas', 'price' => '1000'],
+        ], ...$extra];
+
+        $this->api('kone', 'POST', '/products', ['name' => 'Jus', 'type' => 'variable', 'shop_id' => $shop->id, 'variants' => [['name' => 'Bissap', 'price' => '900', 'initial_quantity' => '-1']]], as: $owner)
+            ->assertUnprocessable()->assertJsonPath('errors.variants.0', 'La quantité de Bissap doit être un nombre positif.');
+        $clerk = $this->createUser($tenant, ['products.view', 'products.create'], [$shop]);
+        $this->api('kone', 'POST', '/products', $body(), as: $clerk)->assertForbidden();
+
+        $juice = $this->api('kone', 'POST', '/products', $body(), as: $owner)->assertCreated()->json('data');
+        $stock = collect($this->api('kone', 'GET', "/products/{$juice['id']}/stock", as: $owner)->json('data'))->firstWhere('shop.id', $shop->id);
+        $this->assertSame(['12.000', '8.000', '0.000'], array_column($stock['variants'], 'quantity'));
+        // Produit suivi : la date de la variante va sur son arrivage.
+        $bissap = $juice['variants'][0]['id'];
+        $this->assertSame([$tomorrow], array_column($this->api('kone', 'GET', "/shops/{$shop->id}/stock/lots?product_id={$juice['id']}&variant_id={$bissap}", as: $owner)->json('data'), 'expiry_date'));
+        $this->assertStockMatchesMovements($tenant);
+    }
+
     public function test_codes_and_barcodes_are_unique_and_the_plan_limits_products(): void
     {
         ['owner' => $owner] = $this->createTenant(plan: 'Essentiel');
