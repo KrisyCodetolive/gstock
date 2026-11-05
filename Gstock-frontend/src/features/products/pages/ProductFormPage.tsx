@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronDown, ClipboardCheck, Eye, EyeOff, History, PackageMinus, PackagePlus } from 'lucide-react'
+import { ChevronDown, ClipboardCheck, CopyPlus, Eye, EyeOff, History, PackageMinus, PackagePlus } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -32,7 +32,7 @@ import { ProductThumb } from '../components/ProductThumb'
 import { StockStateBadge } from '../components/StockStateBadge'
 import { VariantsEditor } from '../components/VariantsEditor'
 import { useProduct, useProductImage, useProductStock, useSaveProduct } from '../hooks'
-import { formToPayload, PRODUCT_FIELDS, productSchema, productToForm, type ProductForm } from '../schemas'
+import { emptyVariant, formToPayload, PRODUCT_FIELDS, productSchema, productToForm, type ProductForm } from '../schemas'
 
 /** Création rapide (/produits/nouveau) et fiche produit (/produits/:id). */
 export function ProductFormPage() {
@@ -106,7 +106,26 @@ function ProductFormBody({ product }: { product?: Product }) {
   const baseUnit = units.data?.data.find((u) => u.id === baseUnitId)
   const canSetInitialQuantity = !product && type === 'simple' && can('stock.entry')
 
-  const submit = form.handleSubmit((values) => {
+  /** « Ajouter et créer un autre » (mise en route) : formulaire vidé pour le produit suivant ; catégorie, unité, type et suivi des dates sont gardés. */
+  const startNext = (name: string) => {
+    const keep = form.getValues()
+    form.reset({
+      ...productToForm(),
+      category_id: keep.category_id,
+      unit_id: keep.unit_id,
+      type: keep.type,
+      track_expiry: keep.track_expiry,
+      expiry_alert_days: keep.expiry_alert_days,
+      variants: keep.type === 'variable' ? [emptyVariant()] : [],
+    })
+    setPendingPhoto(null)
+    toast.success(t('products.form.created_next', { name }))
+    window.scrollTo({ top: 0 })
+    form.setFocus('name')
+  }
+
+  /** `next` : après la création, vider le formulaire pour le produit suivant au lieu d'ouvrir la fiche. */
+  const submitWith = (next: boolean) => form.handleSubmit((values) => {
     setFormError(null)
     save.mutate(formToPayload(values, product, shop?.id), {
       onSuccess: (saved) => {
@@ -114,18 +133,23 @@ function ProductFormBody({ product }: { product?: Product }) {
           form.reset(productToForm(saved))
           toast.success(t('common.saved'))
         } else {
-          const open = () => navigate(`/produits/${saved.id}`, { replace: true })
-          toast.success(t('products.form.created'))
-          if (!pendingPhoto) return void open()
+          const done = () => {
+            if (next) return startNext(saved.name)
+            toast.success(t('products.form.created'))
+            navigate(`/produits/${saved.id}`, { replace: true })
+          }
+          if (!pendingPhoto) return void done()
           image.upload.mutate(
             { id: saved.id, file: pendingPhoto.file },
-            { onError: (error) => toast.error(t('products.form.photo_failed', { reason: apiErrorMessage(error) })), onSettled: open },
+            { onError: (error) => toast.error(t('products.form.photo_failed', { reason: apiErrorMessage(error) })), onSettled: done },
           )
         }
       },
       onError: (error) => setFormError(applyApiErrors(error, form.setError, PRODUCT_FIELDS)),
     })
   })
+
+  const submit = submitWith(false)
 
   const options = (rows: { id: number; name: string }[] | undefined) => rows?.map((r) => ({ value: String(r.id), label: r.name })) ?? []
 
@@ -318,7 +342,14 @@ function ProductFormBody({ product }: { product?: Product }) {
               </div>
             </FormSection>
           )}
-          {type === 'variable' && <VariantsEditor control={form.control} register={form.register} errors={errors} />}
+          {type === 'variable' && (
+            <VariantsEditor
+              control={form.control}
+              register={form.register}
+              errors={errors}
+              stock={!product && shop && can('stock.entry') ? { shopName: shop.name, unit: baseUnit?.short_name ?? '', trackExpiry } : null}
+            />
+          )}
         </fieldset>
 
         {editable && (
@@ -326,7 +357,25 @@ function ProductFormBody({ product }: { product?: Product }) {
             <Button type="button" variant="outline" disabled={save.isPending} onClick={() => (product ? form.reset() : navigate('/produits'))}>
               {t('common.cancel')}
             </Button>
-            <Button type="submit" variant="action" size="lg" disabled={save.isPending || image.upload.isPending || (product && !isDirty)}>
+            {!product && (
+              // Mobile : sur sa propre ligne, sous les deux boutons principaux.
+              <Button
+                type="button"
+                variant="outline"
+                className="order-last col-span-2 sm:order-none sm:col-span-1"
+                disabled={save.isPending || image.upload.isPending}
+                onClick={() => void submitWith(true)()}
+              >
+                <CopyPlus aria-hidden="true" />
+                {t('products.form.add_another')}
+              </Button>
+            )}
+            <Button
+              type="submit"
+              variant="action"
+              size="lg"
+              disabled={save.isPending || image.upload.isPending || (product && !isDirty)}
+            >
               {save.isPending || image.upload.isPending ? t('common.saving') : product ? t('common.save') : t('products.add')}
             </Button>
           </FormActions>

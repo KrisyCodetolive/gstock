@@ -59,6 +59,8 @@
       "required_price": "Saisissez le prix de vente.",
       "invalid_number": "Saisissez un nombre positif.",
       "created": "Produit ajouté.",
+      "created_next": "« {{name}} » ajouté. Saisissez le produit suivant.",
+      "add_another": "Ajouter et créer un autre",
       "unit_default": "Unité (par défaut)",
       "photo": "Photo",
       "photo_failed": "Le produit est créé, mais la photo n'a pas pu être envoyée : {{reason}}",
@@ -102,6 +104,7 @@
       "enabled": "Produit réactivé."
     },
     "variants": {
+      "initial_hint": "Dans {{shop}}. Laissez vide si vous n'en avez pas.",
       "title": "Variantes",
       "hint": "Chaque variante a son prix, son code-barres et son stock dans chaque boutique. Une variante ne se supprime pas : désactivez-la pour ne plus la vendre.",
       "name": "Variante",

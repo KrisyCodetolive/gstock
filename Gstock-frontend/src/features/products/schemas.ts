@@ -17,6 +17,9 @@ const variantSchema = z.object({
   cost: z.string().trim(),
   barcode: z.string().trim(),
   is_active: z.boolean(),
+  /** Création : stock de départ de la variante (facultatif) et sa date de péremption. */
+  initial_quantity: z.string().trim(),
+  initial_expiry_date: z.string(),
 })
 
 export type VariantForm = z.infer<typeof variantSchema>
@@ -57,6 +60,9 @@ export const productSchema = z
       if (!row.name) ctx.addIssue({ code: 'custom', path: ['variants', i, 'name'], message: i18n.t('products.variants.required_name') })
       if (!isNumber(row.price)) ctx.addIssue({ code: 'custom', path: ['variants', i, 'price'], message: i18n.t('products.form.required_price') })
       if (row.cost && !isNumber(row.cost)) ctx.addIssue({ code: 'custom', path: ['variants', i, 'cost'], message: i18n.t('products.form.invalid_number') })
+      if (row.initial_quantity && !isNumber(row.initial_quantity)) {
+        ctx.addIssue({ code: 'custom', path: ['variants', i, 'initial_quantity'], message: i18n.t('products.form.invalid_number') })
+      }
     })
     if (!v.variants.some((row) => row.is_active)) ctx.addIssue({ code: 'custom', path: ['variants'], message: i18n.t('products.variants.required_one') })
   })
@@ -95,11 +101,13 @@ export function productToForm(p?: Product): ProductForm {
       cost: trimNumber(x.cost),
       barcode: x.barcode ?? '',
       is_active: x.is_active,
+      initial_quantity: '',
+      initial_expiry_date: '',
     })),
   }
 }
 
-export const emptyVariant = (): VariantForm => ({ name: '', price: '', cost: '', barcode: '', is_active: true })
+export const emptyVariant = (): VariantForm => ({ name: '', price: '', cost: '', barcode: '', is_active: true, initial_quantity: '', initial_expiry_date: '' })
 
 const dec = (v: string) => (v === '' ? null : v.replace(',', '.'))
 const id = (v: string) => (v === '' ? null : Number(v))
@@ -130,6 +138,13 @@ export function formToPayload(v: ProductForm, product?: Product, shopId?: number
             cost: dec(x.cost),
             barcode: x.barcode || null,
             is_active: x.is_active,
+            // Création seulement : le stock d'une variante existante se change depuis sa fiche.
+            ...(product || x.id
+              ? {}
+              : {
+                  initial_quantity: dec(x.initial_quantity),
+                  initial_expiry_date: v.track_expiry && x.initial_expiry_date !== '' ? x.initial_expiry_date : null,
+                }),
           })),
         }
       : {}),
