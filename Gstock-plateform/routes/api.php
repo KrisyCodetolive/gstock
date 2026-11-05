@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\V1\StockController;
 use App\Http\Controllers\Api\V1\SubscriptionController;
 use App\Http\Controllers\Api\V1\SupplierController;
 use App\Http\Controllers\Api\V1\SyncController;
+use App\Http\Controllers\Api\V1\TransferController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\GeniusPaySimulationController;
 use Illuminate\Support\Facades\Route;
@@ -177,7 +178,13 @@ Route::middleware('tenant')->group(function () {
                 Route::get('stock/movements', [StockController::class, 'movements']);
                 Route::get('stock/lots', [StockController::class, 'lots']);
                 Route::get('adjustments/{id}', [AdjustmentController::class, 'show'])->whereNumber('id');
+                // Transferts entre boutiques (§7.12) : envoyés ou reçus par cette boutique.
+                Route::get('transfers', [TransferController::class, 'index']);
+                Route::get('transfers/{id}', [TransferController::class, 'show'])->whereNumber('id');
             });
+            Route::post('transfers', [TransferController::class, 'store'])->middleware('permission:stock.transfer');
+            Route::post('transfers/{id}/receive', [TransferController::class, 'receive'])->middleware('permission:stock.entry')->whereNumber('id');
+            Route::post('transfers/{id}/cancel', [TransferController::class, 'cancel'])->middleware('permission:stock.transfer')->whereNumber('id');
             // Le type de mouvement (entrée, sortie, inventaire) demande sa propre permission : vérifié dans le service.
             Route::post('adjustments', [AdjustmentController::class, 'store'])->middleware('permission:stock.entry,stock.exit,stock.adjust');
             Route::post('adjustments/{id}/cancel', [AdjustmentController::class, 'cancel'])->middleware('permission:stock.adjust')->whereNumber('id');

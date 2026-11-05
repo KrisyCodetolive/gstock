@@ -1,6 +1,7 @@
 import {
   AlarmClock,
   AlertTriangle,
+  ArrowLeftRight,
   Banknote,
   Boxes,
   CalendarX,
@@ -33,6 +34,7 @@ import type { Permission } from '@/types/auth'
 import type { ActivityItem, Dashboard, DashboardPeriod } from '@/types/dashboard'
 import { useDashboard } from '../hooks'
 import { OnboardingCard } from '@/features/onboarding/components/OnboardingCard'
+import { TransfersToReceive } from '@/features/stock/components/TransfersToReceive'
 
 const PERIODS: DashboardPeriod[] = ['today', 'week', 'month']
 
@@ -50,6 +52,7 @@ export function HomePage() {
     <div className="grid gap-6">
       <PageHeader title={t('home.hello', { name: user.firstname })} subtitle={shop ? `${shop.name} · ${t('home.intro')}` : t('home.intro')} />
       {role.is_owner && <OnboardingCard />}
+      <TransfersToReceive />
       {can('dashboard.view') ? <DashboardView /> : <QuickActionsFromNav />}
     </div>
   )
@@ -373,6 +376,7 @@ const ACTIVITY_ICON: Record<ActivityItem['type'], LucideIcon> = {
   purchase: Truck,
   expense: Wallet,
   adjustment: Boxes,
+  transfer: ArrowLeftRight,
 }
 
 function activityLink(a: ActivityItem): string {
@@ -390,6 +394,8 @@ function activityLink(a: ActivityItem): string {
       return '/depenses?periode=all'
     case 'adjustment':
       return `/stock/operations/${a.id}`
+    case 'transfer':
+      return `/stock/transferts/${a.id}`
   }
 }
 

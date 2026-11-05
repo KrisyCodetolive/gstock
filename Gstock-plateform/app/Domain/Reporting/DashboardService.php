@@ -106,6 +106,8 @@ final class DashboardService
             'expiry' => $this->expiry(),
             // Pertes (§7.8) : ni dépense ni sortie d'argent, et non déduites du résultat estimé.
             'losses' => $this->losses($from, $to),
+            // Transferts en route vers ces boutiques, à réceptionner (§7.12).
+            'transfers' => ['to_receive' => DB::table('stock_transfers')->where('tenant_id', tenant('id'))->whereIn('to_shop_id', $this->shops)->where('status', 'in_transit')->count()],
             'credits' => $this->credits(),
             'result' => [
                 'amount' => D::sub(D::sub($salesTotal, $costOfGoods, D::MONEY), D::format($expenses ?: '0', D::MONEY), D::MONEY),
@@ -175,6 +177,13 @@ final class DashboardService
             ->groupBy('a.exit_reason')
             ->selectRaw('a.exit_reason as reason, coalesce(sum(-m.quantity * m.unit_cost), 0) as amount, count(*) filter (where m.unit_cost is null) as missing')
             ->get()->keyBy('reason');
+        // Manques constatés à la réception d'un transfert, comptés dans la boutique d'arrivée (§7.12).
+        $transfer = DB::table('stock_transfer_items as i')->join('stock_transfers as t', 't.id', '=', 'i.stock_transfer_id')
+            ->where('t.tenant_id', tenant('id'))->whereIn('t.to_shop_id', $this->shops)
+            ->when(! $this->seesAll(), fn ($q) => $q->where('t.received_by', $this->user->id))
+            ->where('t.status', 'received')->whereBetween('t.received_at', [$from, $to])
+            ->selectRaw('coalesce(sum((i.quantity - i.received_quantity) * i.unit_cost), 0) as amount')
+            ->selectRaw('count(*) filter (where i.unit_cost is null and i.received_quantity < i.quantity) as missing')->first();
         $by = [];
         $total = '0.00';
         foreach (AdjustmentService::LOSS_REASONS as $reason) {
@@ -182,8 +191,10 @@ final class DashboardService
             $by[$reason] = $amount;
             $total = D::add($total, $amount, D::MONEY);
         }
+        $by['transfer'] = D::round((string) $transfer->amount, D::MONEY);
+        $total = D::add($total, $by['transfer'], D::MONEY);
 
-        return ['total' => $total, 'by_reason' => $by, 'complete' => $rows->sum('missing') == 0];
+        return ['total' => $total, 'by_reason' => $by, 'complete' => $rows->sum('missing') == 0 && (int) $transfer->missing === 0];
     }
 
     /** Reste à récupérer : soldes des crédits ouverts des boutiques (§7.8). */
@@ -230,6 +241,12 @@ final class DashboardService
             ->concat($take($this->table('purchases')->selectRaw("id, reference, 'purchase' as type, (select name from suppliers x where x.id = purchases.supplier_id) as label, total as amount, occurred_at as at, status = 'cancelled' as cancelled, user_id, null as customer_id")))
             ->concat($take($this->table('expenses')->selectRaw("id, reference, 'expense' as type, (select name from expense_categories x where x.id = expenses.expense_category_id) as label, amount, occurred_at as at, status = 'cancelled' as cancelled, user_id, null as customer_id")))
             ->concat($take($this->table('adjustments')->selectRaw("id, reference, 'adjustment' as type, reason as label, null as amount, occurred_at as at, status = 'cancelled' as cancelled, user_id, null as customer_id")))
+            // Transferts envoyés ou reçus par ces boutiques (§7.12) : « Cocody → Yopougon ».
+            ->concat(DB::table('stock_transfers as t')->where('t.tenant_id', tenant('id'))
+                ->where(fn ($q) => $q->whereIn('t.from_shop_id', $this->shops)->orWhereIn('t.to_shop_id', $this->shops))
+                ->when(! $this->seesAll(), fn ($q) => $q->where(fn ($w) => $w->where('t.sent_by', $this->user->id)->orWhere('t.received_by', $this->user->id)))
+                ->selectRaw("t.id, t.reference, 'transfer' as type, (select name from shops s where s.id = t.from_shop_id) || ' → ' || (select name from shops s where s.id = t.to_shop_id) as label, null as amount, t.sent_at as at, t.status = 'cancelled' as cancelled, t.sent_by as user_id, null as customer_id")
+                ->orderByDesc('at')->orderByDesc('id')->limit(10)->get())
             ->sortByDesc(fn ($r) => CarbonImmutable::parse($r->at)->getTimestamp())->take(10)->values();
         $users = User::query()->whereIn('id', $rows->pluck('user_id')->unique())->get()->keyBy('id');
 

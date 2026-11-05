@@ -27,6 +27,9 @@ const UnitsPage = lazy(() => import('@/features/referentials/pages/UnitsPage').t
 const ProductFormPage = lazy(() => import('@/features/products/pages/ProductFormPage').then((m) => ({ default: m.ProductFormPage })))
 const ProductsListPage = lazy(() => import('@/features/products/pages/ProductsListPage').then((m) => ({ default: m.ProductsListPage })))
 const AdjustmentDetailPage = lazy(() => import('@/features/stock/pages/AdjustmentDetailPage').then((m) => ({ default: m.AdjustmentDetailPage })))
+const TransfersPage = lazy(() => import('@/features/stock/pages/TransfersPage').then((m) => ({ default: m.TransfersPage })))
+const TransferFormPage = lazy(() => import('@/features/stock/pages/TransferFormPage').then((m) => ({ default: m.TransferFormPage })))
+const TransferDetailPage = lazy(() => import('@/features/stock/pages/TransferDetailPage').then((m) => ({ default: m.TransferDetailPage })))
 const AdjustmentFormPage = lazy(() => import('@/features/stock/pages/AdjustmentFormPage').then((m) => ({ default: m.AdjustmentFormPage })))
 const MovementsPage = lazy(() => import('@/features/stock/pages/MovementsPage').then((m) => ({ default: m.MovementsPage })))
 const StockPage = lazy(() => import('@/features/stock/pages/StockPage').then((m) => ({ default: m.StockPage })))
@@ -89,6 +92,9 @@ const catalog: RouteObject[] = [
   guarded('/stock/inventaire', ['stock.adjust'], <AdjustmentFormPage key="inventory" kind="inventory" />),
   guarded('/stock/mouvements', ['stock.view'], <MovementsPage />),
   guarded('/stock/operations/:id', ['stock.view'], <AdjustmentDetailPage />),
+  guarded('/stock/transferts', ['stock.view'], <TransfersPage />),
+  guarded('/stock/transferts/nouveau', ['stock.transfer'], <TransferFormPage />),
+  guarded('/stock/transferts/:id', ['stock.view'], <TransferDetailPage />),
   guarded('/clients', ['customers.view'], <CustomersListPage />),
   guarded('/clients/nouveau', ['customers.create'], <CustomerPage />),
   guarded('/clients/:id', ['customers.view'], <CustomerPage />),

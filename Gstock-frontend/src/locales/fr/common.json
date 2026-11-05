@@ -133,7 +133,7 @@
       "expiry_soon_other": "{{count}} bientôt périmés",
       "expiry_value": "Valeur : {{amount}} FCFA",
       "losses": "Pertes de la période : {{amount}} FCFA",
-      "losses_line": "Pertes (périmé, cassé, volé)",
+      "losses_line": "Pertes (périmé, cassé, volé, manques de transfert)",
       "losses_hint": "Déjà payées à l'achat : elles ne sont ni une dépense ni déduites du résultat.",
       "cost_of_goods": "Prix d'achat des produits vendus"
     },
@@ -146,6 +146,7 @@
     "recent": "Activité récente",
     "recent_empty": "Aucune opération pour l'instant.",
     "activity": {
+      "transfer": "Transfert",
       "sale": "Vente",
       "sale_credit": "Vente à crédit",
       "repayment": "Paiement reçu",

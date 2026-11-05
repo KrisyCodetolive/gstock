@@ -20,9 +20,9 @@ use Illuminate\Support\Facades\DB;
 final class StockLots
 {
     /** Annulation → opération d'origine dont on défait la répartition. */
-    public const REVERSES = ['sale_cancel' => 'sale', 'adjustment_cancel' => 'adjustment', 'purchase_cancel' => 'purchase'];
+    public const REVERSES = ['sale_cancel' => 'sale', 'adjustment_cancel' => 'adjustment', 'purchase_cancel' => 'purchase', 'transfer_cancel' => 'transfer_out'];
 
-    private const SOURCE_NOUN = ['purchase_cancel' => 'cet approvisionnement', 'adjustment_cancel' => 'ce mouvement', 'sale_cancel' => 'cette vente'];
+    private const SOURCE_NOUN = ['purchase_cancel' => 'cet approvisionnement', 'adjustment_cancel' => 'ce mouvement', 'sale_cancel' => 'cette vente', 'transfer_cancel' => 'ce transfert'];
 
     /** Entrée : nouvel arrivage. Sortie : l'arrivage visé, sinon les dates les plus proches d'abord. */
     public function apply(StockChange $change, array $meta, StockMovement $movement): void
@@ -92,6 +92,32 @@ final class StockLots
         } elseif (Decimal::cmp($left, '0') < 0) {
             $this->takeEarliest($change, Decimal::neg($left), $movement);
         }
+    }
+
+    /**
+     * Ce qu'une opération a pris dans les arrivages d'un article, par date (date la plus
+     * proche d'abord, sans date à la fin) : sert à recréer les dates à l'arrivée d'un transfert (§7.12).
+     *
+     * @return list<array{expiry_date: ?string, quantity: string, unit_cost: ?string}>
+     */
+    public function takenBy(string $sourceType, int $sourceId, int $shopId, int $productId, ?int $variantId): array
+    {
+        return StockLotMovement::query()
+            ->join('stock_movements', 'stock_movements.id', '=', 'stock_lot_movements.stock_movement_id')
+            ->join('stock_lots', 'stock_lots.id', '=', 'stock_lot_movements.stock_lot_id')
+            ->where('stock_movements.source_type', $sourceType)->where('stock_movements.source_id', $sourceId)
+            ->where('stock_movements.shop_id', $shopId)->where('stock_movements.product_id', $productId)
+            ->whereRaw('stock_movements.product_variant_id IS NOT DISTINCT FROM ?', [$variantId])
+            ->groupBy('stock_lots.expiry_date', 'stock_lots.unit_cost')
+            ->orderByRaw('stock_lots.expiry_date ASC NULLS LAST')
+            ->selectRaw('stock_lots.expiry_date, stock_lots.unit_cost, -sum(stock_lot_movements.quantity) as quantity')
+            ->get()
+            ->filter(fn ($r) => Decimal::cmp((string) $r->quantity, '0') > 0)
+            ->map(fn ($r) => [
+                'expiry_date' => $r->expiry_date ? substr((string) $r->expiry_date, 0, 10) : null,
+                'quantity' => (string) $r->quantity,
+                'unit_cost' => $r->unit_cost === null ? null : (string) $r->unit_cost,
+            ])->values()->all();
     }
 
     /** Début du suivi : le stock présent dans chaque boutique devient un arrivage sans date (§7.11). */

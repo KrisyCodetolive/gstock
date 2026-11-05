@@ -9,8 +9,9 @@ import {
   listStockOverview,
   updateStockLot,
 } from '@/lib/api/stock'
+import { cancelTransfer, getTransfer, listTransfers, receiveTransfer, sendTransfer } from '@/lib/api/transfers'
 import type { Id, ListParams } from '@/types/api'
-import type { AdjustmentPayload } from '@/types/stock'
+import type { AdjustmentPayload, TransferPayload, TransferReceivePayload } from '@/types/stock'
 
 // Toutes les données de stock d'une boutique portent son id : changer de boutique
 // change de cache, sans mélange (§6.2).
@@ -91,4 +92,47 @@ export function useUpdateStockLot(shopId: Id | undefined) {
     mutationFn: ({ id, expiryDate }: { id: Id; expiryDate: string | null }) => updateStockLot(shopId!, id, expiryDate),
     onSuccess: invalidate,
   })
+}
+
+/** Transferts envoyés ou reçus par la boutique (§7.12). */
+export function useTransfers(shopId: Id | undefined, params: ListParams & { direction?: 'out' | 'in' }, enabled = true) {
+  return useQuery({
+    queryKey: [...stockKey, shopId, 'transfers', params],
+    queryFn: () => listTransfers(shopId!, params),
+    enabled: enabled && shopId !== undefined,
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useTransfer(shopId: Id | undefined, id: Id) {
+  return useQuery({
+    queryKey: [...stockKey, shopId, 'transfer', id],
+    queryFn: () => getTransfer(shopId!, id),
+    enabled: shopId !== undefined,
+  })
+}
+
+/** Envoi, réception, annulation : le stock des boutiques change, le tableau de bord aussi. */
+function useInvalidateTransfers() {
+  const queryClient = useQueryClient()
+  const invalidate = useInvalidateStock()
+  return () => {
+    invalidate()
+    void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+  }
+}
+
+export function useSendTransfer(shopId: Id | undefined) {
+  const invalidate = useInvalidateTransfers()
+  return useMutation({ mutationFn: (payload: TransferPayload) => sendTransfer(shopId!, payload), onSuccess: invalidate })
+}
+
+export function useReceiveTransfer(shopId: Id | undefined, id: Id) {
+  const invalidate = useInvalidateTransfers()
+  return useMutation({ mutationFn: (payload: TransferReceivePayload) => receiveTransfer(shopId!, id, payload), onSuccess: invalidate })
+}
+
+export function useCancelTransfer(shopId: Id | undefined, id: Id) {
+  const invalidate = useInvalidateTransfers()
+  return useMutation({ mutationFn: (reason: string) => cancelTransfer(shopId!, id, reason), onSuccess: invalidate })
 }

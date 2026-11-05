@@ -14,6 +14,7 @@ function movementLink(m: StockMovement): string | null {
   if ((m.source_type === 'adjustment' || m.source_type === 'adjustment_cancel') && m.source_id) return `/stock/operations/${m.source_id}`
   if ((m.source_type === 'purchase' || m.source_type === 'purchase_cancel') && m.source_id) return `/approvisionnements/${m.source_id}`
   if ((m.source_type === 'sale' || m.source_type === 'sale_cancel') && m.source_id) return `/ventes/${m.source_id}`
+  if (m.source_type.startsWith('transfer_') && m.source_id) return `/stock/transferts/${m.source_id}`
   return null
 }
 

@@ -32,7 +32,9 @@ export interface Dashboard {
   /** Articles qui ont des arrivages périmés ou bientôt périmés, valeur au prix d'achat (§7.11). */
   expiry?: { expired: number; expired_value: Money; soon: number; soon_value: Money }
   /** Pertes de la période (périmé, cassé, volé) : ni dépense ni sortie d'argent (§7.8). */
-  losses?: { total: Money; by_reason: Record<LossReason, Money>; complete: boolean }
+  losses?: { total: Money; by_reason: Partial<Record<LossReason, Money>>; complete: boolean }
+  /** Transferts en route vers la boutique, à réceptionner (§7.12). */
+  transfers?: { to_receive: number }
   credits: { remaining: Money; debtors: number }
   /** Résultat estimé = ventes − coût d'achat des produits vendus − dépenses (§7.8). */
   result: {
@@ -48,9 +50,9 @@ export interface Dashboard {
   recent: ActivityItem[]
 }
 
-export type LossReason = 'expired' | 'damaged' | 'stolen'
+export type LossReason = 'expired' | 'damaged' | 'stolen' | 'transfer'
 
-export type ActivityType = 'sale' | 'sale_credit' | 'repayment' | 'opening_balance' | 'purchase' | 'expense' | 'adjustment'
+export type ActivityType = 'sale' | 'sale_credit' | 'repayment' | 'opening_balance' | 'purchase' | 'expense' | 'adjustment' | 'transfer'
 
 /** Une ligne d'« activité récente » ; chaque ligne ouvre son détail. */
 export interface ActivityItem {

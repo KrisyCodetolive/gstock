@@ -43,6 +43,7 @@ export const SHOP_PERMISSIONS = [
   'stock.entry',
   'stock.exit',
   'stock.adjust',
+  'stock.transfer',
   'purchases.view',
   'purchases.create',
   'purchases.cancel',
