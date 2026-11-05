@@ -10,7 +10,7 @@ class TenantSetting extends Model
 {
     use BelongsToTenant;
 
-    protected $fillable = ['phone', 'email', 'address', 'receipt_footer', 'advanced_mode', 'default_payment_method_id', 'logo_path'];
+    protected $fillable = ['phone', 'email', 'address', 'receipt_footer', 'advanced_mode', 'default_payment_method_id', 'logo_path', 'expiry_alert_days'];
 
-    protected $casts = ['advanced_mode' => 'boolean'];
+    protected $casts = ['advanced_mode' => 'boolean', 'expiry_alert_days' => 'integer'];
 }

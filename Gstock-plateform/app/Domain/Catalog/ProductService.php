@@ -9,8 +9,10 @@ use App\Domain\Catalog\Models\Unit;
 use App\Domain\Identity\Models\User;
 use App\Domain\Platform\CurrentTenant;
 use App\Domain\Shops\Models\Shop;
+use App\Domain\Stock\Expiry;
 use App\Domain\Stock\StockChange;
 use App\Domain\Stock\StockLedger;
+use App\Domain\Stock\StockLots;
 use App\Support\ApiException;
 use App\Support\Decimal;
 use App\Support\DocumentSequence;
@@ -22,7 +24,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class ProductService
 {
-    public function __construct(private StockLedger $ledger) {}
+    public function __construct(private StockLedger $ledger, private StockLots $lots) {}
 
     /** @return array{0: Product, 1: ?int} le produit et la boutique de la quantité initiale */
     public function create(array $input, User $user): array
@@ -53,7 +55,7 @@ final class ProductService
             $this->saveVariants($product, $data['variants']);
             $this->ledger->ensureRows($product->load('variants'));
             if ($shop) {
-                $this->ledger->apply([new StockChange($shop->id, $product, null, $data['initial'])], [
+                $this->ledger->apply([new StockChange($shop->id, $product, null, $data['initial'], expiryDate: $data['initial_expiry'])], [
                     'source_type' => 'opening', 'reason' => 'Stock initial', 'user_id' => $user->id,
                 ]);
             }
@@ -79,15 +81,19 @@ final class ProductService
         }
 
         return DB::transaction(function () use ($product, $data) {
+            $starts = $data['fields']['track_expiry'] && ! $product->track_expiry;
             $product->update([...$data['fields'], 'code' => $data['fields']['code'] ?? $product->code]);
             $this->saveVariants($product, $data['variants']);
             $this->ledger->ensureRows($product->load('variants'));
+            if ($starts) {
+                $this->lots->startTracking($product);
+            }
 
             return $product;
         });
     }
 
-    /** @return array{fields: array, variants: list<array>, initial: ?string} */
+    /** @return array{fields: array, variants: list<array>, initial: ?string, initial_expiry: ?string} */
     private function validate(array $in, ?Product $current = null): array
     {
         $errors = [];
@@ -147,6 +153,16 @@ final class ProductService
         if (! $current && filled($in['initial_quantity'] ?? null) && ($initial === null || Decimal::cmp($initial, '0') < 0)) {
             $add('initial_quantity', 'La quantité doit être un nombre positif.');
         }
+        // Dates de péremption (§7.11) : tout est facultatif ; un service n'en a jamais.
+        $trackExpiry = $type !== 'service' && filter_var($in['track_expiry'] ?? ($current?->track_expiry ?? false), FILTER_VALIDATE_BOOLEAN);
+        $alertDays = $in['expiry_alert_days'] ?? null;
+        if (filled($alertDays) && (filter_var($alertDays, FILTER_VALIDATE_INT) === false || (int) $alertDays < 0 || (int) $alertDays > 365)) {
+            $add('expiry_alert_days', 'Le délai d’alerte doit être un nombre de jours entre 0 et 365.');
+        }
+        $initialExpiry = Expiry::parse($in['initial_expiry_date'] ?? null);
+        if ($initialExpiry === false) {
+            $add('initial_expiry_date', 'Cette date n’est pas valide.');
+        }
         $variants = $type === 'variable' ? $this->validateVariants((array) ($in['variants'] ?? []), $current, $add) : [];
 
         if ($errors) {
@@ -176,9 +192,12 @@ final class ProductService
                 'tax_rate' => Decimal::parse($in['tax_rate'] ?? null),
                 'stock_alert' => $type === 'service' ? null : $alert,
                 'is_active' => ($in['is_active'] ?? true) !== false,
+                'track_expiry' => $trackExpiry,
+                'expiry_alert_days' => $trackExpiry && filled($alertDays) ? (int) $alertDays : null,
             ],
             'variants' => $variants,
             'initial' => $type === 'simple' ? $initial : null,
+            'initial_expiry' => $trackExpiry && $initialExpiry ? $initialExpiry : null,
         ];
     }
 

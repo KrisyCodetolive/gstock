@@ -4,6 +4,8 @@ namespace App\Domain\Reporting;
 
 use App\Domain\Credits\InstallmentSchedule;
 use App\Domain\Identity\Models\User;
+use App\Domain\Stock\AdjustmentService;
+use App\Domain\Stock\Expiry;
 use App\Http\Controllers\Api\V1\StockController;
 use App\Support\Decimal as D;
 use Carbon\CarbonImmutable;
@@ -101,6 +103,9 @@ final class DashboardService
                 'supplier_payments' => D::format($supplierPayments ?: '0', D::MONEY),
             ],
             'stock' => $this->stock(),
+            'expiry' => $this->expiry(),
+            // Pertes (§7.8) : ni dépense ni sortie d'argent, et non déduites du résultat estimé.
+            'losses' => $this->losses($from, $to),
             'credits' => $this->credits(),
             'result' => [
                 'amount' => D::sub(D::sub($salesTotal, $costOfGoods, D::MONEY), D::format($expenses ?: '0', D::MONEY), D::MONEY),
@@ -127,6 +132,58 @@ final class DashboardService
             ->first();
 
         return ['low' => (int) $row->low, 'out' => (int) $row->out];
+    }
+
+    /**
+     * Péremption (§7.11) : articles qui ont des arrivages périmés ou bientôt périmés,
+     * quantité et valeur au prix d'achat.
+     */
+    private function expiry(): array
+    {
+        $today = Expiry::today();
+        $days = Expiry::tenantAlertDays();
+        $row = DB::table('stock_lots as l')
+            ->join('products', 'products.id', '=', 'l.product_id')
+            ->leftJoin('product_variants', 'product_variants.id', '=', 'l.product_variant_id')
+            ->where('l.tenant_id', tenant('id'))->whereIn('l.shop_id', $this->shops)
+            ->where('l.quantity', '>', 0)->whereNotNull('l.expiry_date')
+            ->where('products.is_active', true)->where('products.track_expiry', true)
+            ->selectRaw('count(distinct (l.shop_id, l.product_id, coalesce(l.product_variant_id, 0))) filter (where l.expiry_date <= ?::date) as expired', [$today])
+            ->selectRaw('coalesce(sum(l.quantity * coalesce(l.unit_cost, product_variants.cost, products.cost)) filter (where l.expiry_date <= ?::date), 0) as expired_value', [$today])
+            ->selectRaw('count(distinct (l.shop_id, l.product_id, coalesce(l.product_variant_id, 0))) filter (where l.expiry_date > ?::date and l.expiry_date <= ?::date + coalesce(products.expiry_alert_days, ?)) as soon', [$today, $today, $days])
+            ->selectRaw('coalesce(sum(l.quantity * coalesce(l.unit_cost, product_variants.cost, products.cost)) filter (where l.expiry_date > ?::date and l.expiry_date <= ?::date + coalesce(products.expiry_alert_days, ?)), 0) as soon_value', [$today, $today, $days])
+            ->first();
+
+        return [
+            'expired' => (int) $row->expired,
+            'expired_value' => D::format((string) $row->expired_value, D::MONEY),
+            'soon' => (int) $row->soon,
+            'soon_value' => D::format((string) $row->soon_value, D::MONEY),
+        ];
+    }
+
+    /** Pertes de la période : sorties « périmé », « cassé », « volé » non annulées, au prix d'achat (§7.8). */
+    private function losses(CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $rows = DB::table('stock_movements as m')->join('adjustments as a', function ($j) {
+            $j->on('a.id', '=', 'm.source_id')->where('m.source_type', '=', 'adjustment');
+        })
+            ->where('a.tenant_id', tenant('id'))->whereIn('a.shop_id', $this->shops)
+            ->when(! $this->seesAll(), fn ($q) => $q->where('a.user_id', $this->user->id))
+            ->where('a.kind', 'exit')->where('a.status', 'completed')->whereIn('a.exit_reason', AdjustmentService::LOSS_REASONS)
+            ->whereBetween('a.occurred_at', [$from, $to])
+            ->groupBy('a.exit_reason')
+            ->selectRaw('a.exit_reason as reason, coalesce(sum(-m.quantity * m.unit_cost), 0) as amount, count(*) filter (where m.unit_cost is null) as missing')
+            ->get()->keyBy('reason');
+        $by = [];
+        $total = '0.00';
+        foreach (AdjustmentService::LOSS_REASONS as $reason) {
+            $amount = D::round((string) ($rows[$reason]->amount ?? '0'), D::MONEY);
+            $by[$reason] = $amount;
+            $total = D::add($total, $amount, D::MONEY);
+        }
+
+        return ['total' => $total, 'by_reason' => $by, 'complete' => $rows->sum('missing') == 0];
     }
 
     /** Reste à récupérer : soldes des crédits ouverts des boutiques (§7.8). */

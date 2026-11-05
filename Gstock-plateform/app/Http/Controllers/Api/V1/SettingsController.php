@@ -31,10 +31,12 @@ class SettingsController extends Controller
             'timezone' => ['nullable', 'timezone:all'],
             'receipt_footer' => ['nullable', 'string', 'max:255'],
             'advanced_mode' => ['boolean'],
+            'expiry_alert_days' => ['nullable', 'integer', 'min:0', 'max:365'],
         ], [
             'name.required' => 'Donnez un nom à votre commerce.',
             'email.email' => "Cette adresse e-mail n'est pas valide.",
             'timezone.timezone' => "Ce fuseau horaire n'existe pas.",
+            'expiry_alert_days.*' => 'Le délai d’alerte doit être un nombre de jours entre 0 et 365.',
         ]);
 
         $tenant = CurrentTenant::get();
@@ -46,6 +48,8 @@ class SettingsController extends Controller
                 'address' => $data['address'] ?? null,
                 'receipt_footer' => $data['receipt_footer'] ?? null,
                 'advanced_mode' => (bool) ($data['advanced_mode'] ?? false),
+                // Absent (ancien écran) : on garde le délai enregistré.
+                ...(array_key_exists('expiry_alert_days', $data) && $data['expiry_alert_days'] !== null ? ['expiry_alert_days' => (int) $data['expiry_alert_days']] : []),
             ]);
         });
         $tenant->unsetRelation('settings');

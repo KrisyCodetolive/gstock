@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class StockLedger
 {
+    public function __construct(private StockLots $lots) {}
+
     /**
      * @param  list<StockChange>  $changes
      * @param  array{source_type: string, source_id?: ?int, reference?: ?string, reason?: ?string, user_id?: ?int, occurred_at?: mixed}  $meta
@@ -53,11 +55,14 @@ final class StockLedger
             }
 
             $occurredAt = $meta['occurred_at'] ?? now();
+            $meta['occurred_at'] = $occurredAt;
+            $reversal = isset(StockLots::REVERSES[$meta['source_type']]);
+            $reversed = [];
             foreach ($changes as $change) {
                 $row = $rows[$change->key()];
                 $row->quantity = Decimal::add((string) $row->quantity, $change->delta);
                 $row->save();
-                StockMovement::create([
+                $movement = StockMovement::create([
                     'shop_id' => $change->shopId,
                     'product_id' => $change->product->id,
                     'product_variant_id' => $change->variantId,
@@ -70,6 +75,15 @@ final class StockLedger
                     'user_id' => $meta['user_id'] ?? null,
                     'occurred_at' => $occurredAt,
                 ]);
+                // Produit suivi : répartition sur les arrivages (§7.11), sous le verrou de la ligne.
+                if ($change->product->track_expiry) {
+                    if (! $reversal) {
+                        $this->lots->apply($change, $meta, $movement);
+                    } elseif (! isset($reversed[$change->key()])) {
+                        $reversed[$change->key()] = true;
+                        $this->lots->reverse($change, $totals[$change->key()]['delta'], $meta, $movement);
+                    }
+                }
             }
         });
     }
