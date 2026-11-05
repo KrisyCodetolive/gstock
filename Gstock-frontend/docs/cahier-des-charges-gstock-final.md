@@ -6,7 +6,7 @@
 |---|---|
 | **Éditeur** | Genius Groups SAS |
 | **Version** | 3.1 — ajout des dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
-| **Date** | 5 novembre 2026 (connexion centrale, ADR-009) |
+| **Date** | 5 novembre 2026 (connexion centrale, ADR-009 ; fin des données simulées, ADR-004) |
 | **Cible** | Boutiques de quartier, épiceries, mini-markets, commerces de proximité et petits détaillants |
 | **Statut** | Définitif pour la phase 1 — évolutif pour les phases suivantes |
 
@@ -209,7 +209,7 @@ Chaque ADR suit le format : statut, contexte, décision, conséquences. **Accept
 | ADR-001 | Stack et architecture | 28 octobre 2026 | Acceptée |
 | ADR-002 | Multi-tenant par `tenant_id` avec stancl/tenancy | 3 novembre 2026 | Acceptée |
 | ADR-003 | Paiements avec GeniusPay | 3 novembre 2026 | Acceptée |
-| ADR-004 | Frontend d'abord, sur données simulées | 3 novembre 2026 | Acceptée |
+| ADR-004 | Frontend d'abord, sur données simulées (remplacées par le backend le 5 novembre 2026) | 3 novembre 2026 | Acceptée, puis close |
 | ADR-005 | Mode hors ligne en PWA | 3 novembre 2026 | Acceptée |
 | ADR-006 | Interface en français uniquement | 3 novembre 2026 | Acceptée |
 | ADR-007 | Modèle de données en anglais | 3 novembre 2026 | Acceptée |
@@ -291,6 +291,8 @@ Le backend et le frontend sont deux applications séparées. Le frontend ne calc
 | Hors ligne | vite-plugin-pwa + IndexedDB |
 
 **Conséquences.** L'application fait de vrais appels `fetch`, tous centralisés dans `src/lib/api/` (§11.2) ; passer au backend réel consiste à désactiver MSW. Le contrat d'API est la spécification du backend. Les mocks appliquent les mêmes règles que le serveur (totaux, stock, soldes de crédit).
+
+**Clôture (5 novembre 2026).** Le backend couvrant tous les modules, les données simulées (MSW) sont **retirées** du frontend : `npm run dev` parle toujours au backend Laravel, et les comptes de test viennent de ses seeders (`php artisan migrate:fresh --seed`, espace « alimentation-kone », mot de passe `demo1234`). La référence du contrat d'API et des règles devient le backend (ses tests) ; les types TypeScript restent dans `src/types/`.
 
 ### ADR-005 — Mode hors ligne en PWA
 
@@ -1137,6 +1139,8 @@ Chaque dossier de `features/` contient ses pages, ses composants, ses hooks (Tan
 - Le code de `lib/api/` reste purement réseau : aucun composant ni hook React.
 
 ### 11.3 Données simulées
+
+> Retirées le 5 novembre 2026 (clôture de l'ADR-004) : le même jeu de démonstration est créé par les seeders du backend. Le texte ci-dessous décrit la démarche suivie jusque-là.
 
 - Les handlers MSW reproduisent les endpoints du §10 et les conventions du §9 (pagination, erreurs 403, 409, 422).
 - Jeu de démonstration : un espace avec **2 boutiques** (Boutique Cocody, Boutique Yopougon), ~60 produits du quotidien (riz, huile, sucre, savon, boissons…), 30 clients dont 12 avec des crédits, 5 fournisseurs, 300 ventes dont une partie à crédit, des remboursements partiels, des échéances en retard, des dépenses.

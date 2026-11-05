@@ -38,7 +38,9 @@
 | B9 — Synchronisation hors ligne du backend (références définitives, idempotence, écarts « à vérifier », refus motivés) | [B9-hors-ligne-api.md](B9-hors-ligne-api.md) | `api-hors-ligne` |
 | B10 — Back-office de Genius Groups (Filament : tableau de bord, espaces, boutiques, utilisateurs, mode support, formules, factures, journal) | [B10-back-office.md](B10-back-office.md) | `back-office` |
 
-Hors phase : [peremption.md](peremption.md) (dates de péremption, backend et frontend, branche `peremption`).
+Hors phase : [fin-donnees-simulees.md](fin-donnees-simulees.md) (données simulées retirées, `npm run dev` branché sur le backend).
+
+Hors phase également : [peremption.md](peremption.md) (dates de péremption, backend et frontend, branche `peremption`).
 
 Hors phase également : [connexion-centrale.md](connexion-centrale.md) (connexion sur le domaine principal, branche `connexion-centrale`).
 
@@ -59,13 +61,18 @@ Sources de vérité, à lire avant toute modification :
 
 ## Démarrer en 2 minutes
 
+Plus de données simulées depuis le 5 novembre 2026 ([fin-donnees-simulees.md](fin-donnees-simulees.md)) : le frontend a besoin du backend.
+
 ```bash
-cd Gstock-frontend
+cd Gstock-plateform
+docker compose --profile app up -d --build   # base + API (port 8001), migrations au démarrage
+docker compose exec app php artisan migrate:fresh --seed   # première fois : espace de démonstration (efface la base)
+cd ../Gstock-frontend
 npm install
-npm run dev          # http://localhost:5173, données simulées actives
+npm run dev          # http://localhost:5173 (connexion centrale), proxy vers l'API du port 8001 (GSTOCK_API_URL pour une autre)
 ```
 
-- **Comptes de démonstration** : listés sur l'écran de connexion (un toucher pour se connecter). Mot de passe commun : `demo1234`.
+- **Comptes de test** (seeders du backend) : listés sur l'écran de connexion en développement (un toucher pour se connecter). Mot de passe commun : `demo1234`.
 
   | Personne | Rôle | Boutiques | Sert à tester |
   |---|---|---|---|
@@ -76,9 +83,9 @@ npm run dev          # http://localhost:5173, données simulées actives
   | Moussa Diallo | Gestionnaire de stock | Cocody, Yopougon | stock sans caisse |
   | Paul Yao | Vendeur, **désactivé** | Cocody | refus de connexion |
 
-- **Remettre la démo à zéro** : bouton en bas de l'écran de connexion. Il efface tout le `localStorage` simulé : plateforme (`gstock.mock.platform.v1`), une base par espace (`gstock.mock.db.v9.<slug>`), sessions.
-- **Créer un espace** : « Créer mon espace » sur l'écran de connexion (`/inscription`). L'écran de connexion permet ensuite de passer d'un espace à l'autre (démo seulement). Dans « Mon abonnement », des outils de simulation font avancer le temps (fin d'essai, impayé, suspension).
-- **Tester le hors ligne** : en dev, couper le réseau (outils du navigateur) suffit pour vendre sans réseau. Pour le rechargement sans réseau, il faut le service worker : `VITE_USE_MOCKS=true npx vite build --outDir dist-mock && npx vite preview --outDir dist-mock`.
+- **Remettre la démo à zéro** : `php artisan migrate:fresh --seed` côté backend (efface toute la base).
+- **Créer un espace** : « Créer mon espace » sur l'écran de connexion (`/inscription`) ; on y revient ensuite par la connexion centrale (`localhost:5173`) ou par son sous-domaine. Le paiement de l'abonnement passe par la page de paiement simulée du backend (pilote `simulation`).
+- **Tester le hors ligne** : en dev, couper le réseau (outils du navigateur) suffit pour vendre sans réseau. Pour le rechargement sans réseau, il faut le service worker : `npm run build && npm run preview`.
 - **Vitrine des composants** : `/vitrine` (développement uniquement).
 - **Vérifications** : `npm run typecheck`, `npm run lint`, `npm run build`. Les trois passent sans erreur à la fin de F4.
 
@@ -115,6 +122,7 @@ Ces décisions complètent ou précisent le cahier. Celles marquées **[cahier]*
 | Tableau de bord (backend) | Calculé à la demande en SQL agrégé (`app/Domain/Reporting/DashboardService.php`), sans table de statistiques ; fuseau `Africa/Abidjan`. Voir [B7](B7-tableau-de-bord-api.md). |
 | GeniusPay (backend) | Sans documentation ni clés, le paiement passe par l'interface `PlatformGateway` ; seul le pilote `simulation` existe (page servie par l'API, refusée en production). Format du webhook provisoire. Voir [B8](B8-inscription-abonnement-api.md). |
 | Back-office (M01) | Filament 5 sur `/admin` (ou `ADMIN_DOMAIN`), garde `platform` séparée ; suspension par GStock distincte de l'impayé (`tenants.suspended_at`) ; mode support limité dans le temps avec bandeau. Voir [B10](B10-back-office.md). |
+| Données simulées (ADR-004) | Retirées le 5 novembre 2026 : le frontend parle toujours au backend ; comptes de test issus des seeders. Voir [fin-donnees-simulees.md](fin-donnees-simulees.md). |
 | Dates de péremption (§7.11) | Arrivages par entrée de marchandise pour les produits suivis, sortie de la date la plus proche, approvisionnement entamé non annulable, pertes à part du résultat. Voir [peremption.md](peremption.md). |
 | Connexion centrale (ADR-009) | Sur le domaine principal, `POST /auth/central-login` trouve les espaces du compte (seulement avec le bon mot de passe) et y renvoie par un lien à usage unique ; choix si plusieurs. Les sous-domaines restent. Voir [connexion-centrale.md](connexion-centrale.md). |
 | Déconnexion | Mène toujours à l'accueil de la personne suivante (pas à la dernière page de la précédente). Nécessite `RouterProvider` importé de `react-router/dom` (voir « Pièges déjà rencontrés »). |
