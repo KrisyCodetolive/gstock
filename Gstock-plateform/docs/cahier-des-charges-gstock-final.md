@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Éditeur** | Genius Groups SAS |
-| **Version** | 3.5 — catégories, marques et catégories de dépenses créées sur place (M05) ; 3.4 : produit créé sur place depuis l'approvisionnement et l'entrée en stock (M06) ; 3.3 : fournisseur attribuable après coup à un approvisionnement qui n'en a pas (M11) ; 3.2 : transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
+| **Version** | 3.6 — péremption toujours visible dans Mon stock, filtre « Produits suivis » (M07) ; 3.5 : catégories, marques et catégories de dépenses créées sur place (M05) ; 3.4 : produit créé sur place depuis l'approvisionnement et l'entrée en stock (M06) ; 3.3 : fournisseur attribuable après coup à un approvisionnement qui n'en a pas (M11) ; 3.2 : transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
 | **Date** | 5 novembre 2026 (connexion centrale, ADR-009 ; fin des données simulées, ADR-004) |
 | **Cible** | Boutiques de quartier, épiceries, mini-markets, commerces de proximité et petits détaillants |
 | **Statut** | Définitif pour la phase 1 — évolutif pour les phases suivantes |
@@ -978,7 +978,7 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 - Alertes de stock faible et de rupture.
 - Vue « Toutes mes boutiques » pour le propriétaire.
 - Transferts entre boutiques (§7.12) : « Transférer » depuis Mon stock (choix de la boutique d'arrivée, des produits et des quantités) ; liste des transferts envoyés et reçus [LISTE] avec leur statut ; détail ; réception avec quantités reçues ; annulation avant réception ; indication « en route » et « à réceptionner » dans les deux boutiques.
-- Dates de péremption (§7.11) : date facultative à chaque entrée d'un produit suivi ; filtres « Bientôt périmés » et « Périmés » ; stock par date d'un produit ; date d'un arrivage renseignée ou corrigée ; sortie « Périmé » d'un arrivage précis.
+- Dates de péremption (§7.11) : date facultative à chaque entrée d'un produit suivi ; filtres « Bientôt périmés », « Périmés » et « Produits suivis » (tous les articles suivis, la date la plus proche d'abord), toujours visibles ; sans produit suivi, une tuile « Péremption » indique où activer le suivi ; chaque ligne d'un produit suivi affiche sa prochaine date ; stock par date d'un produit ; date d'un arrivage renseignée ou corrigée ; sortie « Périmé » d'un arrivage précis.
 
 **Tables.** `shop_stock`, `stock_movements`, `stock_lots`, `stock_lot_movements`, `adjustments`, `adjustment_items`, `stock_transfers`, `stock_transfer_items`.
 

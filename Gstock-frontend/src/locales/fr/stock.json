@@ -26,7 +26,8 @@
       "low": "Stock faible",
       "out": "Rupture",
       "expired": "Périmés",
-      "soon": "Bientôt périmés"
+      "soon": "Bientôt périmés",
+      "tracked": "Produits suivis"
     },
     "transfers": {
       "title": "Transferts entre boutiques",
@@ -125,7 +126,13 @@
       "clear": "Sans date",
       "variant": "Variante",
       "empty_title": "Rien à surveiller",
-      "empty_text": "Aucun produit n'est périmé ni proche de sa date de péremption."
+      "empty_text": "Aucun produit n'est périmé ni proche de sa date de péremption.",
+      "tile": "Péremption",
+      "none_tracked": "Aucun produit suivi",
+      "none_tracked_hint": "Activez « Suivre les dates de péremption » sur la fiche d'un produit.",
+      "tracked_hint": "Toutes les dates, la plus proche d'abord",
+      "tracked_empty_title": "Aucun produit suivi",
+      "no_date": "Date de péremption non indiquée"
     },
     "columns": {
       "product": "Produit",

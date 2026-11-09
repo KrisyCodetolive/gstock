@@ -123,7 +123,13 @@ class ExpiryTest extends TestCase
         $this->yoghurt('Beurre', initial: '4', expiry: $this->day(60));
 
         $list = $this->api('kone', 'GET', $this->url('/stock'), as: $this->owner)->assertOk();
-        $list->assertJsonPath('summary.expired', 1)->assertJsonPath('summary.soon', 1);
+        $list->assertJsonPath('summary.expired', 1)->assertJsonPath('summary.soon', 1)->assertJsonPath('summary.tracked', 3);
+        // Tous les articles suivis, même à date lointaine : date la plus proche d'abord, puis sans date.
+        $this->api('kone', 'POST', '/products', ['name' => 'Savon', 'price' => '300', 'initial_quantity' => '5', 'shop_id' => $this->shop->id], as: $this->owner)->assertCreated();
+        $this->yoghurt('Lait', initial: '1');
+        $tracked = $this->api('kone', 'GET', $this->url('/stock?filter[expiry]=tracked'), as: $this->owner)->assertJsonPath('summary.tracked', 4);
+        $this->assertSame(['Yaourt nature', 'Fromage', 'Beurre', 'Lait'], array_column(array_column($tracked->json('data'), 'product'), 'name'));
+        $this->assertSame($this->day(60), $tracked->json('data.2.expiry.next_expiry_date'));
         $this->assertSame(['Yaourt nature'], array_column(array_column($this->api('kone', 'GET', $this->url('/stock?filter[expiry]=expired'), as: $this->owner)->json('data'), 'product'), 'name'));
         $this->assertSame(['Fromage'], array_column(array_column($this->api('kone', 'GET', $this->url('/stock?filter[expiry]=soon'), as: $this->owner)->json('data'), 'product'), 'name'));
 

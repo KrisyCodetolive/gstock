@@ -73,6 +73,7 @@ class StockController extends Controller
 
         // Totaux de la boutique, indépendants de la recherche et de la page (§M07).
         $totals = $base()->selectRaw('count(*) as products')
+            ->selectRaw('count(*) filter (where products.track_expiry) as tracked')
             ->selectRaw("count(*) filter (where {$expired[0]}) as expired", $expired[1])
             ->selectRaw("count(*) filter (where {$soon[0]}) as soon", $soon[1])
             ->selectRaw('count(*) filter (where '.self::STATE." = 'low') as low")
@@ -94,10 +95,14 @@ class StockController extends Controller
             filters: [
                 'state' => fn (Builder $q, string $v) => $q->whereRaw(self::STATE.' = ?', [$v]),
                 'category_id' => fn (Builder $q, string $v) => $q->where('products.category_id', (int) $v),
-                // Péremption (§7.11) : expired, soon.
+                // Péremption (§7.11) : expired, soon ; tracked = tous les articles suivis, date la plus proche d'abord.
                 'expiry' => fn (Builder $q, string $v) => match ($v) {
                     'expired' => $q->whereRaw(...$expired),
                     'soon' => $q->whereRaw(...$soon),
+                    'tracked' => $q->where('products.track_expiry', true)->reorder()
+                        ->orderByRaw('(SELECT min(l.expiry_date) FROM stock_lots l WHERE l.shop_id = shop_stock.shop_id AND l.product_id = shop_stock.product_id
+                            AND l.product_variant_id IS NOT DISTINCT FROM shop_stock.product_variant_id AND l.quantity > 0) ASC NULLS LAST')
+                        ->orderBy('products.name')->orderBy('product_variants.id'),
                     default => $q,
                 },
             ],
@@ -108,6 +113,7 @@ class StockController extends Controller
                 'value' => Decimal::format((string) $totals->value, 2),
                 'expired' => (int) $totals->expired,
                 'soon' => (int) $totals->soon,
+                'tracked' => (int) $totals->tracked,
             ]],
         );
     }

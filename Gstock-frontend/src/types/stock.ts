@@ -41,6 +41,8 @@ export interface StockSummary {
   /** Articles qui ont des arrivages périmés / bientôt périmés (§7.11). */
   expired?: number
   soon?: number
+  /** Articles dont le produit suit ses dates de péremption. */
+  tracked?: number
 }
 
 /** GET /shops/{shop_id}/stock/lots?product_id=&variant_id= : arrivages en stock, dans l'ordre de sortie. */
