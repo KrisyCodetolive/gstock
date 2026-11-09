@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Éditeur** | Genius Groups SAS |
-| **Version** | 3.4 — produit créé sur place depuis l'approvisionnement et l'entrée en stock (M06) ; 3.3 : fournisseur attribuable après coup à un approvisionnement qui n'en a pas (M11) ; 3.2 : transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
+| **Version** | 3.5 — catégories, marques et catégories de dépenses créées sur place (M05) ; 3.4 : produit créé sur place depuis l'approvisionnement et l'entrée en stock (M06) ; 3.3 : fournisseur attribuable après coup à un approvisionnement qui n'en a pas (M11) ; 3.2 : transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
 | **Date** | 5 novembre 2026 (connexion centrale, ADR-009 ; fin des données simulées, ADR-004) |
 | **Cible** | Boutiques de quartier, épiceries, mini-markets, commerces de proximité et petits détaillants |
 | **Statut** | Définitif pour la phase 1 — évolutif pour les phases suivantes |
@@ -943,6 +943,8 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 ### M05 — Référentiels
 
 **Fonctionnalités.** Catégories de produits (nom, couleur), unités (§7.3), modes de paiement (nom, type, GeniusPay ou non), catégories de dépenses, marques (mode avancé). Un élément utilisé peut être désactivé, pas supprimé.
+
+**Création sur place.** Sous la liste « Catégorie » et « Marque » de la fiche produit, et « Catégorie » de la dépense : « Nouvelle catégorie » / « Nouvelle marque » ; le nom suffit, l'élément est créé puis choisi sans passer par les paramètres. Mêmes droits que l'écran du référentiel (`categories.manage`, `settings.manage`). Une catégorie de produits reçoit une couleur à tour de rôle, modifiable ensuite dans les paramètres.
 
 **Endpoints.** `CRUD /categories`, `CRUD /units`, `CRUD /payment-methods`, `CRUD /expense-categories`, `CRUD /brands`.
 
