@@ -205,6 +205,8 @@ export function AdjustmentFormPage({ kind }: { kind: AdjustmentKind }) {
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         exclude={lines.map(keyOf)}
+        // Un produit reçu pour la première fois se crée sur place, sans quantité de départ.
+        allowCreate={kind === 'entry'}
         onPick={(product) =>
           setLines((ls) => [...ls, { product, expiry: '', value: kind === 'inventory' ? (product.quantity === null ? '0' : String(Number(product.quantity))) : '1' }])
         }
