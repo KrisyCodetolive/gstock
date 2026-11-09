@@ -1,7 +1,7 @@
-import { AlertTriangle, ArchiveX, ArrowLeftRight, Boxes, CalendarClock, CalendarX, ClipboardCheck, History, Minus, Plus } from 'lucide-react'
+import { AlertTriangle, ArchiveX, ArrowLeftRight, Boxes, CalendarCheck, CalendarClock, CalendarX, ClipboardCheck, History, Minus, Plus } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { DataList } from '@/components/DataList'
 import { Pagination, SearchInput } from '@/components/ListControls'
 import { Money } from '@/components/Money'
@@ -20,10 +20,10 @@ import type { StockItem, StockSummary } from '@/types/stock'
 import { TransfersToReceive } from '../components/TransfersToReceive'
 import { useShopStock, useStockOverview } from '../hooks'
 
-/** low, out : état du stock ; expired, soon : péremption (§7.11). */
-type StateFilter = 'low' | 'out' | 'expired' | 'soon' | undefined
+/** low, out : état du stock ; expired, soon, tracked (tous les articles suivis) : péremption (§7.11). */
+type StateFilter = 'low' | 'out' | 'expired' | 'soon' | 'tracked' | undefined
 
-const isExpiryFilter = (s: StateFilter) => s === 'expired' || s === 'soon'
+const isExpiryFilter = (s: StateFilter): s is 'expired' | 'soon' | 'tracked' => s === 'expired' || s === 'soon' || s === 'tracked'
 
 export function StockPage() {
   const { t } = useTranslation()
@@ -159,6 +159,8 @@ function SummaryTile({
 
 function Summary({ summary, state, onState }: { summary: StockSummary; state: StateFilter; onState: (s: StateFilter) => void }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const toggle = (s: StateFilter) => onState(state === s ? undefined : s)
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
       <SummaryTile icon={Boxes} label={t('stock.summary.value')} active={!state} tone="neutral" onClick={() => onState(undefined)}>
@@ -171,16 +173,25 @@ function Summary({ summary, state, onState }: { summary: StockSummary; state: St
       <SummaryTile icon={ArchiveX} label={t('stock.summary.out')} active={state === 'out'} tone="danger" onClick={() => onState(state === 'out' ? undefined : 'out')}>
         <span className="tabular text-[28px] leading-tight font-bold">{summary.out}</span>
       </SummaryTile>
-      {/* Péremption : seulement si des produits suivis ont des dates proches ou dépassées. */}
-      {(Boolean(summary.expired) || isExpiryFilter(state)) && (
-        <SummaryTile icon={CalendarX} label={t('stock.filters.expired')} active={state === 'expired'} tone="danger" onClick={() => onState(state === 'expired' ? undefined : 'expired')}>
-          <span className="tabular text-[28px] leading-tight font-bold">{summary.expired ?? 0}</span>
+      {/* Péremption (§7.11) : toujours visible ; sans produit suivi, la tuile explique où l'activer. */}
+      {!summary.tracked && !isExpiryFilter(state) ? (
+        <SummaryTile icon={CalendarClock} label={t('stock.expiry.tile')} active={false} tone="neutral" onClick={() => navigate('/produits')}>
+          <span className="text-base leading-tight font-bold">{t('stock.expiry.none_tracked')}</span>
+          <span className="text-xs text-muted-foreground">{t('stock.expiry.none_tracked_hint')}</span>
         </SummaryTile>
-      )}
-      {(Boolean(summary.soon) || isExpiryFilter(state)) && (
-        <SummaryTile icon={CalendarClock} label={t('stock.filters.soon')} active={state === 'soon'} tone="warn" onClick={() => onState(state === 'soon' ? undefined : 'soon')}>
-          <span className="tabular text-[28px] leading-tight font-bold">{summary.soon ?? 0}</span>
-        </SummaryTile>
+      ) : (
+        <>
+          <SummaryTile icon={CalendarX} label={t('stock.filters.expired')} active={state === 'expired'} tone="danger" onClick={() => toggle('expired')}>
+            <span className="tabular text-[28px] leading-tight font-bold">{summary.expired ?? 0}</span>
+          </SummaryTile>
+          <SummaryTile icon={CalendarClock} label={t('stock.filters.soon')} active={state === 'soon'} tone="warn" onClick={() => toggle('soon')}>
+            <span className="tabular text-[28px] leading-tight font-bold">{summary.soon ?? 0}</span>
+          </SummaryTile>
+          <SummaryTile icon={CalendarCheck} label={t('stock.filters.tracked')} active={state === 'tracked'} tone="neutral" onClick={() => toggle('tracked')}>
+            <span className="tabular text-[28px] leading-tight font-bold">{summary.tracked ?? 0}</span>
+            <span className="text-xs text-muted-foreground">{t('stock.expiry.tracked_hint')}</span>
+          </SummaryTile>
+        </>
       )}
     </div>
   )
@@ -209,6 +220,8 @@ function ShopStockList({ state, onState }: { state: StateFilter; onState: (s: St
       ) : stock.data.data.length === 0 ? (
         list.search ? (
           <EmptyState title={t('list.no_result_title')} text={t('list.no_result_text')} />
+        ) : state === 'tracked' ? (
+          <EmptyState icon={CalendarCheck} title={t('stock.expiry.tracked_empty_title')} text={t('stock.expiry.none_tracked_hint')} />
         ) : isExpiryFilter(state) ? (
           <EmptyState icon={CalendarClock} title={t('stock.expiry.empty_title')} text={t('stock.expiry.empty_text')} />
         ) : state ? (
@@ -261,7 +274,7 @@ function ShopStockList({ state, onState }: { state: StateFilter; onState: (s: St
   )
 }
 
-/** Péremption d'une ligne (§7.11) : le périmé d'abord, sinon ce qui arrive à sa date. */
+/** Péremption d'une ligne (§7.11) : le périmé d'abord, sinon ce qui arrive à sa date, sinon la prochaine date. */
 function ExpiryHint({ item }: { item: StockItem }) {
   const { t } = useTranslation()
   const e = item.expiry
@@ -281,6 +294,8 @@ function ExpiryHint({ item }: { item: StockItem }) {
       </span>
     )
   }
+  if (e.next_expiry_date) return <span className="text-sm text-muted-foreground">{t('stock.expiry.next', { date: formatDay(e.next_expiry_date) })}</span>
+  if (Number(e.undated_quantity) > 0) return <span className="text-sm text-muted-foreground">{t('stock.expiry.no_date')}</span>
   return null
 }
 
