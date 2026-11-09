@@ -71,7 +71,10 @@ class ReportsTest extends TestCase
         $this->travelTo(now()->setTime(12, 0));
         $fresh = $this->product('Nouveau', price: '100', cost: '50', stock: '5');
 
-        // 30 riz vendus sur 30 jours (1 par jour) : 10 en stock, 10 jours restants, 20 à racheter.
+        // Un riz acheté chez un grossiste : il devient le fournisseur habituel du riz.
+        $wholesaler = $this->api('kone', 'POST', '/suppliers', ['name' => 'Grossiste Adjamé'], as: $this->owner)->json('data.id');
+        $this->api('kone', 'POST', $this->url('/purchases'), ['supplier_id' => $wholesaler, 'items' => [['product_id' => $rice, 'quantity' => '1', 'cost' => '700']]], as: $this->owner)->assertCreated();
+        // 30 riz vendus sur 30 jours (1 par jour) : 11 en stock, 11 jours restants, 19 à racheter.
         $this->sell([[$rice, '30']]);
         // Vente avec remise globale : le chiffre du produit la reprend au prorata.
         $this->api('kone', 'POST', $this->url('/sales'), ['items' => [['product_id' => $soap, 'quantity' => '10']], 'discount' => '300',
@@ -88,8 +91,9 @@ class ReportsTest extends TestCase
         // Prix de vente actuel sous le prix d'achat.
         $report->assertJsonPath('data.below_cost.0.product.id', $soap)->assertJsonPath('data.below_cost.0.cost', '350.00')->assertJsonCount(1, 'data.below_cost');
 
-        $report->assertJsonPath('data.restock.items.0.product.id', $rice)->assertJsonPath('data.restock.items.0.days_left', 10)
-            ->assertJsonPath('data.restock.items.0.suggested_quantity', '20')->assertJsonPath('data.restock.items.0.per_day', '1.000');
+        $report->assertJsonPath('data.restock.items.0.supplier', ['id' => $wholesaler, 'name' => 'Grossiste Adjamé']);
+        $report->assertJsonPath('data.restock.items.0.product.id', $rice)->assertJsonPath('data.restock.items.0.days_left', 11)
+            ->assertJsonPath('data.restock.items.0.suggested_quantity', '19')->assertJsonPath('data.restock.items.0.per_day', '1.000');
         // Savon : 40 en stock pour 10 vendus en 30 jours, 120 jours : pas à racheter.
         $this->assertNotContains($soap, array_column(array_column($report->json('data.restock.items'), 'product'), 'id'));
 

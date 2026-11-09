@@ -40,11 +40,17 @@ export async function getProductStock(id: Id): Promise<ProductShopStock[]> {
 export async function searchShopProducts(
   shopId: Id,
   q: string,
-  options: { services?: boolean; signal?: AbortSignal } = {},
+  options: { services?: boolean; supplierId?: Id; toRestock?: boolean; signal?: AbortSignal } = {},
 ): Promise<ProductSearchResult[]> {
   const res = await http.get<Resource<ProductSearchResult[]>>(
     `/shops/${shopId}/products/search`,
-    { q, services: options.services ? 'true' : undefined },
+    {
+      q,
+      services: options.services ? 'true' : undefined,
+      // Racheter chez un fournisseur : ses articles seulement, au besoin ceux à racheter.
+      supplier_id: options.supplierId,
+      to_restock: options.toRestock ? 'true' : undefined,
+    },
     options.signal,
   )
   return res.data

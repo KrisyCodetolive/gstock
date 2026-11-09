@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Éditeur** | Genius Groups SAS |
-| **Version** | 3.8 — rapports : onglet Clients (meilleurs clients, nouveaux, perdus, ancienneté des dettes, recouvrement, payeurs) (M15) ; 3.7 : rapports, première partie (M15) : ventes, produits, à racheter, dormants ; 3.6 : péremption toujours visible dans Mon stock, filtre « Produits suivis » (M07) ; 3.5 : catégories, marques et catégories de dépenses créées sur place (M05) ; 3.4 : produit créé sur place depuis l'approvisionnement et l'entrée en stock (M06) ; 3.3 : fournisseur attribuable après coup à un approvisionnement qui n'en a pas (M11) ; 3.2 : transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
+| **Version** | 3.9 — produits d'un fournisseur, fournisseurs d'un produit, racheter chez un fournisseur (M11, M15) ; 3.8 : rapports : onglet Clients (meilleurs clients, nouveaux, perdus, ancienneté des dettes, recouvrement, payeurs) (M15) ; 3.7 : rapports, première partie (M15) : ventes, produits, à racheter, dormants ; 3.6 : péremption toujours visible dans Mon stock, filtre « Produits suivis » (M07) ; 3.5 : catégories, marques et catégories de dépenses créées sur place (M05) ; 3.4 : produit créé sur place depuis l'approvisionnement et l'entrée en stock (M06) ; 3.3 : fournisseur attribuable après coup à un approvisionnement qui n'en a pas (M11) ; 3.2 : transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
 | **Date** | 5 novembre 2026 (connexion centrale, ADR-009 ; fin des données simulées, ADR-004) |
 | **Cible** | Boutiques de quartier, épiceries, mini-markets, commerces de proximité et petits détaillants |
 | **Statut** | Définitif pour la phase 1 — évolutif pour les phases suivantes |
@@ -1067,10 +1067,12 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 - Date de péremption facultative par ligne, pour les produits suivis (§7.11).
 - Historique des approvisionnements [LISTE] ; annulation avec motif (retrait du stock), refusée si une partie de ses arrivages a déjà été vendue ou sortie (§7.11).
 - Fournisseurs [LISTE] : nom, téléphone, adresse, note ; total acheté, payé, dû.
+- **Produits d'un fournisseur** (fiche fournisseur) et **fournisseurs d'un produit** (fiche produit), déduits des approvisionnements reçus, sans saisie en plus : dernier prix d'achat (dans l'unité achetée et par unité de base), prix précédent, plus bas et plus haut, nombre d'approvisionnements, quantité et montant achetés, stock de la boutique courante ; sur la fiche produit, du moins cher au plus cher, les achats sans fournisseur à part. Prix d'achat visibles avec `purchases.view` en plus de `suppliers.view` ou `products.view`.
+- **Racheter chez ce fournisseur** : depuis sa fiche, nouvel approvisionnement avec le fournisseur choisi ; ses produits en stock faible ou en rupture s'ajoutent en un geste, au dernier prix d'achat et dans la dernière unité achetée. Le rapport « À racheter bientôt » (M15) indique le fournisseur habituel de chaque produit (le dernier chez qui il a été acheté) et peut se regrouper par fournisseur.
 
 **Tables.** `suppliers`, `purchases`, `purchase_items`, `purchase_payments`, `installments`.
 
-**Endpoints.** `CRUD /suppliers`, `GET|POST /shops/{shop_id}/purchases`, `GET /shops/{shop_id}/purchases/{id}`, `POST /shops/{shop_id}/purchases/{id}/cancel`, `POST /shops/{shop_id}/purchases/{id}/payments`, `PUT /shops/{shop_id}/purchases/{id}/supplier`.
+**Endpoints.** `CRUD /suppliers`, `GET /suppliers/{id}/products?shop_id=`, `GET /products/{id}/suppliers`, `GET|POST /shops/{shop_id}/purchases`, `GET /shops/{shop_id}/purchases/{id}`, `POST /shops/{shop_id}/purchases/{id}/cancel`, `POST /shops/{shop_id}/purchases/{id}/payments`, `PUT /shops/{shop_id}/purchases/{id}/supplier`.
 
 **Critères d'acceptation.** Un approvisionnement de 5 produits s'enregistre en moins d'une minute. Le stock augmente du bon nombre d'unités de base.
 

@@ -4,6 +4,7 @@ import type {
   Expense,
   ExpensePayload,
   ExpensesList,
+  ProductSupplier,
   Purchase,
   PurchasePayload,
   PurchaseQuote,
@@ -11,6 +12,7 @@ import type {
   PurchasesList,
   Supplier,
   SupplierPayload,
+  SupplierProduct,
 } from '@/types/purchases'
 import type { InstallmentScheduleItem } from '@/types/credits'
 import { http } from './client'
@@ -29,6 +31,16 @@ export async function createSupplier(payload: SupplierPayload): Promise<Supplier
 
 export async function updateSupplier(id: Id, payload: SupplierPayload): Promise<Supplier> {
   return (await http.put<Resource<Supplier>>(`/suppliers/${id}`, payload)).data
+}
+
+/** Produits achetés chez ce fournisseur, avec le stock de la boutique `shopId`. */
+export async function getSupplierProducts(id: Id, shopId?: Id): Promise<SupplierProduct[]> {
+  return (await http.get<Resource<SupplierProduct[]>>(`/suppliers/${id}/products`, shopId ? { shop_id: shopId } : {})).data
+}
+
+/** Fournisseurs chez qui ce produit a été acheté, le moins cher d'abord. */
+export async function getProductSuppliers(productId: Id): Promise<ProductSupplier[]> {
+  return (await http.get<Resource<ProductSupplier[]>>(`/products/${productId}/suppliers`)).data
 }
 
 /** Total calculé par le serveur, sans rien enregistrer (§7.4). */

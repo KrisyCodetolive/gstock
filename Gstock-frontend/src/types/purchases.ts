@@ -1,7 +1,8 @@
 // Contrat d'API des modules M11 (approvisionnements, fournisseurs) et M12 (dépenses).
 // Les montants sont recalculés par le serveur (§7.4).
 import type { Id, IsoDate, Money } from './api'
-import type { ProductUnitRef } from './catalog'
+import type { ProductUnitRef, StockState } from './catalog'
+import type { CategoryColor } from './referentials'
 import type { Installment } from './credits'
 
 /** Ressource /suppliers */
@@ -148,4 +149,42 @@ export interface ExpensesList {
   data: Expense[]
   meta: { current_page: number; per_page: number; total: number; last_page: number }
   summary: { count: number; total: Money; by_category: { category: { id: Id; name: string }; total: Money }[] }
+}
+
+/** Prix d'achat déduits des approvisionnements reçus (M11). Les prix `*_cost` sont par unité de base. */
+export interface PurchasePriceHistory {
+  last_purchased_at: string
+  last_cost: Money
+  /** Prix de la dernière ligne, dans l'unité achetée (`last_unit`, le carton par exemple). */
+  last_unit_cost: Money
+  last_unit: { id: Id; name: string; short_name: string } | null
+  /** null s'il n'y a eu qu'un achat. */
+  previous_cost: Money | null
+  min_cost: Money
+  max_cost: Money
+  purchases: number
+  /** En unité de base. */
+  quantity: string
+}
+
+/** GET /suppliers/{id}/products : un produit (ou une variante) acheté chez ce fournisseur. */
+export interface SupplierProduct extends PurchasePriceHistory {
+  product: {
+    id: Id
+    name: string
+    unit: { id: Id; name: string; short_name: string } | null
+    category: { id: Id; name: string; color: CategoryColor } | null
+    image_url: string | null
+    is_active: boolean
+  }
+  variant: { id: Id; name: string } | null
+  spent: Money
+  /** Stock dans la boutique demandée ; null si l'article n'y a jamais eu de stock. */
+  stock: { quantity: string; state: StockState } | null
+}
+
+/** GET /products/{id}/suppliers : un fournisseur (ou « sans fournisseur ») du produit, le moins cher d'abord. */
+export interface ProductSupplier extends PurchasePriceHistory {
+  supplier: { id: Id; name: string; phone: string | null; is_active: boolean } | null
+  variant: { id: Id; name: string } | null
 }

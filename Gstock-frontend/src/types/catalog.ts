@@ -169,4 +169,6 @@ export interface ProductSearchResult {
   state: StockState | null
   track_expiry?: boolean
   expiry?: ExpirySummary | null
+  /** Recherche filtrée par fournisseur : dernière unité et dernier prix de la ligne achetés chez lui. */
+  supplier_last?: { unit_id: Id | null; cost: Money }
 }

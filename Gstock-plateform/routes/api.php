@@ -167,6 +167,9 @@ Route::middleware('tenant')->group(function () {
         // Fournisseurs (M11) : communs à l'espace ; l'écran d'approvisionnement peut les lire.
         Route::get('suppliers', [SupplierController::class, 'index'])->middleware('permission:suppliers.view,purchases.create');
         Route::get('suppliers/{supplier}', [SupplierController::class, 'show'])->middleware('permission:suppliers.view');
+        // Produits d'un fournisseur et fournisseurs d'un produit (M11) : les prix d'achat demandent aussi purchases.view.
+        Route::get('suppliers/{supplier}/products', [SupplierController::class, 'products'])->middleware(['permission:suppliers.view', 'permission:purchases.view']);
+        Route::get('products/{product}/suppliers', [ProductController::class, 'suppliers'])->middleware(['permission:products.view', 'permission:purchases.view']);
         Route::post('suppliers', [SupplierController::class, 'store'])->middleware('permission:suppliers.manage');
         Route::put('suppliers/{supplier}', [SupplierController::class, 'update'])->middleware('permission:suppliers.manage');
 

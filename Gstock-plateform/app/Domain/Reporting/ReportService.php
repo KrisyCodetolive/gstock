@@ -4,6 +4,7 @@ namespace App\Domain\Reporting;
 
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Credits\InstallmentSchedule;
+use App\Domain\Purchases\SupplierCatalog;
 use App\Support\ApiException;
 use App\Support\Decimal as D;
 use Carbon\CarbonImmutable;
@@ -148,6 +149,8 @@ final class ReportService
             ->orderByDesc('revenue')->limit(self::MAX_ROWS)->get();
 
         $restock = $this->restock();
+        // Fournisseur habituel : le dernier chez qui l'article a été acheté (M11).
+        $usual = app(SupplierCatalog::class)->lastSuppliers($this->shops);
         $dormant = $this->dormant($dormantDays);
         $belowCost = $this->belowCost();
         $refs = $this->articles(collect([$sold, $restock, $dormant['rows'], $belowCost])->flatten(1));
@@ -177,12 +180,13 @@ final class ReportService
             'restock' => [
                 'velocity_days' => self::VELOCITY_DAYS,
                 'horizon_days' => self::RESTOCK_HORIZON,
-                'items' => $restock->map(function ($r) use ($refs) {
+                'items' => $restock->map(function ($r) use ($refs, $usual) {
                     $perDay = D::div((string) $r->sold, (string) self::VELOCITY_DAYS, 3);
                     $daysLeft = (float) $r->quantity <= 0 ? 0 : (int) floor((float) $r->quantity / ((float) $r->sold / self::VELOCITY_DAYS));
 
                     return [
                         ...$this->ref($refs, $r),
+                        'supplier' => $usual[$r->product_id.':'.($r->product_variant_id ?? '')] ?? null,
                         'quantity' => D::format((string) $r->quantity),
                         'sold_last_days' => D::format((string) $r->sold),
                         'per_day' => $perDay,

@@ -1,4 +1,4 @@
-import { BarChart3, Clock, PackageSearch, ShoppingBasket, TrendingDown, TrendingUp } from 'lucide-react'
+import { BarChart3, Clock, PackageSearch, ShoppingBasket, TrendingDown, TrendingUp, Truck } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router'
@@ -6,15 +6,16 @@ import { Money } from '@/components/Money'
 import { PageHeader } from '@/components/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge'
 import { EmptyState, LoadingState } from '@/components/states'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useSession } from '@/features/auth/hooks'
+import { useCan, useSession } from '@/features/auth/hooks'
 import { ProductThumb } from '@/features/products/components/ProductThumb'
 import { useCurrentShop } from '@/features/shops/hooks'
 import { articleKey } from '@/lib/articles'
 import { formatDay, formatQuantity, formatShortDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import type { Id } from '@/types/api'
-import type { DormantDays, ReportArticle, ReportQuery, SoldArticle } from '@/types/reports'
+import type { DormantDays, ReportArticle, ReportQuery, RestockArticle, SoldArticle } from '@/types/reports'
 import { CustomersTab } from '../components/CustomersTab'
 import { ReportError, Section, Segmented, Tile } from '../components/ReportParts'
 import { SalesChart } from '../components/SalesChart'
@@ -288,26 +289,7 @@ function ProductsTab({ shopId, query }: { shopId: Id | null | undefined; query: 
         {r.restock.items.length === 0 ? (
           <p className="text-muted-foreground">{t('reports.products.restock_empty')}</p>
         ) : (
-          <ul className="grid gap-2">
-            {r.restock.items.map((a) => {
-              const unit = a.product.unit?.short_name ?? ''
-              return (
-                <ArticleRow key={articleKey(a.product.id, a.variant?.id)} article={a}>
-                  <span className="grid justify-items-end gap-0.5 text-right">
-                    <StatusBadge tone={a.days_left === 0 ? 'danger' : a.days_left <= 7 ? 'warn' : 'neutral'}>
-                      {a.days_left === 0 ? t('reports.products.out_now') : t('reports.products.days_left', { count: a.days_left })}
-                    </StatusBadge>
-                    <span className="text-sm text-muted-foreground">
-                      {t('reports.products.stock_and_pace', { stock: `${formatQuantity(a.quantity)} ${unit}`, pace: `${formatQuantity(a.per_day)} ${unit}` })}
-                    </span>
-                    {Number(a.suggested_quantity) > 0 && (
-                      <span className="text-sm font-bold">{t('reports.products.suggested', { value: `${formatQuantity(a.suggested_quantity)} ${unit}` })}</span>
-                    )}
-                  </span>
-                </ArticleRow>
-              )
-            })}
-          </ul>
+          <RestockList items={r.restock.items} />
         )}
       </Section>
 
@@ -345,8 +327,75 @@ function ProductsTab({ shopId, query }: { shopId: Id | null | undefined; query: 
   )
 }
 
-/** Ligne d'un article : vignette, nom (et variante), chiffres à droite ; mène à la fiche du produit. */
-function ArticleRow({ article: a, rank, children }: { article: ReportArticle; rank?: number; children: ReactNode }) {
+/** « À racheter bientôt » : en liste (avec le fournisseur habituel) ou regroupé par fournisseur, avec « Racheter chez lui ». */
+function RestockList({ items }: { items: RestockArticle[] }) {
+  const { t } = useTranslation()
+  const can = useCan()
+  const [bySupplier, setBySupplier] = useState(false)
+  const row = (a: RestockArticle, withSupplier: boolean) => {
+    const unit = a.product.unit?.short_name ?? ''
+    return (
+      <ArticleRow key={articleKey(a.product.id, a.variant?.id)} article={a} sub={withSupplier && a.supplier ? t('reports.products.at_supplier', { name: a.supplier.name }) : undefined}>
+        <span className="grid justify-items-end gap-0.5 text-right">
+          <StatusBadge tone={a.days_left === 0 ? 'danger' : a.days_left <= 7 ? 'warn' : 'neutral'}>
+            {a.days_left === 0 ? t('reports.products.out_now') : t('reports.products.days_left', { count: a.days_left })}
+          </StatusBadge>
+          <span className="text-sm text-muted-foreground">
+            {t('reports.products.stock_and_pace', { stock: `${formatQuantity(a.quantity)} ${unit}`, pace: `${formatQuantity(a.per_day)} ${unit}` })}
+          </span>
+          {Number(a.suggested_quantity) > 0 && (
+            <span className="text-sm font-bold">{t('reports.products.suggested', { value: `${formatQuantity(a.suggested_quantity)} ${unit}` })}</span>
+          )}
+        </span>
+      </ArticleRow>
+    )
+  }
+  // Groupes dans l'ordre d'urgence de leur premier article ; « sans fournisseur connu » à la fin.
+  const groups = [...items.reduce((m, a) => m.set(a.supplier?.id ?? null, [...(m.get(a.supplier?.id ?? null) ?? []), a]), new Map<number | null, RestockArticle[]>())]
+    .sort(([a], [b]) => (a === null ? 1 : b === null ? -1 : 0))
+
+  return (
+    <>
+      <Segmented
+        label={t('reports.products.restock_view')}
+        value={bySupplier}
+        onChange={setBySupplier}
+        options={[
+          { value: false, label: t('reports.products.restock_list') },
+          { value: true, label: t('reports.products.restock_by_supplier') },
+        ]}
+      />
+      {!bySupplier ? (
+        <ul className="grid gap-2">{items.map((a) => row(a, true))}</ul>
+      ) : (
+        <div className="grid gap-5">
+          {groups.map(([id, group]) => (
+            <div key={id ?? 'none'} className="grid gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-foreground pb-2">
+                <h3 className="font-bold">
+                  {group[0]!.supplier?.name ?? t('reports.products.no_usual_supplier')}{' '}
+                  <span className="font-semibold text-muted-foreground">· {t('reports.products.restock_count', { count: group.length })}</span>
+                </h3>
+                {id !== null && can('purchases.create') && (
+                  <Button asChild variant="outline" size="sm">
+                    <Link to={`/approvisionnements/nouveau?fournisseur=${id}`}>
+                      <Truck aria-hidden="true" />
+                      {t('reports.products.restock_buy')}
+                    </Link>
+                  </Button>
+                )}
+              </div>
+              <ul className="grid gap-2">{group.map((a) => row(a, false))}</ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+/** Ligne d'un article : vignette, nom (et variante, ou précision), chiffres à droite ; mène à la fiche du produit. */
+function ArticleRow({ article: a, rank, sub, children }: { article: ReportArticle; rank?: number; sub?: string; children: ReactNode }) {
   return (
     <li>
       <Link to={`/produits/${a.product.id}`} className="flex items-center gap-3 rounded-md px-1 py-2 hover:bg-muted">
@@ -355,6 +404,7 @@ function ArticleRow({ article: a, rank, children }: { article: ReportArticle; ra
         <span className="grid min-w-0 flex-1">
           <span className="truncate font-bold">{a.product.name}</span>
           {a.variant && <span className="truncate text-sm text-muted-foreground">{a.variant.name}</span>}
+          {sub && <span className="truncate text-sm text-muted-foreground">{sub}</span>}
         </span>
         {children}
       </Link>

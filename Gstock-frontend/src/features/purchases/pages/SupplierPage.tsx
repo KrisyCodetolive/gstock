@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Truck } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -21,6 +22,7 @@ import { formatShortDate } from '@/lib/format'
 import i18n from '@/lib/i18n'
 import type { Supplier } from '@/types/purchases'
 import { PurchaseStatusBadge } from '../components/PurchaseStatusBadge'
+import { SupplierProductsSection } from '../components/SupplierProductsSection'
 import { usePurchases, useSaveSupplier, useSupplier } from '../hooks'
 
 const schema = z.object({
@@ -38,6 +40,7 @@ export function SupplierPage() {
   const { id } = useParams()
   const supplierId = id ? Number(id) : undefined
   const supplier = useSupplier(supplierId)
+  const can = useCan()
 
   return (
     <div className="grid gap-6">
@@ -53,7 +56,21 @@ export function SupplierPage() {
         <ErrorState error={supplier.error} onRetry={() => void supplier.refetch()} />
       ) : (
         <>
-          <PageHeader title={supplier.data.name} subtitle={[supplier.data.phone, supplier.data.address].filter(Boolean).join(' · ') || undefined} />
+          <PageHeader
+            title={supplier.data.name}
+            subtitle={[supplier.data.phone, supplier.data.address].filter(Boolean).join(' · ') || undefined}
+            actions={
+              can('purchases.create') &&
+              supplier.data.is_active && (
+                <Button asChild variant="action">
+                  <Link to={`/approvisionnements/nouveau?fournisseur=${supplier.data.id}`}>
+                    <Truck aria-hidden="true" />
+                    {t('suppliers.restock.button')}
+                  </Link>
+                </Button>
+              )
+            }
+          />
           <dl className="grid grid-cols-3 gap-3">
             {[
               { label: t('suppliers.columns.purchased'), value: <Money value={supplier.data.purchased_total} size="md" /> },
@@ -66,6 +83,7 @@ export function SupplierPage() {
               </div>
             ))}
           </dl>
+          <SupplierProductsSection supplierId={supplier.data.id} />
           <SupplierPurchases supplierId={supplier.data.id} />
           <SupplierForm key={supplier.data.id} supplier={supplier.data} />
         </>

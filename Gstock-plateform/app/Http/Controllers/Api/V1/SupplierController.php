@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Identity\Models\User;
 use App\Domain\Purchases\Models\Supplier;
+use App\Domain\Purchases\SupplierCatalog;
 use App\Domain\Shops\Models\Shop;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PurchasesPresenter;
@@ -44,6 +45,26 @@ class SupplierController extends Controller
     public function show(Request $request, Supplier $supplier): JsonResponse
     {
         return response()->json(['data' => PurchasesPresenter::supplier($supplier, $this->shopIds($request->user()))]);
+    }
+
+    /**
+     * Produits achetés chez ce fournisseur (M11) : derniers prix, évolution, quantités, dépense,
+     * et stock de la boutique `?shop_id=` (accès vérifié).
+     */
+    public function products(Request $request, Supplier $supplier, SupplierCatalog $catalog): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $stockShop = null;
+        if ($request->filled('shop_id')) {
+            $shop = Shop::query()->find((int) $request->query('shop_id'));
+            if (! $shop || ! $user->canAccessShop($shop)) {
+                throw ApiException::forbidden("Vous n'avez pas accès à cette boutique.");
+            }
+            $stockShop = $shop->id;
+        }
+
+        return response()->json(['data' => $catalog->forSupplier($supplier, $this->shopIds($user), $stockShop)]);
     }
 
     public function store(Request $request): JsonResponse
