@@ -1,6 +1,6 @@
 # GStock — État du projet
 
-> Mis à jour le 9 novembre 2026 : rubrique « Rapports » (ventes, produits, à racheter, dormants, clients et crédits) ; péremption toujours visible dans Mon stock ; catégories, marques et catégories de dépenses créées sur place ; produit créé sur place depuis l'approvisionnement et l'entrée en stock ; fournisseur d'un approvisionnement (raccourci « Nouveau fournisseur », attribution après coup) ; photos conservées à la reconstruction de l'API.
+> Mis à jour le 9 novembre 2026 : produits par fournisseur et « Racheter chez ce fournisseur » ; rubrique « Rapports » (ventes, produits, à racheter, dormants, clients et crédits) ; péremption toujours visible dans Mon stock ; catégories, marques et catégories de dépenses créées sur place ; produit créé sur place depuis l'approvisionnement et l'entrée en stock ; fournisseur d'un approvisionnement (raccourci « Nouveau fournisseur », attribution après coup) ; photos conservées à la reconstruction de l'API.
 > Ce dossier est l'inventaire de ce qui a été **fait**. Il s'adresse à la personne (ou à l'agent) qui reprend le projet : ce fichier donne la vue d'ensemble et ce qui est commun à toutes les phases ; **chaque phase terminée a son rapport** (tableau ci-dessous) : ce qui a été livré, où se trouve le code, les règles appliquées, les vérifications faites et les limites.
 
 ## En bref
@@ -38,7 +38,9 @@
 | B9 — Synchronisation hors ligne du backend (références définitives, idempotence, écarts « à vérifier », refus motivés) | [B9-hors-ligne-api.md](B9-hors-ligne-api.md) | `api-hors-ligne` |
 | B10 — Back-office de Genius Groups (Filament : tableau de bord, espaces, boutiques, utilisateurs, mode support, formules, factures, journal) | [B10-back-office.md](B10-back-office.md) | `back-office` |
 
-Hors phase : [rapports-statistiques.md](rapports-statistiques.md) (rubrique « Rapports », première partie : ventes jour par jour, meilleurs produits, produits à perte, à racheter, dormants).
+Hors phase : [produits-fournisseur.md](produits-fournisseur.md) (produits d'un fournisseur, fournisseurs d'un produit, racheter chez un fournisseur).
+
+Hors phase également : [rapports-statistiques.md](rapports-statistiques.md) (rubrique « Rapports », première partie : ventes jour par jour, meilleurs produits, produits à perte, à racheter, dormants).
 
 Hors phase également : [peremption-visible.md](peremption-visible.md) (tuiles de péremption toujours visibles, filtre « Produits suivis »).
 
@@ -163,6 +165,7 @@ Le backend devra reproduire ce que font les handlers de `src/mocks/handlers/` (u
   - Transferts : `GET|POST /shops/{id}/transfers`, `GET /shops/{id}/transfers/{id}`, `POST …/receive`, `POST …/cancel`. Détail dans [transferts.md](transferts.md).
   - Péremption : `summary.tracked` et `filter[expiry]=tracked` sur `GET /shops/{id}/stock` ([peremption-visible.md](peremption-visible.md)) ; `GET|PUT /shops/{id}/stock/lots`, champs `track_expiry`, `expiry`, `exit_reason`, `losses`… Détail dans [peremption.md](peremption.md).
   - Fournisseur d'un approvisionnement : `PUT /shops/{id}/purchases/{id}/supplier` (seulement s'il n'en a pas). Détail dans [fournisseur-approvisionnement.md](fournisseur-approvisionnement.md).
+  - Fournisseurs : `GET /suppliers/{id}/products?shop_id=`, `GET /products/{id}/suppliers`, `supplier_id` et `to_restock` sur la recherche de produits. Détail dans [produits-fournisseur.md](produits-fournisseur.md).
   - Rapports : `GET /shops/{id}/reports/sales`, `GET /shops/{id}/reports/products`, `GET /shops/{id}/reports/customers`, et `/reports/...` pour toutes les boutiques ; permission `reports.view`. Détail dans [rapports-statistiques.md](rapports-statistiques.md).
   - Connexion centrale : `POST /auth/central-login` (domaine principal). Détail dans [connexion-centrale.md](connexion-centrale.md).
   - F10 : `PUT /me/password`, `POST|DELETE /me/avatar`, `POST|DELETE /products/{id}/image`, `PUT /shops/{id}/purchases/{id}/installments` (avec `installments` et `overdue_amount`), `purchase_unit_id` / `purchase_unit` / `units` sur le produit, `unit_id` / `unit` / `base_quantity` sur les lignes d'approvisionnement, `variants` sur le produit et `variant_id` / `variant` sur toutes les lignes (vente, approvisionnement, mouvement de stock). Détail dans [F10-complements-v1.md](F10-complements-v1.md).
