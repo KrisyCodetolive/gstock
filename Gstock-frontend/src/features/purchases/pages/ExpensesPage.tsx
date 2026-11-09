@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useCan, useSession } from '@/features/auth/hooks'
+import { QuickReferentialCreate } from '@/features/referentials/components/QuickReferentialCreate'
 import { useReferentialList } from '@/features/referentials/hooks'
 import { useCurrentShop } from '@/features/shops/hooks'
 import { ApiError } from '@/lib/api/client'
@@ -260,6 +261,7 @@ function ExpenseForm({ onClose }: { onClose: () => void }) {
               {t('expenses.form.category')}
             </label>
             {select('expense-category', category, setCategory, categories.data?.data, t('expenses.form.category_placeholder'), errors.category)}
+            <QuickReferentialCreate resource="expense-categories" onCreated={(id) => setCategory(String(id))} />
           </div>
           <FormField id="expense-amount" label={t('expenses.form.amount')} error={errors.amount}>
             <Input inputMode="numeric" className="tabular text-lg font-bold" value={amount} onChange={(e) => setAmount(e.target.value)} />

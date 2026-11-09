@@ -99,6 +99,21 @@
       "name_placeholder": "ex. Dinor",
       "required_name": "Donnez un nom à la marque.",
       "advanced_off": "Les marques font partie du mode avancé. Activez-le dans « Mon espace » pour les utiliser."
+    },
+    "quick": {
+      "open": {
+        "categories": "Nouvelle catégorie",
+        "expense-categories": "Nouvelle catégorie",
+        "brands": "Nouvelle marque"
+      },
+      "placeholder": {
+        "categories": "ex. Boissons",
+        "expense-categories": "ex. Transport",
+        "brands": "ex. Nestlé"
+      },
+      "add": "Ajouter",
+      "required": "Saisissez un nom.",
+      "created": "« {{name}} » ajouté et choisi."
     }
   }
 }

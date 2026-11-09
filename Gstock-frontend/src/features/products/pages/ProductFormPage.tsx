@@ -18,6 +18,7 @@ import { ErrorState, LoadingState } from '@/components/states'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useCan, useSession } from '@/features/auth/hooks'
+import { QuickReferentialCreate } from '@/features/referentials/components/QuickReferentialCreate'
 import { useReferentialList } from '@/features/referentials/hooks'
 import { useCurrentShop } from '@/features/shops/hooks'
 import { MovementsPreview } from '@/features/stock/components/MovementsPreview'
@@ -182,14 +183,17 @@ function ProductFormBody({ product }: { product?: Product }) {
                   <Input inputMode="decimal" className="tabular" {...form.register('initial_quantity')} />
                 </FormField>
               )}
-              <SelectField
-                control={form.control}
-                name="category_id"
-                label={t('products.form.category')}
-                noneLabel={t('products.form.category_none')}
-                options={options(categories.data?.data)}
-                error={errors.category_id?.message}
-              />
+              <div className="grid content-start gap-2">
+                <SelectField
+                  control={form.control}
+                  name="category_id"
+                  label={t('products.form.category')}
+                  noneLabel={t('products.form.category_none')}
+                  options={options(categories.data?.data)}
+                  error={errors.category_id?.message}
+                />
+                {editable && <QuickReferentialCreate resource="categories" onCreated={(id) => form.setValue('category_id', String(id), { shouldDirty: true })} />}
+              </div>
             </div>
             {/* Dates de péremption (§7.11) : accessibles sans le mode avancé, tous les champs facultatifs. */}
             {type !== 'service' && (
@@ -329,13 +333,16 @@ function ProductFormBody({ product }: { product?: Product }) {
                   }
                   error={errors.type?.message}
                 />
-                <SelectField
-                  control={form.control}
-                  name="brand_id"
-                  label={t('products.form.brand')}
-                  noneLabel={t('products.form.brand_none')}
-                  options={options(brands.data?.data)}
-                />
+                <div className="grid content-start gap-2">
+                  <SelectField
+                    control={form.control}
+                    name="brand_id"
+                    label={t('products.form.brand')}
+                    noneLabel={t('products.form.brand_none')}
+                    options={options(brands.data?.data)}
+                  />
+                  {editable && <QuickReferentialCreate resource="brands" onCreated={(id) => form.setValue('brand_id', String(id), { shouldDirty: true })} />}
+                </div>
                 <FormField id="tax_rate" label={t('products.form.tax_rate')} optional error={errors.tax_rate?.message}>
                   <Input inputMode="decimal" className="tabular" {...form.register('tax_rate')} />
                 </FormField>
