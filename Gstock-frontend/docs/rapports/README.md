@@ -1,6 +1,6 @@
 # GStock — État du projet
 
-> Mis à jour le 9 novembre 2026 : photos conservées à la reconstruction de l'API, repli quand une photo est introuvable.
+> Mis à jour le 9 novembre 2026 : fournisseur d'un approvisionnement (raccourci « Nouveau fournisseur », attribution après coup) ; photos conservées à la reconstruction de l'API.
 > Ce dossier est l'inventaire de ce qui a été **fait**. Il s'adresse à la personne (ou à l'agent) qui reprend le projet : ce fichier donne la vue d'ensemble et ce qui est commun à toutes les phases ; **chaque phase terminée a son rapport** (tableau ci-dessous) : ce qui a été livré, où se trouve le code, les règles appliquées, les vérifications faites et les limites.
 
 ## En bref
@@ -38,7 +38,9 @@
 | B9 — Synchronisation hors ligne du backend (références définitives, idempotence, écarts « à vérifier », refus motivés) | [B9-hors-ligne-api.md](B9-hors-ligne-api.md) | `api-hors-ligne` |
 | B10 — Back-office de Genius Groups (Filament : tableau de bord, espaces, boutiques, utilisateurs, mode support, formules, factures, journal) | [B10-back-office.md](B10-back-office.md) | `back-office` |
 
-Hors phase : [transferts.md](transferts.md) (transferts de stock entre boutiques, envoi puis réception).
+Hors phase : [fournisseur-approvisionnement.md](fournisseur-approvisionnement.md) (raccourci « Nouveau fournisseur » dans l'approvisionnement, fournisseur attribué après coup s'il manque).
+
+Hors phase également : [transferts.md](transferts.md) (transferts de stock entre boutiques, envoi puis réception).
 
 Hors phase également : [creation-rapide-produits.md](creation-rapide-produits.md) (« Ajouter et créer un autre », stock de départ par variante).
 
@@ -152,6 +154,7 @@ Le backend devra reproduire ce que font les handlers de `src/mocks/handlers/` (u
   - F9 : résultats de `POST /shops/{id}/sync` (`created`, `duplicate`, `to_review`, `rejected`), `customers` et `tax_rate` dans `pos/bootstrap`, `sync_status` et `review_reasons` sur les ventes. Détail dans [F9-hors-ligne.md](F9-hors-ligne.md).
   - Transferts : `GET|POST /shops/{id}/transfers`, `GET /shops/{id}/transfers/{id}`, `POST …/receive`, `POST …/cancel`. Détail dans [transferts.md](transferts.md).
   - Péremption : `GET|PUT /shops/{id}/stock/lots`, champs `track_expiry`, `expiry`, `exit_reason`, `losses`… Détail dans [peremption.md](peremption.md).
+  - Fournisseur d'un approvisionnement : `PUT /shops/{id}/purchases/{id}/supplier` (seulement s'il n'en a pas). Détail dans [fournisseur-approvisionnement.md](fournisseur-approvisionnement.md).
   - Connexion centrale : `POST /auth/central-login` (domaine principal). Détail dans [connexion-centrale.md](connexion-centrale.md).
   - F10 : `PUT /me/password`, `POST|DELETE /me/avatar`, `POST|DELETE /products/{id}/image`, `PUT /shops/{id}/purchases/{id}/installments` (avec `installments` et `overdue_amount`), `purchase_unit_id` / `purchase_unit` / `units` sur le produit, `unit_id` / `unit` / `base_quantity` sur les lignes d'approvisionnement, `variants` sur le produit et `variant_id` / `variant` sur toutes les lignes (vente, approvisionnement, mouvement de stock). Détail dans [F10-complements-v1.md](F10-complements-v1.md).
 - **Où trouver les règles serveur déjà écrites** : `src/mocks/http.ts` (garde de session, permissions, validation, pagination), `src/mocks/stock.ts` (stock), `src/mocks/sales.ts` (ventes), `src/mocks/credits.ts` (crédits, remboursements, échéances, avoirs), `src/mocks/purchases.ts` (approvisionnements, dépenses), `src/mocks/handlers/dashboard.ts` (tableau de bord §7.8), `src/mocks/audit.ts` (journal), `src/mocks/platform.ts` et `handlers/platform.ts` (inscription, abonnement, webhook GeniusPay, lecture seule), `handlers/sync.ts` (synchronisation hors ligne). Elles sont commentées avec les paragraphes du cahier.
