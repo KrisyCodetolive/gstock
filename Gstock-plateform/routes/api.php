@@ -128,6 +128,7 @@ Route::middleware('tenant')->group(function () {
         Route::middleware('permission:reports.view')->group(function () {
             Route::get('reports/sales', [ReportController::class, 'allSales']);
             Route::get('reports/products', [ReportController::class, 'allProducts']);
+            Route::get('reports/customers', [ReportController::class, 'allCustomers']);
         });
 
         Route::get('audit-logs', [AuditLogController::class, 'index'])->middleware('permission:audit.view');
@@ -180,6 +181,7 @@ Route::middleware('tenant')->group(function () {
             Route::middleware('permission:reports.view')->group(function () {
                 Route::get('reports/sales', [ReportController::class, 'shopSales']);
                 Route::get('reports/products', [ReportController::class, 'shopProducts']);
+                Route::get('reports/customers', [ReportController::class, 'shopCustomers']);
             });
             // Opérations faites hors ligne (ADR-005) : le droit de chaque opération est vérifié une à une.
             Route::post('sync', [SyncController::class, 'store'])->middleware(['permission:sales.create,repayments.create,expenses.create', 'throttle:60,1']);

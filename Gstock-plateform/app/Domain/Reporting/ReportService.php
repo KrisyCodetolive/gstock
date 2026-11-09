@@ -3,6 +3,7 @@
 namespace App\Domain\Reporting;
 
 use App\Domain\Catalog\Models\Product;
+use App\Domain\Credits\InstallmentSchedule;
 use App\Support\ApiException;
 use App\Support\Decimal as D;
 use Carbon\CarbonImmutable;
@@ -24,6 +25,17 @@ final class ReportService
     public const RESTOCK_HORIZON = 14;
 
     public const DORMANT_CHOICES = [30, 60, 90];
+
+    /** Clients qui ne reviennent plus : choix possibles, et nombre d'achats pour être un habitué. */
+    public const LOST_CHOICES = [30, 60, 90];
+
+    public const LOST_MIN_VISITS = 3;
+
+    /** Une dette plus vieille que cela (jours) est en retard, même sans échéancier. */
+    public const LATE_DEBT_DAYS = 60;
+
+    /** Longueur des listes « payeurs ». */
+    private const MAX_LIST = 20;
 
     private const MAX_DAYS = 366;
 
@@ -190,6 +202,167 @@ final class ReportService
                     'last_sold_at' => $r->last_sold === null ? null : CarbonImmutable::parse($r->last_sold)->toIso8601String(),
                 ])->values()->all(),
             ],
+        ];
+    }
+
+    /** @param  list<int>  $shopIds */
+    public function customers(array $shopIds, CarbonImmutable $start, CarbonImmutable $end, int $lostDays): array
+    {
+        $this->shops = $shopIds ?: [0];
+        if (! in_array($lostDays, self::LOST_CHOICES, true)) {
+            throw ApiException::invalid('lost_days', 'Choisissez 30, 60 ou 90 jours.');
+        }
+        [$from, $to] = $this->bounds($start, $end);
+        $inPeriod = fn () => $this->completedSales()->whereBetween('occurred_at', [$from, $to]);
+
+        // Meilleurs clients : montant, visites, marge (prix d'achat des lignes de leurs ventes).
+        $costs = DB::table('sale_items as si')->joinSub($inPeriod()->whereNotNull('customer_id')->select('id', 'customer_id'), 's', 's.id', '=', 'si.sale_id')
+            ->groupBy('s.customer_id')->selectRaw('s.customer_id, sum(si.unit_cost * si.base_quantity) as cost, count(*) filter (where si.unit_cost is null) as missing');
+        $top = $inPeriod()->whereNotNull('sales.customer_id')
+            ->leftJoinSub($costs, 'c', 'c.customer_id', '=', 'sales.customer_id')
+            ->groupBy('sales.customer_id', 'c.cost', 'c.missing')
+            ->selectRaw('sales.customer_id, count(*) as visits, sum(sales.total) as revenue, max(sales.occurred_at) as last_at, c.cost, c.missing')
+            ->orderByDesc('revenue')->limit(self::MAX_ROWS)->get();
+
+        // Ventes à des clients connus et anonymes ; nouveaux clients (premier achat dans la période).
+        $split = $inPeriod()->selectRaw('count(*) filter (where customer_id is not null) as known_n, coalesce(sum(total) filter (where customer_id is not null), 0) as known_total')
+            ->selectRaw('count(*) filter (where customer_id is null) as anonymous_n, coalesce(sum(total) filter (where customer_id is null), 0) as anonymous_total')->first();
+        $firsts = $this->completedSales()->whereNotNull('customer_id')->groupBy('customer_id')->selectRaw('customer_id, min(occurred_at) as first_at');
+        $newCount = DB::query()->fromSub($firsts, 'f')->whereBetween('first_at', [$from, $to])->count();
+
+        // Clients qui ne reviennent plus : au moins LOST_MIN_VISITS achats, aucun depuis $lostDays jours.
+        $cutoff = CarbonImmutable::now(DashboardService::TIMEZONE)->startOfDay()->subDays($lostDays)->utc();
+        $lostQuery = $this->completedSales()->whereNotNull('customer_id')->groupBy('customer_id')
+            ->selectRaw('customer_id, count(*) as visits, sum(total) as revenue, max(occurred_at) as last_at')
+            ->havingRaw('count(*) >= ?', [self::LOST_MIN_VISITS])->havingRaw('max(occurred_at) < ?', [$cutoff]);
+        $lostCount = DB::query()->fromSub($lostQuery, 'l')->count();
+        $lost = (clone $lostQuery)->orderByDesc('revenue')->limit(self::MAX_ROWS)->get();
+
+        $debts = $this->debts();
+        $recovery = $this->recovery($from, $to);
+        $names = DB::table('customers')->where('tenant_id', tenant('id'))
+            ->whereIn('id', collect([$top, $lost, $debts['rows'], $recovery['payers']])->flatten(1)->pluck('customer_id')->unique()->values())
+            ->get(['id', 'name', 'phone'])->keyBy('id');
+        $who = fn ($id) => ['id' => (int) $id, 'name' => (string) ($names[$id]->name ?? ''), 'phone' => $names[$id]->phone ?? null];
+        $at = fn ($v) => $v === null ? null : CarbonImmutable::parse($v)->toIso8601String();
+
+        return [
+            'period' => $this->periodOut($start, $end),
+            'top' => $top->map(function ($r) use ($who, $at) {
+                $revenue = D::round((string) $r->revenue, D::MONEY);
+                $complete = (int) ($r->missing ?? 0) === 0;
+
+                return [
+                    'customer' => $who($r->customer_id),
+                    'visits' => (int) $r->visits,
+                    'revenue' => $revenue,
+                    'average_basket' => D::div($revenue, (string) $r->visits, D::MONEY),
+                    'margin' => $complete ? D::sub($revenue, D::round((string) ($r->cost ?? '0'), D::MONEY), D::MONEY) : null,
+                    'last_at' => $at($r->last_at),
+                ];
+            })->values()->all(),
+            'known_sales' => ['count' => (int) $split->known_n, 'total' => D::format((string) $split->known_total, D::MONEY)],
+            'anonymous_sales' => ['count' => (int) $split->anonymous_n, 'total' => D::format((string) $split->anonymous_total, D::MONEY)],
+            'new_customers' => $newCount,
+            'lost' => [
+                'days' => $lostDays,
+                'min_visits' => self::LOST_MIN_VISITS,
+                'count' => $lostCount,
+                'items' => $lost->map(fn ($r) => [
+                    'customer' => $who($r->customer_id),
+                    'visits' => (int) $r->visits,
+                    'revenue' => D::round((string) $r->revenue, D::MONEY),
+                    'last_at' => $at($r->last_at),
+                ])->values()->all(),
+            ],
+            'debt_aging' => [
+                'total' => $debts['total'],
+                'buckets' => $debts['buckets'],
+                'top' => $debts['rows']->sortByDesc(fn ($r) => (float) $r->remaining)->take(10)->map(fn ($r) => [
+                    'customer' => $who($r->customer_id),
+                    'remaining' => D::round((string) $r->remaining, D::MONEY),
+                    'oldest_at' => $at($r->oldest_at),
+                    'overdue' => $r->overdue,
+                ])->values()->all(),
+            ],
+            'recovery' => $recovery['summary'],
+            'payers' => [
+                'late_days' => self::LATE_DEBT_DAYS,
+                'late' => $debts['rows']->filter(fn ($r) => $r->late)->sortByDesc(fn ($r) => (float) $r->remaining)->take(self::MAX_LIST)->map(fn ($r) => [
+                    'customer' => $who($r->customer_id),
+                    'remaining' => D::round((string) $r->remaining, D::MONEY),
+                    'overdue' => $r->overdue,
+                    'oldest_at' => $at($r->oldest_at),
+                ])->values()->all(),
+                'good' => $recovery['payers']->reject(fn ($r) => $debts['rows']->firstWhere('customer_id', $r->customer_id)?->late)
+                    ->take(self::MAX_LIST)->map(fn ($r) => [
+                        'customer' => $who($r->customer_id),
+                        'paid' => D::round((string) $r->paid, D::MONEY),
+                        'payments' => (int) $r->n,
+                    ])->values()->all(),
+            ],
+        ];
+    }
+
+    /**
+     * Crédits en cours (reste à payer > 0) : âge, échéances dépassées, retard (§7.7).
+     *
+     * @return array{total: string, buckets: list<array{key: string, amount: string, count: int}>, rows: Collection}
+     */
+    private function debts(): array
+    {
+        $today = CarbonImmutable::now(DashboardService::TIMEZONE)->startOfDay();
+        $open = DB::table('customer_credits')->where('tenant_id', tenant('id'))->whereIn('shop_id', $this->shops)
+            ->where('status', '!=', 'cancelled')->where('remaining_amount', '>', 0)
+            ->get(['id', 'customer_id', 'occurred_at', 'remaining_amount']);
+        $buckets = ['under_30' => ['0.00', 0], '30_60' => ['0.00', 0], 'over_60' => ['0.00', 0]];
+        $perCustomer = [];
+        foreach ($open as $c) {
+            $age = (int) CarbonImmutable::parse($c->occurred_at)->startOfDay()->diffInDays($today);
+            $key = $age < 30 ? 'under_30' : ($age <= 60 ? '30_60' : 'over_60');
+            $buckets[$key] = [D::add($buckets[$key][0], (string) $c->remaining_amount, D::MONEY), $buckets[$key][1] + 1];
+            $overdue = collect(InstallmentSchedule::of('customer_credit', (int) $c->id, (string) $c->remaining_amount))
+                ->where('status', 'overdue')->reduce(fn ($s, $i) => D::add($s, D::sub($i['amount'], $i['paid_amount'], D::MONEY), D::MONEY), '0.00');
+            $row = $perCustomer[$c->customer_id] ?? (object) ['customer_id' => $c->customer_id, 'remaining' => '0.00', 'overdue' => '0.00', 'oldest_at' => $c->occurred_at, 'late' => false];
+            $row->remaining = D::add($row->remaining, (string) $c->remaining_amount, D::MONEY);
+            $row->overdue = D::add($row->overdue, $overdue, D::MONEY);
+            $row->oldest_at = min($row->oldest_at, $c->occurred_at);
+            // En retard : une échéance dépassée, ou une dette plus vieille que LATE_DEBT_DAYS.
+            $row->late = $row->late || D::cmp($overdue, '0') > 0 || $age > self::LATE_DEBT_DAYS;
+            $perCustomer[$c->customer_id] = $row;
+        }
+
+        return [
+            'total' => D::format((string) $open->sum('remaining_amount'), D::MONEY),
+            'buckets' => collect($buckets)->map(fn ($b, $key) => ['key' => $key, 'amount' => $b[0], 'count' => $b[1]])->values()->all(),
+            'rows' => collect(array_values($perCustomer)),
+        ];
+    }
+
+    /**
+     * Recouvrement de la période : mis à crédit (hors anciennes dettes) et argent reçu sur des crédits
+     * (paiements confirmés, hors avoir, §7.8) ; qui a payé, du plus gros paiement au plus petit.
+     *
+     * @return array{summary: array, payers: Collection}
+     */
+    private function recovery(CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $credited = (string) DB::table('customer_credits')->where('tenant_id', tenant('id'))->whereIn('shop_id', $this->shops)
+            ->where('status', '!=', 'cancelled')->where('is_opening_balance', false)->whereBetween('occurred_at', [$from, $to])->sum('amount');
+        $repayments = DB::table('credit_repayments')->where('tenant_id', tenant('id'))->whereIn('shop_id', $this->shops)
+            ->where('status', 'completed')->whereNotNull('payment_method_id')->whereBetween('received_at', [$from, $to]);
+        $repaid = (string) (clone $repayments)->sum('amount');
+        $credited = D::format($credited ?: '0', D::MONEY);
+        $repaid = D::format($repaid ?: '0', D::MONEY);
+
+        return [
+            'summary' => [
+                'credited' => $credited,
+                'repaid' => $repaid,
+                'rate' => D::cmp($credited, '0') > 0 ? round((float) $repaid / (float) $credited * 100, 1) : null,
+            ],
+            'payers' => (clone $repayments)->groupBy('customer_id')->selectRaw('customer_id, sum(amount) as paid, count(*) as n')
+                ->orderByDesc('paid')->limit(self::MAX_ROWS)->get(),
         ];
     }
 
