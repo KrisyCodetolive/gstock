@@ -1,8 +1,10 @@
 import { initials } from '@/lib/format'
+import { useImageOk } from '@/lib/use-image-ok'
 import { cn } from '@/lib/utils'
 import type { User } from '@/types/auth'
 
 export function UserAvatar({ user, className }: { user: User; className?: string }) {
+  const image = useImageOk(user.avatar_url)
   return (
     <span
       className={cn(
@@ -11,7 +13,7 @@ export function UserAvatar({ user, className }: { user: User; className?: string
       )}
       aria-hidden="true"
     >
-      {user.avatar_url ? <img src={user.avatar_url} alt="" className="size-full object-cover" /> : initials(user.firstname, user.lastname)}
+      {image.ok ? <img src={user.avatar_url!} alt="" onError={image.onError} className="size-full object-cover" /> : initials(user.firstname, user.lastname)}
     </span>
   )
 }

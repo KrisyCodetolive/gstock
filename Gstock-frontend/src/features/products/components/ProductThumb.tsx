@@ -1,4 +1,5 @@
 import { Package, Truck } from 'lucide-react'
+import { useImageOk } from '@/lib/use-image-ok'
 import { cn } from '@/lib/utils'
 import type { CategoryColor } from '@/types/referentials'
 import type { ProductType } from '@/types/catalog'
@@ -27,9 +28,10 @@ export function ProductThumb({
   type?: ProductType
   className?: string
 }) {
+  const image = useImageOk(imageUrl)
   const base = cn('grid size-12 shrink-0 place-items-center overflow-hidden rounded-sm border-2 border-foreground', TINT[color ?? 'lavender'], className)
   // `className` peut demander `object-contain` (image entière sur la teinte de la catégorie).
-  if (imageUrl) return <img src={imageUrl} alt="" className={cn('object-cover', base)} />
+  if (image.ok) return <img src={imageUrl!} alt="" onError={image.onError} className={cn('object-cover', base)} />
   if (type === 'service') {
     return (
       <span className={base} aria-hidden="true">
