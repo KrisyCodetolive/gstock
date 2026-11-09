@@ -52,6 +52,10 @@ services:
       TENANCY_CENTRAL_DOMAINS: localhost
       SANCTUM_STATEFUL_DOMAINS: "*.localhost,*.localhost:*"
       FRONTEND_URL: "http://{tenant}.localhost:5173"
+    volumes:
+      # Photos des produits et des profils : gardées quand l'image est reconstruite.
+      - gstock-storage:/app/storage/app/public
 
 volumes:
   gstock-pgsql:
+  gstock-storage:
