@@ -22,7 +22,7 @@ class AuthTest extends TestCase
             ->assertJsonPath('data.shops.0.id', $shop->id)
             ->assertJsonPath('data.tenant.currency', 'XOF')
             ->assertJsonPath('data.tenant.subscription.status', 'active')
-            ->assertJsonCount(43, 'data.permissions');
+            ->assertJsonCount(44, 'data.permissions');
         $this->assertNotNull($owner->fresh()->last_login_at);
 
         $this->api('kone', 'POST', '/auth/login', ['login' => '+225 07 00 00 00 01', 'password' => 'secret123'])->assertOk();

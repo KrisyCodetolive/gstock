@@ -61,6 +61,7 @@ const ForgotPasswordPage = lazy(() => import('@/features/auth/pages/ForgotPasswo
 const ResetPasswordPage = lazy(() => import('@/features/auth/pages/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })))
 const ProfilePage = lazy(() => import('@/features/profile/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const SyncPage = lazy(() => import('@/features/sync/pages/SyncPage').then((m) => ({ default: m.SyncPage })))
+const ReportsPage = lazy(() => import('@/features/reports/pages/ReportsPage').then((m) => ({ default: m.ReportsPage })))
 const AuditPage = lazy(() => import('@/features/dashboard/pages/AuditPage').then((m) => ({ default: m.AuditPage })))
 
 const ShowcasePage = lazy(() => import('./pages/ShowcasePage').then((m) => ({ default: m.ShowcasePage })))
@@ -112,6 +113,7 @@ const catalog: RouteObject[] = [
   guarded('/fournisseurs/nouveau', ['suppliers.manage'], <SupplierPage />),
   guarded('/fournisseurs/:id', ['suppliers.view'], <SupplierPage />),
   guarded('/depenses', ['expenses.view'], <ExpensesPage />),
+  guarded('/rapports', ['reports.view'], <ReportsPage />),
   guarded('/journal', ['audit.view'], <AuditPage />),
   // Assistant de démarrage : réservé au propriétaire (le serveur refuse les autres).
   guarded('/demarrage', ['subscription.manage'], <OnboardingPage />),

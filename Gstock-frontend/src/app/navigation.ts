@@ -1,6 +1,7 @@
 // Rubriques de l'application : une seule liste pour le menu, la barre basse,
 // les actions rapides de l'accueil et les gardes de route.
 import {
+  BarChart3,
   BookOpenText,
   Boxes,
   ClipboardList,
@@ -73,6 +74,10 @@ export const NAV_ITEMS: NavItem[] = [
   {
     id: 'expenses', path: '/depenses', label: 'nav.expenses', description: 'home.expenses_text',
     icon: Wallet, permissions: ['expenses.view'], tint: 'lavender',
+  },
+  {
+    id: 'reports', path: '/rapports', label: 'nav.reports', description: 'home.reports_text',
+    icon: BarChart3, permissions: ['reports.view'], tint: 'yellow',
   },
   {
     id: 'audit', path: '/journal', label: 'nav.audit', description: 'home.audit_text',
