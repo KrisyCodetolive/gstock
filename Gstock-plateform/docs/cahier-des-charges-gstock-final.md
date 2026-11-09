@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Éditeur** | Genius Groups SAS |
-| **Version** | 3.3 — fournisseur attribuable après coup à un approvisionnement qui n'en a pas (M11) ; 3.2 : transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
+| **Version** | 3.4 — produit créé sur place depuis l'approvisionnement et l'entrée en stock (M06) ; 3.3 : fournisseur attribuable après coup à un approvisionnement qui n'en a pas (M11) ; 3.2 : transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
 | **Date** | 5 novembre 2026 (connexion centrale, ADR-009 ; fin des données simulées, ADR-004) |
 | **Cible** | Boutiques de quartier, épiceries, mini-markets, commerces de proximité et petits détaillants |
 | **Statut** | Définitif pour la phase 1 — évolutif pour les phases suivantes |
@@ -956,6 +956,7 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 - Suivi des dates de péremption (§7.11), accessible sans le mode avancé : interrupteur « Suivre les dates de péremption » et délai d'alerte, facultatifs ; date de péremption facultative à côté de la quantité initiale ; la fiche affiche le stock par date.
 - Mode avancé : type (simple, variable, service), variantes, marque, unités de vente et d'achat, taxe.
 - Modifier, désactiver ; scan du code-barres par la caméra.
+- Création sur place depuis l'approvisionnement et l'entrée en stock (permission `products.create`) : quand la recherche ne trouve pas le produit, « Créer « … » » ouvre un formulaire court (nom, prix de vente ; catégorie, unité et code-barres facultatifs, le code-barres repris d'un scan inconnu). Le produit devient aussitôt une ligne de l'opération. Pas de quantité de départ : c'est l'opération en cours qui fait entrer la marchandise. Produit simple seulement ; le reste se complète sur la fiche.
 - Le catalogue est commun à toutes les boutiques ; la fiche affiche le stock par boutique.
 
 **Tables.** `products`, `product_variants`, `shop_stock`.
