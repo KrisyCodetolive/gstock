@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Éditeur** | Genius Groups SAS |
-| **Version** | 3.7 — rapports, première partie (M15) : ventes, produits, à racheter, dormants ; 3.6 : péremption toujours visible dans Mon stock, filtre « Produits suivis » (M07) ; 3.5 : catégories, marques et catégories de dépenses créées sur place (M05) ; 3.4 : produit créé sur place depuis l'approvisionnement et l'entrée en stock (M06) ; 3.3 : fournisseur attribuable après coup à un approvisionnement qui n'en a pas (M11) ; 3.2 : transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
+| **Version** | 3.8 — rapports : onglet Clients (meilleurs clients, nouveaux, perdus, ancienneté des dettes, recouvrement, payeurs) (M15) ; 3.7 : rapports, première partie (M15) : ventes, produits, à racheter, dormants ; 3.6 : péremption toujours visible dans Mon stock, filtre « Produits suivis » (M07) ; 3.5 : catégories, marques et catégories de dépenses créées sur place (M05) ; 3.4 : produit créé sur place depuis l'approvisionnement et l'entrée en stock (M06) ; 3.3 : fournisseur attribuable après coup à un approvisionnement qui n'en a pas (M11) ; 3.2 : transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
 | **Date** | 5 novembre 2026 (connexion centrale, ADR-009 ; fin des données simulées, ADR-004) |
 | **Cible** | Boutiques de quartier, épiceries, mini-markets, commerces de proximité et petits détaillants |
 | **Statut** | Définitif pour la phase 1 — évolutif pour les phases suivantes |
@@ -179,7 +179,7 @@ Un utilisateur qui a accès à plusieurs boutiques voit la boutique courante en 
 | M12 | Dépenses (version simple) |
 | M13 | Tableau de bord |
 | M14 | Journal d'audit |
-| M15 | Rapports, première partie : ventes, produits, à racheter, produits dormants (avancée de la phase 2) |
+| M15 | Rapports, première partie : ventes, produits, à racheter, produits dormants, clients et crédits (avancée de la phase 2) |
 
 Les approvisionnements et les dépenses sont avancés en phase 1 dans une version simple, car le tableau de bord (cartes « Dépenses », « Résultat estimé », action rapide « Ajouter un approvisionnement ») et le stock en dépendent.
 
@@ -1134,9 +1134,17 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 - **À racheter bientôt** : vitesse de vente = quantité vendue sur les 30 derniers jours ÷ 30 (indépendante de la période choisie) ; jours de stock restants = stock ÷ vitesse ; articles à 14 jours ou moins, du plus urgent au moins urgent ; **quantité conseillée** = de quoi tenir 30 jours (vendu sur 30 jours − stock, arrondi à l'unité supérieure, jamais négatif).
 - **Produits dormants** : articles en stock sans vente depuis 30, 60 ou 90 jours (au choix, 60 par défaut ; un produit créé plus récemment n'est pas dormant), avec leur dernière vente et **l'argent immobilisé** (stock × prix d'achat), du plus coûteux au moins coûteux.
 
-**Endpoints.** `GET /shops/{shop_id}/reports/sales?from=&to=`, `GET /shops/{shop_id}/reports/products?from=&to=&dormant_days=`, et `GET /reports/sales`, `GET /reports/products` (toutes les boutiques, propriétaire).
+**Onglet Clients.** Seules les ventes rattachées à un client comptent (une vente sans client reste anonyme).
+- **Meilleurs clients** de la période : montant acheté, nombre de visites (ventes), panier moyen, marge (incomplète si un produit vendu n'a pas de prix d'achat), dernier achat ; classés au choix par montant, visites ou marge.
+- **Nouveaux clients** : clients dont le premier achat dans les boutiques demandées tombe dans la période ; **ventes à des clients connus** : nombre et montant, comparés aux ventes anonymes.
+- **Clients qui ne reviennent plus** : au moins 3 achats en tout, aucun depuis 30, 60 ou 90 jours (au choix, 60 par défaut) ; avec le total acheté et le dernier achat, du plus gros acheteur au plus petit. Clients à relancer.
+- **Ancienneté des dettes** (à la date du jour) : reste à payer des crédits en cours selon leur âge, moins de 30 jours, 30 à 60 jours, plus de 60 jours ; plus gros débiteurs avec leur plus ancienne dette.
+- **Taux de recouvrement** de la période : argent reçu sur des crédits (paiements confirmés, hors avoir, §7.8) ÷ montants mis à crédit (hors anciennes dettes) ; il peut dépasser 100 % quand d'anciennes dettes sont payées.
+- **Payeurs** : en retard = une échéance dépassée non payée, ou une dette de plus de 60 jours ; bons payeurs = ont payé sur la période et n'ont rien en retard, du plus gros paiement au plus petit.
 
-**Suite prévue (phase 2).** Comparaison des boutiques, suivi par vendeur, ancienneté des dettes et taux de recouvrement, meilleurs clients et clients perdus, heures d'affluence, export PDF et Excel.
+**Endpoints.** `GET /shops/{shop_id}/reports/sales?from=&to=`, `GET /shops/{shop_id}/reports/products?from=&to=&dormant_days=`, `GET /shops/{shop_id}/reports/customers?from=&to=&lost_days=`, et `GET /reports/sales`, `GET /reports/products`, `GET /reports/customers` (toutes les boutiques, propriétaire).
+
+**Suite prévue (phase 2).** Comparaison des boutiques, suivi par vendeur, heures d'affluence, export PDF et Excel.
 
 ### Modules de la phase 2 (rappel)
 

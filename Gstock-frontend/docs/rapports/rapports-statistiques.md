@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | **Statut** | Livrée le 9 novembre 2026 |
-| **Branche** | `rapports` |
-| **Cahier** | M15 (nouveau), P15, §6.3 (v3.7) ; première partie des « Rapports et statistiques » de la phase 2, avancée en phase 1 |
+| **Branche** | `rapports`, puis `rapports-clients` (onglet Clients) |
+| **Cahier** | M15 (nouveau), P15, §6.3 (v3.7, onglet Clients en v3.8) ; première partie des « Rapports et statistiques » de la phase 2, avancée en phase 1 |
 
 ## Commits
 
@@ -13,12 +13,13 @@
 | `docs(cahier)` | M15, P15, permission `reports.view`, v3.7 |
 | `feat(api)` | Migration de la permission, `ReportService`, `ReportController`, quatre routes, tests |
 | `feat(front)` | Rubrique « Rapports », onglets Ventes et Produits, graphique |
+| `docs(cahier)`, `feat(api)`, `feat(front)` (branche `rapports-clients`) | Onglet Clients : cahier v3.8, `ReportService::customers()`, `GET …/reports/customers`, test, `CustomersTab` |
 
 ## Écran
 
 | Écran | Adresse | Permission |
 |---|---|---|
-| Rapports, onglets Ventes et Produits | `/rapports`, `/rapports?onglet=produits` | `reports.view` (propriétaire par défaut) |
+| Rapports, onglets Ventes, Produits et Clients | `/rapports`, `/rapports?onglet=produits`, `/rapports?onglet=clients` | `reports.view` (propriétaire par défaut) |
 
 Les filtres sont sur une seule rangée :
 - la période : 7 jours, 30 jours, ce mois-ci, mois dernier, ou autres dates (du … au …) ; par défaut, 30 jours ;
@@ -44,6 +45,20 @@ Les filtres sont sur une seule rangée :
 
 Chaque ligne mène à la fiche du produit.
 
+**Onglet Clients.** Seules les ventes rattachées à un client comptent : une vente sans client reste anonyme.
+- Quatre tuiles :
+  - nouveaux clients, dont le premier achat tombe dans la période ;
+  - part des ventes faites à des clients connus ;
+  - taux de recouvrement : argent reçu sur des crédits ÷ montants mis à crédit ;
+  - reste à récupérer.
+- **Meilleurs clients**, les 10 premiers, classés au choix par montant acheté, visites ou marge, avec leur panier moyen et leur dernier achat.
+- **Clients qui ne reviennent plus** : au moins 3 achats en tout, aucun depuis 30, 60 ou 90 jours. Ce sont des clients à relancer.
+- **Ancienneté des dettes** : reste à payer en moins de 30 jours, de 30 à 60 jours et plus de 60 jours, avec une barre proportionnelle par tranche, et les plus gros débiteurs.
+- **Payeurs** :
+  - en retard : une échéance dépassée, ou une dette de plus de 60 jours ;
+  - bons payeurs : ont payé sur la période et n'ont rien en retard.
+- Les meilleurs clients et ceux qui ne reviennent plus mènent à la fiche du client ; les dettes et les payeurs mènent à sa fiche crédit.
+
 ## Fichiers et endpoints
 
 - Backend :
@@ -57,7 +72,8 @@ Chaque ligne mène à la fiche du produit.
   - entrée « Rapports » dans `src/app/navigation.ts`.
 - Endpoints ajoutés (`from`, `to` en Y-m-d) :
   - `GET /shops/{id}/reports/sales?from=&to=`, et `GET /reports/sales` pour toutes les boutiques (propriétaire) ;
-  - `GET /shops/{id}/reports/products?from=&to=&dormant_days=30|60|90`, et `GET /reports/products` pour toutes les boutiques (propriétaire).
+  - `GET /shops/{id}/reports/products?from=&to=&dormant_days=30|60|90`, et `GET /reports/products` pour toutes les boutiques (propriétaire) ;
+  - `GET /shops/{id}/reports/customers?from=&to=&lost_days=30|60|90`, et `GET /reports/customers` pour toutes les boutiques (propriétaire).
 
 ## Règles appliquées
 
@@ -76,6 +92,12 @@ Chaque ligne mène à la fiche du produit.
 - **Produits dormants** : ils doivent être en stock, et sans vente depuis N jours.
   - Un produit créé il y a moins de N jours n'est pas dormant.
   - La valeur immobilisée est le stock × le prix d'achat.
+- **Recouvrement**, avec les mêmes définitions que « Mes crédits clients » :
+  - les montants mis à crédit excluent les anciennes dettes ;
+  - l'argent reçu ne compte que les paiements confirmés, hors avoir (§7.8) ;
+  - le taux peut dépasser 100 % quand d'anciennes dettes sont payées.
+- **Ancienneté** : elle se calcule à la date du jour, à partir de la date de chaque crédit en cours.
+- **Échéances dépassées** : elles sont calculées par `InstallmentSchedule`, comme sur la fiche crédit.
 - **Permission `reports.view`** : créée par migration, elle revient au propriétaire, qui reçoit toutes les permissions (ADR-014). Il peut l'ajouter à un autre rôle.
 
 ## Décisions
@@ -90,16 +112,26 @@ Chaque ligne mène à la fiche du produit.
   - les 112 tests passent ;
   - `ReportsTest` couvre totaux, ticket moyen, marge incomplète, jours sans vente, ventes annulées exclues, périodes invalides, prorata d'une remise globale, vente à perte, prix sous le prix d'achat, à racheter, dormants, choix des jours, permission, vue de toutes les boutiques et autre espace ;
   - les tests qui comptent les permissions passent de 43 à 44.
+- Onglet Clients :
+  - les 113 tests du backend passent ;
+  - le nouveau test couvre meilleur client, panier et marge, ventes connues et anonymes, nouveau client, habitué perdu, tranches d'âge, plus gros débiteur, recouvrement au-delà de 100 %, retard par échéance et par ancienneté, bon payeur, choix des jours et vue de toutes les boutiques.
 - Frontend : `typecheck`, `lint` et `build` passent.
 - API Docker sur les données de démonstration (boutique Cocody, 30 jours), connecté comme propriétaire :
   - 111 ventes pour 230 200 FCFA, ticket moyen de 2 073,87 FCFA, marge de 54 875 FCFA, +53,3 % sur la période d'avant ;
   - la somme des 40 produits vendus et celle des 30 jours égalent toutes deux le total ;
   - un produit à racheter (« Eau minérale pack de 6 » : 11 jours de stock, 12 conseillés) ;
   - aucun produit dormant, car les données de démonstration sont récentes ;
-  - toutes boutiques : 216 ventes pour 496 850 FCFA.
+  - toutes boutiques : 216 ventes pour 496 850 FCFA ;
+  - onglet Clients :
+    - 48 ventes à des clients connus (96 750 FCFA) et 63 anonymes (133 450 FCFA), soit les 111 ventes de l'onglet Ventes ;
+    - 4 nouveaux clients ; meilleur client : Salimata Sanogo (8 visites, 19 700 FCFA) ;
+    - dettes : 30 600 FCFA, moitié de moins de 30 jours et moitié de 30 à 60 jours ;
+    - recouvrement : 42,7 % ;
+    - 2 clients en retard sur une échéance ;
+    - aucun client perdu, car les données de démonstration sont récentes.
 
 ## Limites
 
 - Les écrans n'ont pas été essayés dans un navigateur.
-- La suite (phase 2) n'est pas faite : comparaison des boutiques, suivi par vendeur, ancienneté des dettes et recouvrement, meilleurs clients et clients perdus, heures d'affluence, export PDF et Excel.
+- La suite (phase 2) n'est pas faite : comparaison des boutiques, suivi par vendeur, heures d'affluence, export PDF et Excel.
 - L'accueil n'a pas encore la mini-courbe des ventes ni le rappel « à racheter dans les 7 jours ».

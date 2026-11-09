@@ -100,6 +100,68 @@ class ReportsTest extends TestCase
         $this->api('kone', 'GET', $this->url('/reports/products?dormant_days=45'), as: $this->owner)->assertJsonPath('errors.dormant_days.0', 'Choisissez 30, 60 ou 90 jours.');
     }
 
+    public function test_the_customers_report_ranks_customers_and_follows_debts(): void
+    {
+        $rice = $this->product('Riz', price: '1000', cost: '600', stock: '100');
+        $customer = fn (string $name) => $this->api('kone', 'POST', '/customers', ['name' => $name], as: $this->owner)->json('data.id');
+        [$awa, $bakary, $chantal, $didier, $eve] = array_map($customer, ['Awa', 'Bakary', 'Chantal', 'Didier', 'Eve']);
+        $sale = fn (?int $who, ?array $payments = null) => $this->api('kone', 'POST', $this->url('/sales'), [
+            'customer_id' => $who, 'items' => [['product_id' => $rice, 'quantity' => '1']],
+            'payments' => $payments ?? [['payment_method_id' => $this->cash, 'amount' => '1000']],
+        ], as: $this->owner)->assertCreated();
+        $opening = fn (int $who, string $amount) => $this->api('kone', 'POST', $this->url('/credits/opening-balance'), ['customer_id' => $who, 'amount' => $amount], as: $this->owner)->assertCreated()->json('data.id');
+        $repay = fn (int $who, string $amount) => $this->api('kone', 'POST', $this->url('/repayments'), ['customer_id' => $who, 'amount' => $amount, 'payment_method_id' => $this->cash], as: $this->owner)->assertCreated();
+
+        // Il y a 100 jours : Didier, un habitué (3 achats), et Awa (1 achat).
+        $this->travelTo(now()->subDays(100));
+        $sale($didier);
+        $sale($didier);
+        $sale($didier);
+        $sale($awa);
+        // Il y a 70 jours : ancienne dette de Chantal.
+        $this->travel(30)->days();
+        $opening($chantal, '5000');
+        $this->travelBack();
+        $this->travelTo(now()->setTime(12, 0));
+
+        $sale($awa);
+        $sale($awa);
+        $sale($bakary, []);
+        $sale(null);
+        $repay($bakary, '400');
+        $repay($chantal, '1000');
+        // Eve : dette du jour, mais une échéance déjà dépassée.
+        $credit = $opening($eve, '3000');
+        $this->api('kone', 'PUT', $this->url("/credits/{$credit}/installments"), ['installments' => [['due_date' => now()->subDays(3)->toDateString(), 'amount' => '3000']]], as: $this->owner)->assertOk();
+
+        $report = $this->api('kone', 'GET', $this->url('/reports/customers'), as: $this->owner)->assertOk();
+        $top = collect($report->json('data.top'))->keyBy('customer.id');
+        $this->assertEquals(['visits' => 2, 'revenue' => '2000.00', 'average_basket' => '1000.00', 'margin' => '800.00'],
+            array_intersect_key($top[$awa], array_flip(['visits', 'revenue', 'average_basket', 'margin'])));
+        $report->assertJsonPath('data.top.0.customer.name', 'Awa')->assertJsonCount(2, 'data.top')
+            ->assertJsonPath('data.known_sales', ['count' => 3, 'total' => '3000.00'])->assertJsonPath('data.anonymous_sales', ['count' => 1, 'total' => '1000.00'])
+            // Bakary seulement : Awa avait déjà acheté avant la période.
+            ->assertJsonPath('data.new_customers', 1)
+            ->assertJsonPath('data.lost.count', 1)->assertJsonPath('data.lost.items.0.customer.id', $didier)->assertJsonPath('data.lost.items.0.visits', 3)
+            ->assertJsonPath('data.debt_aging.total', '7600.00')
+            ->assertJsonPath('data.debt_aging.buckets', [
+                ['key' => 'under_30', 'amount' => '3600.00', 'count' => 2],
+                ['key' => '30_60', 'amount' => '0.00', 'count' => 0],
+                ['key' => 'over_60', 'amount' => '4000.00', 'count' => 1],
+            ])
+            ->assertJsonPath('data.debt_aging.top.0.customer.id', $chantal)
+            // Mis à crédit hors anciennes dettes : 1 000 ; reçu : 1 400 (une ancienne dette payée).
+            ->assertJsonPath('data.recovery', ['credited' => '1000.00', 'repaid' => '1400.00', 'rate' => 140]);
+        $this->assertEqualsCanonicalizing([$chantal, $eve], array_column(array_column($report->json('data.payers.late'), 'customer'), 'id'));
+        $this->assertSame('3000.00', collect($report->json('data.payers.late'))->firstWhere('customer.id', $eve)['overdue']);
+        // Chantal a payé mais reste en retard : seul Bakary est un bon payeur.
+        $report->assertJsonPath('data.payers.good', [['customer' => ['id' => $bakary, 'name' => 'Bakary', 'phone' => null], 'paid' => '400.00', 'payments' => 1]]);
+
+        $this->api('kone', 'GET', $this->url('/reports/customers?lost_days=90'), as: $this->owner)->assertJsonPath('data.lost.count', 1);
+        $this->api('kone', 'GET', $this->url('/reports/customers?lost_days=10'), as: $this->owner)->assertJsonPath('errors.lost_days.0', 'Choisissez 30, 60 ou 90 jours.');
+        $this->api('kone', 'GET', '/reports/customers', as: $this->owner)->assertOk()->assertJsonPath('data.new_customers', 1);
+    }
+
     public function test_reports_need_their_permission_and_all_shops_is_for_the_owner(): void
     {
         $manager = $this->createUser($this->tenant, ['dashboard.view', 'records.view_all'], [$this->shop]);

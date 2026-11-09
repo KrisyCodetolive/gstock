@@ -25,6 +25,16 @@ class ReportController extends Controller
         return $this->products($request, [$shop->id]);
     }
 
+    public function shopCustomers(Request $request, Shop $shop): JsonResponse
+    {
+        return $this->customers($request, [$shop->id]);
+    }
+
+    public function allCustomers(Request $request): JsonResponse
+    {
+        return $this->customers($request, $this->allShops($request));
+    }
+
     public function allSales(Request $request): JsonResponse
     {
         return $this->sales($request, $this->allShops($request));
@@ -49,6 +59,14 @@ class ReportController extends Controller
         [$from, $to] = ReportService::period($request->query('from'), $request->query('to'));
 
         return response()->json(['data' => $this->reports->products($shops, $from, $to, (int) $request->query('dormant_days', '60'))]);
+    }
+
+    /** @param  list<int>  $shops */
+    private function customers(Request $request, array $shops): JsonResponse
+    {
+        [$from, $to] = ReportService::period($request->query('from'), $request->query('to'));
+
+        return response()->json(['data' => $this->reports->customers($shops, $from, $to, (int) $request->query('lost_days', '60'))]);
     }
 
     /** @return list<int> « Toutes mes boutiques » : réservé au propriétaire. */
