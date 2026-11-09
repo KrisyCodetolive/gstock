@@ -133,7 +133,7 @@ class StockTest extends TestCase
         $this->api('kone', 'POST', '/products', ['name' => 'Sucre', 'price' => '900'], as: $this->owner);
 
         $list = $this->api('kone', 'GET', "/shops/{$this->shop->id}/stock", as: $this->owner)->assertOk();
-        $list->assertJsonPath('summary', ['products' => 3, 'low' => 1, 'out' => 1, 'value' => '39400.00', 'expired' => 0, 'soon' => 0])
+        $list->assertJsonPath('summary', ['products' => 3, 'low' => 1, 'out' => 1, 'value' => '39400.00', 'expired' => 0, 'soon' => 0, 'tracked' => 0])
             ->assertJsonPath('meta.total', 3);
         $this->assertSame(['Riz 5 kg', 'Savon', 'Sucre'], array_column(array_column($list->json('data'), 'product'), 'name'));
         $this->assertSame('39000.00', $list->json('data.0.value'));
