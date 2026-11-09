@@ -233,6 +233,34 @@ final class PurchaseService
         });
     }
 
+    /**
+     * Fournisseur choisi après coup pour un approvisionnement enregistré sans fournisseur (M11).
+     * Montants, stock et paiements ne bougent pas ; un fournisseur déjà choisi ne se remplace jamais (ADR-012).
+     */
+    public function assignSupplier(Purchase $purchase, User $user, mixed $supplierId): Purchase
+    {
+        return DB::transaction(function () use ($purchase, $user, $supplierId) {
+            $purchase = Purchase::query()->lockForUpdate()->findOrFail($purchase->id);
+            if ($purchase->status === 'cancelled') {
+                throw ApiException::conflict('Cet approvisionnement est annulé.');
+            }
+            if ($purchase->supplier_id !== null) {
+                throw ApiException::conflict('Cet approvisionnement a déjà un fournisseur.');
+            }
+            $supplier = filled($supplierId) ? Supplier::query()->where('is_active', true)->find((int) $supplierId) : null;
+            if (! $supplier) {
+                throw ApiException::invalid('supplier_id', filled($supplierId) ? 'Ce fournisseur n’existe pas.' : 'Choisissez le fournisseur.');
+            }
+            $purchase->update(['supplier_id' => $supplier->id]);
+            Audit::record($user, 'purchase.supplier_assigned', [
+                'shop_id' => $purchase->shop_id, 'subject' => $purchase, 'label' => $purchase->reference,
+                'new' => ['supplier' => $supplier->name],
+            ]);
+
+            return $purchase;
+        });
+    }
+
     /** Annulation : la marchandise sort du stock (refusé s'il deviendrait négatif) ; l'approvisionnement reste visible. */
     public function cancel(Purchase $purchase, User $user, ?string $reason): Purchase
     {

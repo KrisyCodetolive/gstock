@@ -146,6 +146,44 @@ class PurchasesTest extends TestCase
             ->assertJsonPath('errors.supplier_id.0', 'Ce fournisseur n’existe pas.');
     }
 
+    public function test_a_supplier_can_be_assigned_later_but_never_replaced(): void
+    {
+        $line = ['items' => [['product_id' => $this->water, 'quantity' => '10', 'cost' => '300']], 'paid_amount' => '1000', 'payment_method_id' => $this->cash];
+        $id = $this->api('kone', 'POST', $this->url('/purchases'), $line, as: $this->owner)->assertCreated()->assertJsonPath('data.supplier', null)->json('data.id');
+        $assign = fn (int $purchase, mixed $supplier, ?User $as = null) => $this->api('kone', 'PUT', $this->url("/purchases/{$purchase}/supplier"), ['supplier_id' => $supplier], as: $as ?? $this->owner);
+
+        $assign($id, null)->assertJsonPath('errors.supplier_id.0', 'Choisissez le fournisseur.');
+        $assign($id, 999)->assertJsonPath('errors.supplier_id.0', 'Ce fournisseur n’existe pas.');
+        // Montants, stock et paiements inchangés ; le reste dû passe chez le fournisseur.
+        $assign($id, $this->supplier)->assertOk()->assertJsonPath('data.supplier.name', 'Grossiste Adjamé')
+            ->assertJsonPath('data.total', '3000.00')->assertJsonPath('data.paid_amount', '1000.00')->assertJsonPath('data.due_amount', '2000.00');
+        $this->assertSame('10.000', $this->stock($this->water));
+        $this->api('kone', 'GET', "/suppliers/{$this->supplier}", as: $this->owner)->assertJsonPath('data.due_total', '2000.00');
+        $this->assertTrue($this->tenant->run(fn () => DB::table('audit_logs')->where('action', 'purchase.supplier_assigned')->where('subject_id', $id)->exists()));
+
+        // Un fournisseur déjà choisi ne se remplace jamais (ADR-012).
+        $other = $this->api('kone', 'POST', '/suppliers', ['name' => 'Autre grossiste'], as: $this->owner)->json('data.id');
+        $assign($id, $other)->assertStatus(409)->assertJsonPath('message', 'Cet approvisionnement a déjà un fournisseur.');
+
+        // Annulé : refusé.
+        $cancelled = $this->api('kone', 'POST', $this->url('/purchases'), ['items' => [['product_id' => $this->soap, 'quantity' => '1', 'cost' => '350']]], as: $this->owner)->json('data.id');
+        $this->api('kone', 'POST', $this->url("/purchases/{$cancelled}/cancel"), ['reason' => 'Erreur'], as: $this->owner)->assertOk();
+        $assign($cancelled, $this->supplier)->assertStatus(409);
+
+        // Sans records.view_all, seulement ses propres approvisionnements ; sans purchases.create, refusé.
+        $keeper = $this->createUser($this->tenant, ['purchases.view', 'purchases.create'], [$this->shop]);
+        $viewer = $this->createUser($this->tenant, ['purchases.view'], [$this->shop]);
+        $mine = $this->api('kone', 'POST', $this->url('/purchases'), ['items' => [['product_id' => $this->soap, 'quantity' => '1', 'cost' => '350']]], as: $keeper)->json('data.id');
+        $owners = $this->api('kone', 'POST', $this->url('/purchases'), ['items' => [['product_id' => $this->soap, 'quantity' => '1', 'cost' => '350']]], as: $this->owner)->json('data.id');
+        $assign($owners, $this->supplier, $keeper)->assertNotFound();
+        $assign($mine, $this->supplier, $viewer)->assertForbidden();
+        $assign($mine, $this->supplier, $keeper)->assertOk();
+
+        // Un autre espace ne voit pas cet approvisionnement.
+        ['owner' => $stranger] = $this->createTenant('sow', email: 'sow@example.ci', phone: '0700000002');
+        $this->api('sow', 'PUT', $this->url("/purchases/{$owners}/supplier"), ['supplier_id' => $this->supplier], as: $stranger)->assertNotFound();
+    }
+
     private function purchase(string $quantity, string $cost, ?string $paid = null)
     {
         return $this->api('kone', 'POST', $this->url('/purchases'), [
