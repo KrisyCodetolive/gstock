@@ -23,7 +23,8 @@ import { articleKey } from '@/lib/articles'
 import { formatQuantity } from '@/lib/format'
 import { apiErrorMessage } from '@/lib/form-errors'
 import type { ProductSearchResult } from '@/types/catalog'
-import { useCreatePurchase, usePurchaseQuote, useSuppliers } from '../hooks'
+import { SupplierSelect } from '../components/SupplierSelect'
+import { useCreatePurchase, usePurchaseQuote } from '../hooks'
 
 interface Line {
   product: ProductSearchResult
@@ -50,7 +51,6 @@ function newLine(product: ProductSearchResult): Line {
   return { product, unitId, quantity: '1', cost: suggestedCost(product, unitId), expiry: '' }
 }
 
-const NONE = 'none'
 const clean = (v: string) => v.replace(/\s/g, '').replace(',', '.')
 
 /** Approvisionnement AP-N (M11) : le stock augmente dès l'enregistrement. */
@@ -61,10 +61,9 @@ export function PurchaseFormPage() {
   const { tenant } = useSession()
   const { shop } = useCurrentShop()
   const create = useCreatePurchase(shop?.id)
-  const suppliers = useSuppliers({ per_page: 100, filter: { is_active: 'true' } })
   const methods = useReferentialList('payment-methods', { per_page: 100, filter: { is_active: 'true' } })
   const [lines, setLines] = useState<Line[]>([])
-  const [supplierId, setSupplierId] = useState(NONE)
+  const [supplierId, setSupplierId] = useState<number | null>(null)
   const [date, setDate] = useState('')
   const [discount, setDiscount] = useState('')
   const [updateCosts, setUpdateCosts] = useState(true)
@@ -94,7 +93,7 @@ export function PurchaseFormPage() {
     create.mutate(
       {
         ...input,
-        supplier_id: supplierId === NONE ? null : Number(supplierId),
+        supplier_id: supplierId,
         occurred_at: date ? new Date(`${date}T12:00:00Z`).toISOString() : undefined,
         update_costs: updateCosts,
         note: note || null,
@@ -121,24 +120,7 @@ export function PurchaseFormPage() {
 
         <FormSection title={t('purchases.form.supplier')}>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <label htmlFor="purchase-supplier" className="text-sm font-semibold">
-                {t('purchases.form.supplier')}
-              </label>
-              <Select value={supplierId} onValueChange={setSupplierId}>
-                <SelectTrigger id="purchase-supplier">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>{t('purchases.form.supplier_none')}</SelectItem>
-                  {suppliers.data?.data.map((s) => (
-                    <SelectItem key={s.id} value={String(s.id)}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <SupplierSelect id="purchase-supplier" value={supplierId} onChange={setSupplierId} />
             <FormField id="purchase-date" label={t('purchases.form.date')} optional>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </FormField>

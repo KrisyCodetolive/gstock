@@ -1,4 +1,4 @@
-import { Ban, CalendarClock, HandCoins } from 'lucide-react'
+import { Ban, CalendarClock, HandCoins, Truck } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router'
@@ -24,7 +24,8 @@ import { apiErrorMessage } from '@/lib/form-errors'
 import { formatDateTime, formatDay, formatQuantity, formatShortDate } from '@/lib/format'
 import type { Purchase } from '@/types/purchases'
 import { PurchaseStatusBadge } from '../components/PurchaseStatusBadge'
-import { useAddPurchasePayment, useCancelPurchase, usePurchase, useSetPurchaseInstallments } from '../hooks'
+import { SupplierSelect } from '../components/SupplierSelect'
+import { useAddPurchasePayment, useAssignPurchaseSupplier, useCancelPurchase, usePurchase, useSetPurchaseInstallments } from '../hooks'
 
 export function PurchaseDetailPage() {
   const { t } = useTranslation()
@@ -69,17 +70,21 @@ function PurchaseDetail({ purchase: p }: { purchase: Purchase }) {
           {t('purchases.detail.cancelled_on', { date: formatDateTime(p.cancelled_at), reason: p.cancel_reason })}
         </p>
       )}
-      {p.supplier && (
-        <FormSection title={t('purchases.form.supplier')}>
-          {can('suppliers.view') ? (
+      <FormSection title={t('purchases.form.supplier')}>
+        {p.supplier ? (
+          can('suppliers.view') ? (
             <Link to={`/fournisseurs/${p.supplier.id}`} className="font-bold text-primary hover:underline">
               {p.supplier.name}
             </Link>
           ) : (
             <span className="font-bold">{p.supplier.name}</span>
-          )}
-        </FormSection>
-      )}
+          )
+        ) : !cancelled && can('purchases.create') ? (
+          <AssignSupplier purchase={p} />
+        ) : (
+          <p className="text-muted-foreground">{t('purchases.detail.no_supplier')}</p>
+        )}
+      </FormSection>
 
       <FormSection title={t('purchases.detail.items')}>
         <ul className="grid divide-y-2 divide-muted">
@@ -231,6 +236,60 @@ function PurchaseDetail({ purchase: p }: { purchase: Purchase }) {
 
       {payOpen && <PaySupplierSheet purchase={p} onClose={() => setPayOpen(false)} />}
     </>
+  )
+}
+
+/**
+ * Approvisionnement enregistré sans fournisseur : on peut le choisir après coup, une seule fois
+ * (montants et stock inchangés ; un fournisseur choisi ne se remplace pas, ADR-012).
+ */
+function AssignSupplier({ purchase }: { purchase: Purchase }) {
+  const { t } = useTranslation()
+  const { shop } = useCurrentShop()
+  const assign = useAssignPurchaseSupplier(shop?.id, purchase.id)
+  const [open, setOpen] = useState(false)
+  const [supplierId, setSupplierId] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  if (!open) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-muted-foreground">{t('purchases.detail.no_supplier')}</p>
+        <Button type="button" variant="outline" onClick={() => setOpen(true)}>
+          <Truck aria-hidden="true" />
+          {t('purchases.detail.assign')}
+        </Button>
+      </div>
+    )
+  }
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    if (supplierId === null) {
+      setError(t('purchases.detail.assign_required'))
+      return
+    }
+    setError(null)
+    assign.mutate(supplierId, {
+      onSuccess: () => toast.success(t('purchases.detail.assigned_done')),
+      onError: (err) => setError(apiErrorMessage(err)),
+    })
+  }
+
+  return (
+    <form onSubmit={submit} noValidate className="grid gap-4">
+      {error && <FormAlert>{error}</FormAlert>}
+      <p className="text-sm text-muted-foreground">{t('purchases.detail.assign_hint')}</p>
+      <SupplierSelect id="assign-supplier" value={supplierId} onChange={setSupplierId} allowNone={false} placeholder={t('purchases.detail.assign_placeholder')} />
+      <div className="flex flex-wrap gap-3">
+        <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={assign.isPending}>
+          {t('common.cancel')}
+        </Button>
+        <Button type="submit" variant="action" disabled={assign.isPending}>
+          {assign.isPending ? t('common.saving') : t('purchases.detail.assign_submit')}
+        </Button>
+      </div>
+    </form>
   )
 }
 

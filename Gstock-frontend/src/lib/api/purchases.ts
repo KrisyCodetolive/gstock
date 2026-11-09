@@ -56,12 +56,17 @@ export async function addPurchasePayment(
   return (await http.post<Resource<Purchase>>(`/shops/${shopId}/purchases/${id}/payments`, payload)).data
 }
 
-/** Annulation avec motif : la marchandise sort du stock (ADR-012). */
+/** Fournisseur choisi après coup, seulement si l'approvisionnement n'en a pas (M11, ADR-012). */
+export async function assignPurchaseSupplier(shopId: Id, id: Id, supplierId: Id): Promise<Purchase> {
+  return (await http.put<Resource<Purchase>>(`/shops/${shopId}/purchases/${id}/supplier`, { supplier_id: supplierId })).data
+}
+
 /** Échéancier du reste dû au fournisseur (§7.7) : remplace les échéances non payées. */
 export async function setPurchaseInstallments(shopId: Id, id: Id, installments: InstallmentScheduleItem[]): Promise<Purchase> {
   return (await http.put<Resource<Purchase>>(`/shops/${shopId}/purchases/${id}/installments`, { installments })).data
 }
 
+/** Annulation avec motif : la marchandise sort du stock (ADR-012). */
 export async function cancelPurchase(shopId: Id, id: Id, reason: string): Promise<Purchase> {
   return (await http.post<Resource<Purchase>>(`/shops/${shopId}/purchases/${id}/cancel`, { reason })).data
 }

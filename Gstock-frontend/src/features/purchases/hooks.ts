@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { useEffect, useState } from 'react'
 import {
   addPurchasePayment,
+  assignPurchaseSupplier,
   cancelExpense,
   cancelPurchase,
   createExpense,
@@ -90,6 +91,12 @@ export function useAddPurchasePayment(shopId: Id | undefined, id: Id) {
 export function useSetPurchaseInstallments(shopId: Id | undefined, id: Id) {
   const invalidate = useInvalidate()
   return useMutation({ mutationFn: (items: InstallmentScheduleItem[]) => setPurchaseInstallments(shopId!, id, items), onSuccess: invalidate })
+}
+
+/** Le reste dû passe chez le fournisseur choisi : les dettes fournisseurs changent. */
+export function useAssignPurchaseSupplier(shopId: Id | undefined, id: Id) {
+  const invalidate = useInvalidate()
+  return useMutation({ mutationFn: (supplierId: Id) => assignPurchaseSupplier(shopId!, id, supplierId), onSuccess: invalidate })
 }
 
 export function useCancelPurchase(shopId: Id | undefined, id: Id) {
