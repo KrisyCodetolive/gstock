@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Éditeur** | Genius Groups SAS |
-| **Version** | 3.6 — péremption toujours visible dans Mon stock, filtre « Produits suivis » (M07) ; 3.5 : catégories, marques et catégories de dépenses créées sur place (M05) ; 3.4 : produit créé sur place depuis l'approvisionnement et l'entrée en stock (M06) ; 3.3 : fournisseur attribuable après coup à un approvisionnement qui n'en a pas (M11) ; 3.2 : transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
+| **Version** | 3.7 — rapports, première partie (M15) : ventes, produits, à racheter, dormants ; 3.6 : péremption toujours visible dans Mon stock, filtre « Produits suivis » (M07) ; 3.5 : catégories, marques et catégories de dépenses créées sur place (M05) ; 3.4 : produit créé sur place depuis l'approvisionnement et l'entrée en stock (M06) ; 3.3 : fournisseur attribuable après coup à un approvisionnement qui n'en a pas (M11) ; 3.2 : transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
 | **Date** | 5 novembre 2026 (connexion centrale, ADR-009 ; fin des données simulées, ADR-004) |
 | **Cible** | Boutiques de quartier, épiceries, mini-markets, commerces de proximité et petits détaillants |
 | **Statut** | Définitif pour la phase 1 — évolutif pour les phases suivantes |
@@ -179,6 +179,7 @@ Un utilisateur qui a accès à plusieurs boutiques voit la boutique courante en 
 | M12 | Dépenses (version simple) |
 | M13 | Tableau de bord |
 | M14 | Journal d'audit |
+| M15 | Rapports, première partie : ventes, produits, à racheter, produits dormants (avancée de la phase 2) |
 
 Les approvisionnements et les dépenses sont avancés en phase 1 dans une version simple, car le tableau de bord (cartes « Dépenses », « Résultat estimé », action rapide « Ajouter un approvisionnement ») et le stock en dépendent.
 
@@ -471,7 +472,7 @@ Liste fixe, non modifiable par les commerçants. Les permissions d'espace porten
 | Espace | Catalogue | `products.view`, `products.create`, `products.update`, `products.disable`, `categories.manage`, `units.manage` |
 | Espace | Clients | `customers.view`, `customers.create`, `customers.update` |
 | Espace | Fournisseurs | `suppliers.view`, `suppliers.manage` |
-| Boutique | Général | `dashboard.view`, `records.view_all`, `audit.view` |
+| Boutique | Général | `dashboard.view`, `records.view_all`, `audit.view`, `reports.view` (rubrique « Rapports », M15) |
 | Boutique | Ventes | `sales.create`, `sales.view`, `sales.cancel`, `sales.edit_price`, `sales.give_discount` |
 | Boutique | Crédits | `credits.view`, `credits.create`, `credits.cancel`, `credits.opening_balance`, `repayments.create`, `repayments.cancel` |
 | Boutique | Stock | `stock.view`, `stock.entry`, `stock.exit`, `stock.adjust`, `stock.transfer` (envoyer du stock vers une autre boutique, §7.12) |
@@ -1114,6 +1115,29 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 
 **Endpoints.** `GET /audit-logs`.
 
+### M15 — Rapports (première partie)
+
+**Objectif.** Aider le commerçant à décider : ce qui se vend, ce qui rapporte, ce qu'il faut racheter, ce qui dort en stock. L'accueil (M13) reste un coup d'œil ; les rapports servent à analyser.
+
+**Accès.** Rubrique « Rapports », permission `reports.view` (créée par migration, accordée au seul rôle Owner, ADR-014). Les rapports couvrent toutes les opérations de la boutique, quel que soit l'auteur. Vue « Toutes mes boutiques » réservée au propriétaire (§3.6).
+
+**Période.** Du … au … (dates au fuseau de l'espace, §7.10), 366 jours au plus, jamais dans le futur ; raccourcis 7 jours, 30 jours, ce mois-ci, mois dernier. Par défaut : les 30 derniers jours. Seules les ventes validées comptent (ADR-012).
+
+**Onglet Ventes.**
+- Total des ventes, nombre de ventes, **ticket moyen** (total ÷ nombre), articles par vente, comparaison avec la période d'avant de même durée.
+- Prix d'achat des produits vendus et **marge** (ventes − prix d'achat), signalée incomplète si un produit vendu n'a pas de prix d'achat (§7.8).
+- **Courbe jour par jour** (total et nombre de ventes, les jours sans vente à 0), meilleur jour et jour le plus faible.
+
+**Onglet Produits.**
+- **Ventes par produit** (par variante pour un produit à variantes) : quantité en unité de base, chiffre d'affaires, prix d'achat, marge. Le chiffre d'un produit est le sous-total de ses lignes réparti au prorata du total de la vente : la somme des produits égale le total des ventes, remise globale et taxe comprises. Classements : meilleurs chiffres d'affaires, plus grandes quantités, meilleures marges ; **produits vendus à perte** (marge négative sur la période).
+- **Prix de vente sous le prix d'achat** : produits et variantes actifs dont le prix de vente actuel est inférieur au prix d'achat.
+- **À racheter bientôt** : vitesse de vente = quantité vendue sur les 30 derniers jours ÷ 30 (indépendante de la période choisie) ; jours de stock restants = stock ÷ vitesse ; articles à 14 jours ou moins, du plus urgent au moins urgent ; **quantité conseillée** = de quoi tenir 30 jours (vendu sur 30 jours − stock, arrondi à l'unité supérieure, jamais négatif).
+- **Produits dormants** : articles en stock sans vente depuis 30, 60 ou 90 jours (au choix, 60 par défaut ; un produit créé plus récemment n'est pas dormant), avec leur dernière vente et **l'argent immobilisé** (stock × prix d'achat), du plus coûteux au moins coûteux.
+
+**Endpoints.** `GET /shops/{shop_id}/reports/sales?from=&to=`, `GET /shops/{shop_id}/reports/products?from=&to=&dormant_days=`, et `GET /reports/sales`, `GET /reports/products` (toutes les boutiques, propriétaire).
+
+**Suite prévue (phase 2).** Comparaison des boutiques, suivi par vendeur, ancienneté des dettes et taux de recouvrement, meilleurs clients et clients perdus, heures d'affluence, export PDF et Excel.
+
 ### Modules de la phase 2 (rappel)
 
 | Module | Contenu |
@@ -1122,7 +1146,7 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 | Recettes | Entrées d'argent hors ventes |
 | Retours de marchandises | Retour en stock vendable ou sortie spécifique selon l'état du produit, remboursement ou avoir |
 | Inventaire physique | Comptage, écarts, ajustement automatique |
-| Rapports et statistiques | Ventes (jour, semaine, mois, top produits), stock (valeur, ruptures, mouvements), crédits (accordés, remboursés, restant, ancienneté, par client), finance (encaissements, dépenses, solde de caisse, marge) ; filtres par période et par boutique ; export PDF et Excel |
+| Rapports et statistiques | Suite de M15 (avancé en phase 1). Ventes (jour, semaine, mois, top produits), stock (valeur, ruptures, mouvements), crédits (accordés, remboursés, restant, ancienneté, par client), finance (encaissements, dépenses, solde de caisse, marge) ; filtres par période et par boutique ; export PDF et Excel |
 | Import / export | Import de produits et de clients (CSV), export du catalogue |
 
 ---
@@ -1373,6 +1397,7 @@ La réussite se mesure à l'adoption réelle, pas au nombre de comptes créés. 
 | P12 | Gestion des produits périssables | **Décidé : dates de péremption par arrivage, sans numéro de lot, accessibles sans le mode avancé, champs facultatifs ; alerte à la caisse sans blocage ; pertes (périmé, cassé, volé) sur une ligne distincte du tableau de bord ; annulation d'un approvisionnement refusée si ses arrivages sont entamés** (§7.11) | M06, M07, M08, M11, M13 |
 | P13 | Alerte de péremption envoyée chaque jour par WhatsApp | Envisagé pour plus tard ; demande l'API WhatsApp Business, écartée par l'ADR-013 en phase 1 | M07, ADR-013 |
 | P14 | Déplacer du stock d'une boutique à une autre | **Décidé : transfert entre boutiques d'un même espace, en deux temps (envoi puis réception), permission `stock.transfer` accordée par défaut au propriétaire seul ; avancé de la phase 2 à la phase 1** (§7.12) | M07, M04 |
+| P15 | Statistiques pour gérer les boutiques | **Décidé : rubrique « Rapports » (permission `reports.view`, propriétaire seul par défaut), première partie avancée en phase 1 : ventes jour par jour et ticket moyen, ventes et marge par produit, produits vendus à perte, prix sous le prix d'achat, à racheter bientôt, produits dormants** (M15) | M13, M15 |
 
 ---
 
