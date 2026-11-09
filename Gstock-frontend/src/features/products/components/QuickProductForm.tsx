@@ -5,6 +5,7 @@ import { FormAlert, FormField } from '@/components/FormField'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { QuickReferentialCreate } from '@/features/referentials/components/QuickReferentialCreate'
 import { useReferentialList } from '@/features/referentials/hooks'
 import { ApiError } from '@/lib/api/client'
 import { apiErrorMessage } from '@/lib/form-errors'
@@ -116,7 +117,7 @@ export function QuickProductForm({ search, onCancel, onCreated }: { search: stri
         <Input inputMode="decimal" autoFocus={scanned || undefined} className="tabular font-bold" value={price} onChange={(e) => setPrice(e.target.value)} />
       </FormField>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid gap-2">
+        <div className="grid content-start gap-2">
           <label htmlFor="quick-product-category" className="text-sm font-semibold">
             {t('products.form.category')} <span className="font-normal text-muted-foreground">{t('common.optional')}</span>
           </label>
@@ -133,8 +134,9 @@ export function QuickProductForm({ search, onCancel, onCreated }: { search: stri
               ))}
             </SelectContent>
           </Select>
+          <QuickReferentialCreate resource="categories" onCreated={(id) => setCategory(String(id))} />
         </div>
-        <div className="grid gap-2">
+        <div className="grid content-start gap-2">
           <label htmlFor="quick-product-unit" className="text-sm font-semibold">
             {t('products.quick.unit')} <span className="font-normal text-muted-foreground">{t('common.optional')}</span>
           </label>
