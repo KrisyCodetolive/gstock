@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Catalog\Models\Product;
 use App\Domain\Catalog\ProductService;
 use App\Domain\Identity\Models\User;
+use App\Domain\Purchases\SupplierCatalog;
 use App\Domain\Shops\Models\Shop;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CatalogPresenter;
@@ -142,6 +143,16 @@ class ProductController extends Controller
             ->take(20)->values();
 
         return response()->json(['data' => $data]);
+    }
+
+    /** Fournisseurs chez qui ce produit a été acheté (M11), le moins cher d'abord. */
+    public function suppliers(Request $request, Product $product, SupplierCatalog $catalog): JsonResponse
+    {
+        /** @var User $user */
+        $user = $request->user();
+        $shops = $user->isOwner() ? Shop::query()->pluck('id')->all() : $user->shops()->pluck('shops.id')->all();
+
+        return response()->json(['data' => $catalog->forProduct($product, $shops)]);
     }
 
     private function shopParam(Request $request): ?int

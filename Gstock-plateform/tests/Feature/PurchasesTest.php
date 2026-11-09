@@ -184,6 +184,51 @@ class PurchasesTest extends TestCase
         $this->api('sow', 'PUT', $this->url("/purchases/{$owners}/supplier"), ['supplier_id' => $this->supplier], as: $stranger)->assertNotFound();
     }
 
+    public function test_a_supplier_shows_its_products_and_a_product_its_suppliers(): void
+    {
+        $other = $this->api('kone', 'POST', '/suppliers', ['name' => 'Grossiste Treichville'], as: $this->owner)->json('data.id');
+        $buy = fn (?int $supplier, array $items) => $this->api('kone', 'POST', $this->url('/purchases'), ['supplier_id' => $supplier, 'items' => $items], as: $this->owner)->assertCreated()->json('data.id');
+
+        // Il y a 10 jours : 2 cartons de 12 à 3 000 (250 l'unité) et 10 savons à 340.
+        $this->travelTo(now()->subDays(10));
+        $buy($this->supplier, [['product_id' => $this->water, 'quantity' => '2', 'cost' => '3000', 'unit_id' => $this->carton], ['product_id' => $this->soap, 'quantity' => '10', 'cost' => '340']]);
+        $this->travelBack();
+        $buy($this->supplier, [['product_id' => $this->water, 'quantity' => '24', 'cost' => '260']]);
+        $buy($other, [['product_id' => $this->water, 'quantity' => '12', 'cost' => '240']]);
+        $this->travel(1)->minutes();
+        // Acheté au carton : le prix de la ligne garde son unité, ramené à 240 l'unité.
+        $buy($other, [['product_id' => $this->water, 'quantity' => '1', 'cost' => '2880', 'unit_id' => $this->carton]]);
+        $buy(null, [['product_id' => $this->soap, 'quantity' => '5', 'cost' => '330']]);
+        // Annulé : ne compte pas.
+        $cancelled = $buy($this->supplier, [['product_id' => $this->soap, 'quantity' => '1', 'cost' => '999']]);
+        $this->api('kone', 'POST', $this->url("/purchases/{$cancelled}/cancel"), ['reason' => 'Erreur'], as: $this->owner)->assertOk();
+
+        $products = $this->api('kone', 'GET', "/suppliers/{$this->supplier}/products?shop_id={$this->shop->id}", as: $this->owner)->assertOk()->json('data');
+        $this->assertSame(['Eau 1,5 L', 'Savon'], array_column(array_column($products, 'product'), 'name'));
+        $this->assertEquals([
+            'last_cost' => '260.00', 'last_unit_cost' => '260.00', 'previous_cost' => '250.00', 'min_cost' => '250.00', 'max_cost' => '260.00',
+            'purchases' => 2, 'quantity' => '48.000', 'spent' => '12240.00', 'stock' => ['quantity' => '72.000', 'state' => 'ok'],
+        ], array_intersect_key($products[0], array_flip(['last_cost', 'last_unit_cost', 'previous_cost', 'min_cost', 'max_cost', 'purchases', 'quantity', 'spent', 'stock'])));
+        $this->assertSame(['340.00', null, 1, '3400.00'], [$products[1]['last_cost'], $products[1]['previous_cost'], $products[1]['purchases'], $products[1]['spent']]);
+
+        // Fournisseurs d'un produit : le moins cher d'abord ; les achats sans fournisseur à part.
+        $this->api('kone', 'GET', "/products/{$this->water}/suppliers", as: $this->owner)->assertOk()
+            ->assertJsonPath('data.0.supplier.name', 'Grossiste Treichville')->assertJsonPath('data.0.last_cost', '240.00')
+            ->assertJsonPath('data.0.last_unit_cost', '2880.00')->assertJsonPath('data.0.last_unit.short_name', 'ctn')->assertJsonPath('data.0.quantity', '24.000')
+            ->assertJsonPath('data.1.supplier.id', $this->supplier)->assertJsonPath('data.1.last_cost', '260.00')->assertJsonPath('data.1.purchases', 2);
+        $this->api('kone', 'GET', "/products/{$this->soap}/suppliers", as: $this->owner)
+            ->assertJsonPath('data.0.supplier', null)->assertJsonPath('data.0.last_cost', '330.00')->assertJsonPath('data.1.last_cost', '340.00')->assertJsonCount(2, 'data');
+
+        // Les prix d'achat demandent aussi purchases.view ; le stock, l'accès à la boutique.
+        $viewer = $this->createUser($this->tenant, ['suppliers.view', 'products.view'], [$this->shop]);
+        $this->api('kone', 'GET', "/suppliers/{$this->supplier}/products", as: $viewer)->assertForbidden();
+        $this->api('kone', 'GET', "/products/{$this->water}/suppliers", as: $viewer)->assertForbidden();
+        $buyer = $this->createUser($this->tenant, ['suppliers.view', 'purchases.view'], []);
+        $this->api('kone', 'GET', "/suppliers/{$this->supplier}/products?shop_id={$this->shop->id}", as: $buyer)->assertForbidden();
+        // Sans boutique affectée, aucun achat visible.
+        $this->api('kone', 'GET', "/suppliers/{$this->supplier}/products", as: $buyer)->assertOk()->assertJsonCount(0, 'data');
+    }
+
     private function purchase(string $quantity, string $cost, ?string $paid = null)
     {
         return $this->api('kone', 'POST', $this->url('/purchases'), [
