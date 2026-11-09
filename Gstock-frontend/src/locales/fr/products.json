@@ -121,6 +121,20 @@
       "count_one": "{{count}} variante",
       "count_other": "{{count}} variantes",
       "stock_title": "Stock par variante"
+    },
+    "quick": {
+      "title": "Nouveau produit",
+      "open": "Créer un nouveau produit",
+      "open_named": "Créer « {{name}} »",
+      "hint": "Le produit est créé puis ajouté à la liste. Sa photo, son prix d'achat et le reste se complètent plus tard sur sa fiche.",
+      "price": "Prix de vente (FCFA)",
+      "unit": "Unité",
+      "default_unit": "Unité par défaut",
+      "no_category": "Sans catégorie",
+      "required_name": "Saisissez le nom du produit.",
+      "required_price": "Saisissez le prix de vente.",
+      "submit": "Créer et ajouter",
+      "created": "{{name}} créé."
     }
   }
 }

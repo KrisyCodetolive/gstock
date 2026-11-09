@@ -271,6 +271,7 @@ export function PurchaseFormPage() {
         open={picker}
         onOpenChange={setPicker}
         exclude={lines.map(keyOf)}
+        allowCreate
         onPick={(product) => setLines((ls) => [...ls, newLine(product)])}
       />
     </div>
