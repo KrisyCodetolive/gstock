@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\V1\Referentials\PaymentMethodController;
 use App\Http\Controllers\Api\V1\Referentials\UnitController;
 use App\Http\Controllers\Api\V1\RegistrationController;
 use App\Http\Controllers\Api\V1\RepaymentController;
+use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SaleController;
 use App\Http\Controllers\Api\V1\SettingsController;
@@ -123,6 +124,11 @@ Route::middleware('tenant')->group(function () {
 
         // Tableau de bord de toutes les boutiques (M13) : propriétaire seulement, vérifié dans le contrôleur.
         Route::get('dashboard', [DashboardController::class, 'all'])->middleware('permission:dashboard.view');
+        // Rapports de toutes les boutiques (M15) : propriétaire seulement, vérifié dans le contrôleur.
+        Route::middleware('permission:reports.view')->group(function () {
+            Route::get('reports/sales', [ReportController::class, 'allSales']);
+            Route::get('reports/products', [ReportController::class, 'allProducts']);
+        });
 
         Route::get('audit-logs', [AuditLogController::class, 'index'])->middleware('permission:audit.view');
 
@@ -170,6 +176,11 @@ Route::middleware('tenant')->group(function () {
         Route::prefix('shops/{shop}')->middleware('shop')->group(function () {
             Route::get('products/search', [ProductController::class, 'search']);
             Route::get('dashboard', [DashboardController::class, 'shop'])->middleware('permission:dashboard.view');
+            // Rapports (M15).
+            Route::middleware('permission:reports.view')->group(function () {
+                Route::get('reports/sales', [ReportController::class, 'shopSales']);
+                Route::get('reports/products', [ReportController::class, 'shopProducts']);
+            });
             // Opérations faites hors ligne (ADR-005) : le droit de chaque opération est vérifié une à une.
             Route::post('sync', [SyncController::class, 'store'])->middleware(['permission:sales.create,repayments.create,expenses.create', 'throttle:60,1']);
             Route::middleware('permission:stock.view')->group(function () {

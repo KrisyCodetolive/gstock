@@ -25,7 +25,7 @@ class RolesAndUsersTest extends TestCase
         ['owner' => $owner] = $this->createTenant();
 
         $list = $this->api('kone', 'GET', '/permissions', as: $owner)->assertOk()->json('data');
-        $this->assertCount(43, $list);
+        $this->assertCount(44, $list);
         $this->assertSame(['name' => 'subscription.manage', 'label' => "Gérer l'abonnement", 'level' => 'tenant', 'group' => 'subscription'], $list[0]);
         $this->api('kone', 'POST', '/permissions', ['name' => 'x'], as: $owner)->assertStatus(405);
     }
