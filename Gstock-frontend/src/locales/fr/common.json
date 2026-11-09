@@ -16,6 +16,7 @@
     "suppliers": "Fournisseurs",
     "expenses": "Dépenses",
     "audit": "Journal d'activité",
+    "reports": "Rapports",
     "settings": "Paramètres",
     "more": "Plus",
     "main": "Navigation principale",
@@ -96,6 +97,7 @@
     "expenses_text": "Noter une sortie d'argent",
     "settings_text": "Boutiques, utilisateurs et rôles",
     "audit_text": "Qui a fait quoi, et quand",
+    "reports_text": "Ce qui se vend, ce qui rapporte, ce qu'il faut racheter",
     "period": "Période",
     "periods": {
       "today": "Aujourd'hui",

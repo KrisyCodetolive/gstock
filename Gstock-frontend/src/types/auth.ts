@@ -28,6 +28,7 @@ export const SHOP_PERMISSIONS = [
   'dashboard.view',
   'records.view_all',
   'audit.view',
+  'reports.view',
   'sales.create',
   'sales.view',
   'sales.cancel',
