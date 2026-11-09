@@ -1,8 +1,8 @@
 {
   "reports": {
     "title": "Rapports",
-    "subtitle": "{{shop}} : ce qui se vend, ce qui rapporte, ce qu'il faut racheter",
-    "subtitle_all": "Toutes mes boutiques : ce qui se vend, ce qui rapporte, ce qu'il faut racheter",
+    "subtitle": "{{shop}} : ce qui se vend, ce qui rapporte, ce qu'il faut racheter, vos clients",
+    "subtitle_all": "Toutes mes boutiques : ce qui se vend, ce qui rapporte, ce qu'il faut racheter, vos clients",
     "period": {
       "label": "Période",
       "7d": "7 jours",
@@ -15,7 +15,8 @@
     },
     "tabs": {
       "ventes": "Ventes",
-      "produits": "Produits"
+      "produits": "Produits",
+      "clients": "Clients"
     },
     "sales": {
       "total": "Ventes",
@@ -82,6 +83,61 @@
       "no_cost": "Prix d'achat inconnu",
       "last_sold": "dernière vente le {{date}}",
       "never_sold": "jamais vendu"
+    },
+    "customers": {
+      "new": "Nouveaux clients",
+      "new_hint": "Premier achat sur la période",
+      "known": "Ventes à des clients connus",
+      "known_hint_one": "{{known}} sur {{count}} vente ; les autres sont anonymes",
+      "known_hint_other": "{{known}} sur {{count}} ventes ; les autres sont anonymes",
+      "recovery": "Recouvrement",
+      "recovery_hint": "{{repaid}} FCFA reçus pour {{credited}} FCFA mis à crédit",
+      "remaining": "Reste à récupérer",
+      "remaining_hint": "Toutes les dettes en cours, aujourd'hui",
+      "top_title": "Meilleurs clients",
+      "top_hint": "Les 10 premiers de la période. Seules les ventes où le client a été choisi comptent.",
+      "rank": {
+        "revenue": "Montant acheté",
+        "visits": "Visites",
+        "margin": "Marge"
+      },
+      "top_empty": "Aucune vente à un client connu sur cette période.",
+      "visits_one": "{{count}} visite",
+      "visits_other": "{{count}} visites",
+      "visits_basket_one": "{{count}} visite · panier moyen {{basket}} FCFA",
+      "visits_basket_other": "{{count}} visites · panier moyen {{basket}} FCFA",
+      "revenue_short": "{{amount}} FCFA",
+      "last_at": "dernier achat le {{date}}",
+      "lost_title": "Clients qui ne reviennent plus",
+      "lost_hint_one": "Des habitués ({{count}} achat ou plus) qui n'ont rien acheté depuis un moment : à appeler ou à relancer.",
+      "lost_hint_other": "Des habitués ({{count}} achats ou plus) qui n'ont rien acheté depuis un moment : à appeler ou à relancer.",
+      "lost_since": "Sans achat depuis",
+      "lost_empty_one": "Aucun habitué sans achat depuis {{count}} jour.",
+      "lost_empty_other": "Aucun habitué sans achat depuis {{count}} jours.",
+      "lost_total_one": "{{count}} client à relancer",
+      "lost_total_other": "{{count}} clients à relancer",
+      "aging_title": "Ancienneté des dettes",
+      "aging_hint": "Le reste à payer selon l'âge des crédits, aujourd'hui. Plus une dette est vieille, plus elle est difficile à récupérer.",
+      "aging_empty": "Aucune dette en cours.",
+      "age": {
+        "under_30": "Moins de 30 jours",
+        "30_60": "30 à 60 jours",
+        "over_60": "Plus de 60 jours"
+      },
+      "debts_one": "{{count}} crédit",
+      "debts_other": "{{count}} crédits",
+      "biggest_debtors": "Plus gros débiteurs",
+      "since": "doit depuis le {{date}}",
+      "payers_title": "Payeurs",
+      "payers_hint": "En retard : une échéance dépassée, ou une dette de plus de {{days}} jours. Bons payeurs : ont payé sur la période et n'ont rien en retard.",
+      "late_title": "En retard",
+      "late_empty": "Personne n'est en retard.",
+      "overdue": "{{amount}} FCFA d'échéances dépassées",
+      "old_debt": "Dette depuis le {{date}}",
+      "good_title": "Bons payeurs",
+      "good_empty": "Aucun paiement de crédit sur la période.",
+      "payments_one": "{{count}} paiement",
+      "payments_other": "{{count}} paiements"
     }
   }
 }

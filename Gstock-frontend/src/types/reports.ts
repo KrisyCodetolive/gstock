@@ -89,3 +89,35 @@ export interface ReportQuery {
   from: string
   to: string
 }
+
+export interface ReportCustomer {
+  id: Id
+  name: string
+  phone: string | null
+}
+
+export type LostDays = 30 | 60 | 90
+
+export interface CustomersReport {
+  period: ReportPeriod
+  /** Clients de la période, du plus gros montant au plus petit. */
+  top: { customer: ReportCustomer; visits: number; revenue: Money; average_basket: Money; margin: Money | null; last_at: string }[]
+  known_sales: { count: number; total: Money }
+  anonymous_sales: { count: number; total: Money }
+  /** Clients dont le premier achat tombe dans la période. */
+  new_customers: number
+  lost: { days: LostDays; min_visits: number; count: number; items: { customer: ReportCustomer; visits: number; revenue: Money; last_at: string }[] }
+  /** À la date du jour. */
+  debt_aging: {
+    total: Money
+    buckets: { key: 'under_30' | '30_60' | 'over_60'; amount: Money; count: number }[]
+    top: { customer: ReportCustomer; remaining: Money; oldest_at: string; overdue: Money }[]
+  }
+  /** `rate` en % ; null si rien n'a été mis à crédit sur la période. */
+  recovery: { credited: Money; repaid: Money; rate: number | null }
+  payers: {
+    late_days: number
+    late: { customer: ReportCustomer; remaining: Money; overdue: Money; oldest_at: string }[]
+    good: { customer: ReportCustomer; paid: Money; payments: number }[]
+  }
+}
