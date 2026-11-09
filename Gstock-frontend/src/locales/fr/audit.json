@@ -41,6 +41,7 @@
       "credit.adjusted": "Crédit régularisé",
       "repayment.cancelled": "Paiement de crédit annulé",
       "purchase.cancelled": "Approvisionnement annulé",
+      "purchase.supplier_assigned": "Fournisseur attribué à un approvisionnement",
       "expense.cancelled": "Dépense annulée",
       "role.created": "Rôle créé",
       "role.updated": "Rôle modifié",

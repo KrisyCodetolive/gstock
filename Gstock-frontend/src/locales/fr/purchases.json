@@ -90,10 +90,22 @@
       "no_installments": "Pas d'échéancier : le reste est à payer quand vous voulez.",
       "schedule": "Prévoir des échéances",
       "schedule_edit": "Modifier les échéances",
-      "schedule_title": "Échéances de {{reference}}"
+      "schedule_title": "Échéances de {{reference}}",
+      "no_supplier": "Aucun fournisseur.",
+      "assign": "Choisir le fournisseur",
+      "assign_hint": "Le reste à payer de cet approvisionnement sera compté chez ce fournisseur. Une fois choisi, il ne se change plus.",
+      "assign_placeholder": "Choisissez un fournisseur",
+      "assign_submit": "Enregistrer le fournisseur",
+      "assign_required": "Choisissez le fournisseur.",
+      "assigned_done": "Fournisseur enregistré."
     },
     "overdue": "Échéance en retard",
-    "overdue_amount": "{{amount}} FCFA en retard"
+    "overdue_amount": "{{amount}} FCFA en retard",
+    "supplier_quick": {
+      "open": "Nouveau fournisseur",
+      "hint": "Le nom suffit : le reste se complète plus tard sur sa fiche.",
+      "submit": "Ajouter et choisir"
+    }
   },
   "suppliers": {
     "title": "Fournisseurs",

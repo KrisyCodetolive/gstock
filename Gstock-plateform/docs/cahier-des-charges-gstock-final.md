@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Éditeur** | Genius Groups SAS |
-| **Version** | 3.2 — transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
+| **Version** | 3.3 — fournisseur attribuable après coup à un approvisionnement qui n'en a pas (M11) ; 3.2 : transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
 | **Date** | 5 novembre 2026 (connexion centrale, ADR-009 ; fin des données simulées, ADR-004) |
 | **Cible** | Boutiques de quartier, épiceries, mini-markets, commerces de proximité et petits détaillants |
 | **Statut** | Définitif pour la phase 1 — évolutif pour les phases suivantes |
@@ -397,6 +397,7 @@ Le backend et le frontend sont deux applications séparées. Le frontend ne calc
 - Une vente validée, un paiement, un crédit, un remboursement ou une dépense **ne peut pas être supprimé ni modifié directement**.
 - En cas d'erreur, un utilisateur autorisé effectue une **annulation** ou une **régularisation**, avec un **motif obligatoire**. L'opération initiale reste consultable ; la correction est historisée ; soldes et stock sont recalculés.
 - Seuls les brouillons (panier en attente) sont modifiables et supprimables.
+- Exception : un approvisionnement enregistré sans fournisseur peut recevoir son fournisseur plus tard (M11). Ni les montants, ni le stock, ni les paiements ne changent ; un fournisseur déjà choisi ne se remplace jamais ; l'attribution est journalisée.
 - Les actions sensibles alimentent le journal d'audit (`audit_logs`).
 
 **Conséquences.** Pas de bouton « Supprimer » sur les opérations financières, mais « Annuler » soumis à permission. Les rapports distinguent opérations valides et annulées.
@@ -1056,6 +1057,8 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 
 **Fonctionnalités.**
 - Approvisionnement : boutique, fournisseur facultatif, date, produits, quantités, prix d'achat, total ; référence `AP-xxxx`. Le stock augmente à l'enregistrement ; le prix d'achat du produit peut être mis à jour.
+- Raccourci « Nouveau fournisseur » dans le formulaire (permission `suppliers.manage`) : le fournisseur est créé et choisi sans quitter l'approvisionnement.
+- Fournisseur attribuable plus tard à un approvisionnement enregistré sans fournisseur (permission `purchases.create`, approvisionnement non annulé) ; un fournisseur déjà choisi ne se change pas (ADR-012). Le reste dû passe alors dans le « dû » de ce fournisseur.
 - Montant payé au fournisseur, reste dû, paiements ultérieurs ; échéancier facultatif.
 - Date de péremption facultative par ligne, pour les produits suivis (§7.11).
 - Historique des approvisionnements [LISTE] ; annulation avec motif (retrait du stock), refusée si une partie de ses arrivages a déjà été vendue ou sortie (§7.11).
@@ -1063,7 +1066,7 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 
 **Tables.** `suppliers`, `purchases`, `purchase_items`, `purchase_payments`, `installments`.
 
-**Endpoints.** `CRUD /suppliers`, `GET|POST /shops/{shop_id}/purchases`, `GET /shops/{shop_id}/purchases/{id}`, `POST /shops/{shop_id}/purchases/{id}/cancel`, `POST /shops/{shop_id}/purchases/{id}/payments`.
+**Endpoints.** `CRUD /suppliers`, `GET|POST /shops/{shop_id}/purchases`, `GET /shops/{shop_id}/purchases/{id}`, `POST /shops/{shop_id}/purchases/{id}/cancel`, `POST /shops/{shop_id}/purchases/{id}/payments`, `PUT /shops/{shop_id}/purchases/{id}/supplier`.
 
 **Critères d'acceptation.** Un approvisionnement de 5 produits s'enregistre en moins d'une minute. Le stock augmente du bon nombre d'unités de base.
 

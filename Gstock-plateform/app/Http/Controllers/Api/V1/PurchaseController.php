@@ -101,6 +101,14 @@ class PurchaseController extends Controller
         return response()->json(['data' => PurchasesPresenter::purchase($purchase->fresh())]);
     }
 
+    /** Fournisseur attribué plus tard, seulement s'il manque (M11, ADR-012). */
+    public function assignSupplier(Request $request, Shop $shop, int $id): JsonResponse
+    {
+        $purchase = $this->purchases->assignSupplier($this->visible($request->user(), $shop)->findOrFail($id), $request->user(), $request->input('supplier_id'));
+
+        return response()->json(['data' => PurchasesPresenter::purchase($purchase->fresh())]);
+    }
+
     public function cancel(Request $request, Shop $shop, int $id): JsonResponse
     {
         $purchase = $this->purchases->cancel(Purchase::query()->where('shop_id', $shop->id)->findOrFail($id), $request->user(), $request->input('reason'));

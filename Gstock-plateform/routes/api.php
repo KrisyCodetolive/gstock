@@ -230,6 +230,8 @@ Route::middleware('tenant')->group(function () {
             Route::middleware('permission:purchases.create')->group(function () {
                 Route::post('purchases/quote', [PurchaseController::class, 'quote']);
                 Route::post('purchases', [PurchaseController::class, 'store']);
+                // Fournisseur choisi après coup, seulement s'il manque (M11).
+                Route::put('purchases/{id}/supplier', [PurchaseController::class, 'assignSupplier'])->whereNumber('id');
             });
             Route::middleware('permission:purchases.view')->group(function () {
                 Route::get('purchases', [PurchaseController::class, 'index']);
