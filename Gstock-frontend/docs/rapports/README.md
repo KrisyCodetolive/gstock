@@ -1,6 +1,6 @@
 # GStock — État du projet
 
-> Mis à jour le 9 novembre 2026 : fournisseur d'un approvisionnement (raccourci « Nouveau fournisseur », attribution après coup) ; photos conservées à la reconstruction de l'API.
+> Mis à jour le 9 novembre 2026 : produit créé sur place depuis l'approvisionnement et l'entrée en stock ; fournisseur d'un approvisionnement (raccourci « Nouveau fournisseur », attribution après coup) ; photos conservées à la reconstruction de l'API.
 > Ce dossier est l'inventaire de ce qui a été **fait**. Il s'adresse à la personne (ou à l'agent) qui reprend le projet : ce fichier donne la vue d'ensemble et ce qui est commun à toutes les phases ; **chaque phase terminée a son rapport** (tableau ci-dessous) : ce qui a été livré, où se trouve le code, les règles appliquées, les vérifications faites et les limites.
 
 ## En bref
@@ -38,7 +38,9 @@
 | B9 — Synchronisation hors ligne du backend (références définitives, idempotence, écarts « à vérifier », refus motivés) | [B9-hors-ligne-api.md](B9-hors-ligne-api.md) | `api-hors-ligne` |
 | B10 — Back-office de Genius Groups (Filament : tableau de bord, espaces, boutiques, utilisateurs, mode support, formules, factures, journal) | [B10-back-office.md](B10-back-office.md) | `back-office` |
 
-Hors phase : [fournisseur-approvisionnement.md](fournisseur-approvisionnement.md) (raccourci « Nouveau fournisseur » dans l'approvisionnement, fournisseur attribué après coup s'il manque).
+Hors phase : [produit-sur-place.md](produit-sur-place.md) (produit créé depuis la recherche de l'approvisionnement et de l'entrée en stock, sans quantité de départ).
+
+Hors phase également : [fournisseur-approvisionnement.md](fournisseur-approvisionnement.md) (raccourci « Nouveau fournisseur » dans l'approvisionnement, fournisseur attribué après coup s'il manque).
 
 Hors phase également : [transferts.md](transferts.md) (transferts de stock entre boutiques, envoi puis réception).
 
