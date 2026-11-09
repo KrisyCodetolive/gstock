@@ -144,6 +144,30 @@
     "detail": {
       "purchases": "Ses approvisionnements dans {{shop}}",
       "no_purchases": "Aucun approvisionnement dans cette boutique."
+    },
+    "catalog": {
+      "title": "Produits achetés chez ce fournisseur",
+      "hint": "D'après vos approvisionnements : dernier prix d'achat, évolution, et stock à {{shop}}.",
+      "empty": "Aucun approvisionnement reçu de ce fournisseur pour l'instant.",
+      "search": "Chercher un produit",
+      "count_one": "{{count}} produit",
+      "count_other": "{{count}} produits",
+      "bought_one": "{{quantity}} achetés en {{count}} fois · dernier achat le {{date}}",
+      "bought_other": "{{quantity}} achetés en {{count}} fois · dernier achat le {{date}}",
+      "stock": "En stock : {{value}}",
+      "no_stock": "Jamais en stock dans cette boutique",
+      "per_base": "soit {{amount}} FCFA / {{unit}}",
+      "per_unit": "{{amount}} FCFA / {{unit}}",
+      "range": "de {{min}} à {{max}} FCFA",
+      "price_up": "+{{value}} % depuis l'achat d'avant",
+      "price_down": "−{{value}} % depuis l'achat d'avant",
+      "product_title": "Ses fournisseurs",
+      "product_hint": "Chez qui ce produit a été acheté, et à quel prix : du moins cher au plus cher, d'après le dernier achat.",
+      "product_empty": "Ce produit n'a encore été acheté chez aucun fournisseur.",
+      "no_supplier": "Sans fournisseur",
+      "cheapest": "Le moins cher",
+      "last_bought_one": "{{count}} achat · dernier le {{date}}",
+      "last_bought_other": "{{count}} achats · dernier le {{date}}"
     }
   },
   "expenses": {

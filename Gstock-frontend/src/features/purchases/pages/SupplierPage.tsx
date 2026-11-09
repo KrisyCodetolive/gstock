@@ -21,6 +21,7 @@ import { formatShortDate } from '@/lib/format'
 import i18n from '@/lib/i18n'
 import type { Supplier } from '@/types/purchases'
 import { PurchaseStatusBadge } from '../components/PurchaseStatusBadge'
+import { SupplierProductsSection } from '../components/SupplierProductsSection'
 import { usePurchases, useSaveSupplier, useSupplier } from '../hooks'
 
 const schema = z.object({
@@ -66,6 +67,7 @@ export function SupplierPage() {
               </div>
             ))}
           </dl>
+          <SupplierProductsSection supplierId={supplier.data.id} />
           <SupplierPurchases supplierId={supplier.data.id} />
           <SupplierForm key={supplier.data.id} supplier={supplier.data} />
         </>

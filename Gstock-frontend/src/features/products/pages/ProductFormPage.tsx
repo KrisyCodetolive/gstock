@@ -22,6 +22,7 @@ import { QuickReferentialCreate } from '@/features/referentials/components/Quick
 import { useReferentialList } from '@/features/referentials/hooks'
 import { useCurrentShop } from '@/features/shops/hooks'
 import { MovementsPreview } from '@/features/stock/components/MovementsPreview'
+import { ProductSuppliersSection } from '@/features/purchases/components/ProductSuppliersSection'
 import { ProductLotsSection } from '@/features/stock/components/ProductLotsSection'
 import { StockQuickSheet } from '@/features/stock/components/StockQuickSheet'
 import { apiErrorMessage, applyApiErrors } from '@/lib/form-errors'
@@ -392,6 +393,7 @@ function ProductFormBody({ product }: { product?: Product }) {
       {product && (
         <>
           <ShopStockSection product={product} />
+          {product.type !== 'service' && <ProductSuppliersSection productId={product.id} unit={product.unit.short_name} />}
           {product.type !== 'service' && can('stock.view') && shop && (
             <FormSection title={t('products.recent_movements', { shop: shop.name })}>
               <MovementsPreview productId={product.id} />

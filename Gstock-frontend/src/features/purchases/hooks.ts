@@ -8,8 +8,10 @@ import {
   createExpense,
   createPurchase,
   createSupplier,
+  getProductSuppliers,
   getPurchase,
   getSupplier,
+  getSupplierProducts,
   listExpenses,
   listPurchases,
   listSuppliers,
@@ -29,6 +31,15 @@ export function useSuppliers(params: ListParams, enabled = true) {
 
 export function useSupplier(id: Id | undefined) {
   return useQuery({ queryKey: ['suppliers', 'detail', id], queryFn: () => getSupplier(id!), enabled: id !== undefined })
+}
+
+/** Produits du fournisseur (prix d'achat : purchases.view), stock de la boutique courante. */
+export function useSupplierProducts(id: Id | undefined, shopId: Id | undefined, enabled: boolean) {
+  return useQuery({ queryKey: ['suppliers', 'products', id, shopId], queryFn: () => getSupplierProducts(id!, shopId), enabled: enabled && id !== undefined })
+}
+
+export function useProductSuppliers(productId: Id, enabled: boolean) {
+  return useQuery({ queryKey: ['products', productId, 'suppliers'], queryFn: () => getProductSuppliers(productId), enabled })
 }
 
 export function useSaveSupplier(id?: Id) {
