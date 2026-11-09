@@ -85,6 +85,37 @@ final class SupplierCatalog
             ->values()->all();
     }
 
+    /**
+     * Dernier achat de chaque article chez ce fournisseur : unité et prix de la ligne, pour préremplir
+     * un nouvel approvisionnement. Clés « produit:variante ».
+     *
+     * @param  list<int>  $shopIds
+     * @return Collection<string, array{unit_id: ?int, cost: string}>
+     */
+    public function lastFromSupplier(int $supplierId, array $shopIds): Collection
+    {
+        return $this->lines($shopIds)->where('p.supplier_id', $supplierId)->get()
+            ->unique(fn ($l) => $l->product_id.':'.($l->product_variant_id ?? ''))
+            ->mapWithKeys(fn ($l) => [$l->product_id.':'.($l->product_variant_id ?? '') => [
+                'unit_id' => $l->unit_id === null ? null : (int) $l->unit_id,
+                'cost' => D::format((string) $l->cost, D::MONEY),
+            ]]);
+    }
+
+    /**
+     * Fournisseur habituel de chaque article : le dernier chez qui il a été acheté. Clés « produit:variante ».
+     *
+     * @param  list<int>  $shopIds
+     * @return Collection<string, array{id: int, name: string}>
+     */
+    public function lastSuppliers(array $shopIds): Collection
+    {
+        $lines = $this->lines($shopIds)->whereNotNull('p.supplier_id')->get()->unique(fn ($l) => $l->product_id.':'.($l->product_variant_id ?? ''));
+        $names = Supplier::query()->whereIn('id', $lines->pluck('supplier_id')->unique())->pluck('name', 'id');
+
+        return $lines->mapWithKeys(fn ($l) => [$l->product_id.':'.($l->product_variant_id ?? '') => ['id' => (int) $l->supplier_id, 'name' => (string) ($names[$l->supplier_id] ?? '')]]);
+    }
+
     /** Lignes des approvisionnements reçus des boutiques visibles, les plus récentes d'abord. */
     private function lines(array $shopIds)
     {

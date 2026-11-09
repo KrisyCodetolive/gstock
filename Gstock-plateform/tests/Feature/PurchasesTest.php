@@ -219,6 +219,18 @@ class PurchasesTest extends TestCase
         $this->api('kone', 'GET', "/products/{$this->soap}/suppliers", as: $this->owner)
             ->assertJsonPath('data.0.supplier', null)->assertJsonPath('data.0.last_cost', '330.00')->assertJsonPath('data.1.last_cost', '340.00')->assertJsonCount(2, 'data');
 
+        // Racheter chez ce fournisseur : ses articles avec le dernier prix et la dernière unité ; to_restock = stock faible ou rupture.
+        $milk = $this->api('kone', 'POST', '/products', ['name' => 'Lait', 'price' => '600', 'stock_alert' => '20'], as: $this->owner)->json('data.id');
+        $buy($this->supplier, [['product_id' => $milk, 'quantity' => '1', 'cost' => '5400', 'unit_id' => $this->carton]]);
+        $search = fn (string $extra) => $this->api('kone', 'GET', $this->url("/products/search?supplier_id={$this->supplier}{$extra}"), as: $this->owner)->json('data');
+        $this->assertEqualsCanonicalizing(['Eau 1,5 L', 'Savon', 'Lait'], array_column($search(''), 'name'));
+        $restock = $search('&to_restock=true');
+        $this->assertSame(['Lait'], array_column($restock, 'name'));
+        $this->assertSame(['unit_id' => $this->carton, 'cost' => '5400.00'], $restock[0]['supplier_last']);
+        $this->assertSame('260.00', collect($search(''))->firstWhere('name', 'Eau 1,5 L')['supplier_last']['cost']);
+        $cashier = $this->createUser($this->tenant, ['sales.create'], [$this->shop]);
+        $this->api('kone', 'GET', $this->url("/products/search?supplier_id={$this->supplier}"), as: $cashier)->assertForbidden();
+
         // Les prix d'achat demandent aussi purchases.view ; le stock, l'accès à la boutique.
         $viewer = $this->createUser($this->tenant, ['suppliers.view', 'products.view'], [$this->shop]);
         $this->api('kone', 'GET', "/suppliers/{$this->supplier}/products", as: $viewer)->assertForbidden();

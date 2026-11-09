@@ -136,11 +136,28 @@ class ProductController extends Controller
         $presenter = new CatalogPresenter($products, $shop->id);
         $articles = $products->flatMap(fn (Product $p) => $presenter->articles($p));
 
+        // Racheter chez un fournisseur (M11) : seulement ses articles, avec le dernier prix et la dernière unité achetés chez lui ;
+        // `to_restock=true` : seulement ceux en stock faible ou en rupture dans la boutique.
+        $limit = 20;
+        if ($request->filled('supplier_id')) {
+            /** @var User $user */
+            $user = $request->user();
+            if (! $user->hasAnyPermission('purchases.create', 'purchases.view')) {
+                throw ApiException::forbidden("Vous n'avez pas accès aux prix d'achat.");
+            }
+            $shops = $user->isOwner() ? Shop::query()->pluck('id')->all() : $user->shops()->pluck('shops.id')->all();
+            $last = app(SupplierCatalog::class)->lastFromSupplier((int) $request->query('supplier_id'), $shops);
+            $articles = $articles->filter(fn ($a) => $last->has($a['id'].':'.($a['variant_id'] ?? '')))
+                ->when($request->query('to_restock') === 'true', fn ($c) => $c->filter(fn ($a) => in_array($a['state'], ['low', 'out'], true)))
+                ->map(fn ($a) => [...$a, 'supplier_last' => $last[$a['id'].':'.($a['variant_id'] ?? '')]]);
+            $limit = 200;
+        }
+
         $normalize = fn (string $s) => mb_strtolower(trim(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s) ?: $s));
         $needle = $normalize($q);
         $exact = $articles->filter(fn ($a) => $a['barcode'] !== null && $normalize($a['barcode']) === $needle);
         $data = ($exact->isNotEmpty() ? $exact : $articles->filter(fn ($a) => $needle === '' || str_contains($normalize("{$a['name']} {$a['code']} {$a['barcode']}"), $needle)))
-            ->take(20)->values();
+            ->take($limit)->values();
 
         return response()->json(['data' => $data]);
     }
