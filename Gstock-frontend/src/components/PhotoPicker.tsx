@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api/client'
 import i18n from '@/lib/i18n'
 import { ImageError, IMAGE_TYPES, prepareImage } from '@/lib/image'
+import { useImageOk } from '@/lib/use-image-ok'
 import { cn } from '@/lib/utils'
 
 /**
@@ -35,6 +36,7 @@ export function PhotoPicker({
 }) {
   const input = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
+  const image = useImageOk(imageUrl)
 
   const run = async (action: () => Promise<unknown>) => {
     setError(null)
@@ -53,7 +55,7 @@ export function PhotoPicker({
   return (
     <div className={cn('flex flex-wrap items-center gap-4', className)}>
       <span className="grid size-24 shrink-0 place-items-center overflow-hidden rounded-lg border-2 border-foreground bg-muted">
-        {imageUrl ? <img src={imageUrl} alt="" className="size-full object-cover" /> : fallback}
+        {image.ok ? <img src={imageUrl!} alt="" onError={image.onError} className="size-full object-cover" /> : fallback}
       </span>
       <div className="grid gap-2">
         <div className="flex flex-wrap gap-2">

@@ -1,6 +1,6 @@
 # GStock — État du projet
 
-> Mis à jour le 5 novembre 2026 : connexion centrale sur le domaine principal.
+> Mis à jour le 9 novembre 2026 : photos conservées à la reconstruction de l'API, repli quand une photo est introuvable.
 > Ce dossier est l'inventaire de ce qui a été **fait**. Il s'adresse à la personne (ou à l'agent) qui reprend le projet : ce fichier donne la vue d'ensemble et ce qui est commun à toutes les phases ; **chaque phase terminée a son rapport** (tableau ci-dessous) : ce qui a été livré, où se trouve le code, les règles appliquées, les vérifications faites et les limites.
 
 ## En bref
@@ -204,6 +204,7 @@ Recettes pour une nouvelle rubrique (c'est ainsi que F2 à F4 ont été faites) 
 - **Backend, `php artisan serve`** : ne transmet au serveur PHP qu'une liste fixe de variables d'environnement ; une variable passée en ligne de commande (ex. `FRONTEND_URL`) est ignorée. La mettre dans `.env`, ou lancer `php -S` depuis `public/` avec le `server.php` de Laravel.
 - **Hors ligne contre le vrai serveur, en développement** : pas de service worker ; un écran ne s'ouvre sans réseau que si son code a déjà été chargé dans la session, et ses listes que si elles ont été lues avec le réseau. Pour un test réaliste, utiliser le build (`vite build` puis `vite preview`).
 - **Filament** : les arguments des fonctions sont fournis par leur nom (`$query`, `$data`, `$record`) ; `fn (Builder $q)` reçoit une requête vide. Les widgets se testent avec `Livewire::test()`.
+- **Photos et Docker** : les photos envoyées sont dans `storage/app/public` de l'API. Dans le conteneur, ce dossier est le volume `gstock-storage` (`compose.yaml`) ; sans lui, reconstruire l'image efface les fichiers alors que la base garde leur chemin (cas rencontré le 5 novembre : photos à renvoyer). Côté front, une photo introuvable affiche le repli (initiale, teinte de catégorie) grâce à `useImageOk` (`src/lib/use-image-ok.ts`) ; toute nouvelle `<img>` d'une photo envoyée doit l'utiliser.
 - **Backend, horloge** : toujours `now()` (Carbon) et jamais `time()`, sinon `travel()` dans les tests n'a pas d'effet (cas rencontré sur l'expiration des liens de reçu).
 - **Versions récentes** : TypeScript 7, React Router 8, MSW 3, Tailwind 4, Zod 4, i18next 26. Vérifier les API dans `node_modules` plutôt que de se fier à des exemples anciens (MSW 3 : `onUnhandledFrame` au lieu de `onUnhandledRequest`).
 
