@@ -168,6 +168,18 @@
       "cheapest": "Le moins cher",
       "last_bought_one": "{{count}} achat · dernier le {{date}}",
       "last_bought_other": "{{count}} achats · dernier le {{date}}"
+    },
+    "restock": {
+      "button": "Racheter chez ce fournisseur",
+      "title": "Ses produits à racheter",
+      "all_title": "Tous ses produits",
+      "show_all": "Voir tous ses produits",
+      "only_low": "Seulement ceux à racheter",
+      "none": "Aucun de ses produits n'est en stock faible ou en rupture dans cette boutique.",
+      "none_all": "Aucun produit acheté chez ce fournisseur pour cette boutique.",
+      "add": "Ajouter",
+      "add_all_one": "Ajouter {{count}} produit",
+      "add_all_other": "Ajouter les {{count}} produits"
     }
   },
   "expenses": {

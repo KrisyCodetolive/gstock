@@ -1,7 +1,7 @@
 import { PackagePlus, Trash2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { BackLink } from '@/components/BackLink'
 import { FieldError, FormAlert, FormField } from '@/components/FormField'
@@ -23,6 +23,7 @@ import { articleKey } from '@/lib/articles'
 import { formatQuantity } from '@/lib/format'
 import { apiErrorMessage } from '@/lib/form-errors'
 import type { ProductSearchResult } from '@/types/catalog'
+import { SupplierRestockPanel } from '../components/SupplierRestockPanel'
 import { SupplierSelect } from '../components/SupplierSelect'
 import { useCreatePurchase, usePurchaseQuote } from '../hooks'
 
@@ -47,6 +48,11 @@ function suggestedCost(product: ProductSearchResult, unitId: number): string {
 const keyOf = (l: Line) => articleKey(l.product.id, l.product.variant_id)
 
 function newLine(product: ProductSearchResult): Line {
+  // Racheté chez un fournisseur : sa dernière unité et son dernier prix ; sinon l'unité d'achat du produit.
+  const last = product.supplier_last
+  if (last && product.units.some((u) => u.id === last.unit_id)) {
+    return { product, unitId: last.unit_id!, quantity: '1', cost: String(Number(last.cost)), expiry: '' }
+  }
   const unitId = product.purchase_unit_id ?? product.unit.id
   return { product, unitId, quantity: '1', cost: suggestedCost(product, unitId), expiry: '' }
 }
@@ -63,7 +69,9 @@ export function PurchaseFormPage() {
   const create = useCreatePurchase(shop?.id)
   const methods = useReferentialList('payment-methods', { per_page: 100, filter: { is_active: 'true' } })
   const [lines, setLines] = useState<Line[]>([])
-  const [supplierId, setSupplierId] = useState<number | null>(null)
+  // « Racheter chez ce fournisseur » : ?fournisseur=ID depuis sa fiche ou les rapports.
+  const [params] = useSearchParams()
+  const [supplierId, setSupplierId] = useState<number | null>(() => (Number(params.get('fournisseur')) > 0 ? Number(params.get('fournisseur')) : null))
   const [date, setDate] = useState('')
   const [discount, setDiscount] = useState('')
   const [updateCosts, setUpdateCosts] = useState(true)
@@ -125,6 +133,13 @@ export function PurchaseFormPage() {
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </FormField>
           </div>
+          {supplierId !== null && (
+            <SupplierRestockPanel
+              supplierId={supplierId}
+              taken={lines.map(keyOf)}
+              onAdd={(items) => setLines((ls) => [...ls, ...items.filter((p) => !ls.some((l) => keyOf(l) === articleKey(p.id, p.variant_id))).map(newLine)])}
+            />
+          )}
         </FormSection>
 
         <FormSection title={t('purchases.form.products')}>

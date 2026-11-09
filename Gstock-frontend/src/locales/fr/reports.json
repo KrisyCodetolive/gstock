@@ -82,7 +82,15 @@
       "dormant_total_other": "{{count}} produits, argent immobilisé :",
       "no_cost": "Prix d'achat inconnu",
       "last_sold": "dernière vente le {{date}}",
-      "never_sold": "jamais vendu"
+      "never_sold": "jamais vendu",
+      "at_supplier": "chez {{name}}",
+      "restock_view": "Affichage",
+      "restock_list": "Liste",
+      "restock_by_supplier": "Par fournisseur",
+      "no_usual_supplier": "Sans fournisseur connu",
+      "restock_count_one": "{{count}} produit",
+      "restock_count_other": "{{count}} produits",
+      "restock_buy": "Racheter chez lui"
     },
     "customers": {
       "new": "Nouveaux clients",

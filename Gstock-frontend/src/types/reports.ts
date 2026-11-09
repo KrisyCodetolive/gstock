@@ -62,6 +62,8 @@ export interface BelowCostArticle extends ReportArticle {
 }
 
 export interface RestockArticle extends ReportArticle {
+  /** Fournisseur habituel : le dernier chez qui l'article a été acheté. */
+  supplier: { id: Id; name: string } | null
   quantity: string
   sold_last_days: string
   per_day: string

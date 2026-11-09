@@ -19,6 +19,7 @@ import {
   updateSupplier,
   setPurchaseInstallments,
 } from '@/lib/api/purchases'
+import { searchShopProducts } from '@/lib/api/products'
 import type { Id, ListParams } from '@/types/api'
 import type { InstallmentScheduleItem } from '@/types/credits'
 import type { ExpensePayload, PurchasePayload, PurchaseQuoteInput, SupplierPayload } from '@/types/purchases'
@@ -40,6 +41,15 @@ export function useSupplierProducts(id: Id | undefined, shopId: Id | undefined, 
 
 export function useProductSuppliers(productId: Id, enabled: boolean) {
   return useQuery({ queryKey: ['products', productId, 'suppliers'], queryFn: () => getProductSuppliers(productId), enabled })
+}
+
+/** Articles achetés chez ce fournisseur, dans la boutique (dernier prix et dernière unité) ; `toRestock` : stock faible ou rupture. */
+export function useSupplierArticles(shopId: Id | undefined, supplierId: Id | null, toRestock: boolean) {
+  return useQuery({
+    queryKey: ['products', 'search', shopId, 'supplier', supplierId, toRestock],
+    queryFn: ({ signal }) => searchShopProducts(shopId!, '', { supplierId: supplierId!, toRestock, signal }),
+    enabled: shopId !== undefined && supplierId !== null,
+  })
 }
 
 export function useSaveSupplier(id?: Id) {
