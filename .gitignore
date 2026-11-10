@@ -1,1 +1,4 @@
 __pycache__/
+
+# Outils locaux de Claude Code (skills)
+.claude/
