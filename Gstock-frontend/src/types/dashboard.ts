@@ -1,6 +1,7 @@
 // Contrat d'API des modules M13 (tableau de bord) et M14 (journal d'activité).
 // Tous les chiffres viennent du serveur, selon la distinction financière du §7.8.
 import type { Id, IsoDate, Money } from './api'
+import type { RestockArticle } from './reports'
 
 export type DashboardPeriod = 'today' | 'week' | 'month'
 
@@ -28,7 +29,11 @@ export interface Dashboard {
   }
   /** Sorties d'argent : dépenses, argent rendu aux clients (P3), paiements aux fournisseurs. */
   money_out: { expenses: Money; customer_refunds: Money; supplier_payments: Money }
+  /** Ventes jour par jour (Y-m-d) : 7 derniers jours, ou 30 pour « 30 jours » ; ses propres ventes sans records.view_all. */
+  trend?: { date: string; total: Money }[]
   stock: { low: number; out: number }
+  /** Articles dont le stock tient horizon_days jours ou moins : nombre total et les plus urgents. */
+  restock?: { horizon_days: number; count: number; items: RestockArticle[] }
   /** Articles qui ont des arrivages périmés ou bientôt périmés, valeur au prix d'achat (§7.11). */
   expiry?: { expired: number; expired_value: Money; soon: number; soon_value: Money }
   /** Pertes de la période (périmé, cassé, volé) : ni dépense ni sortie d'argent (§7.8). */
