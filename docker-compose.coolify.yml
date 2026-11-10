@@ -1,0 +1,185 @@
+# Déploiement de GStock sur Coolify (ressource « Docker Compose », dépôt GitHub privé).
+# Guide pas à pas : DEPLOIEMENT-COOLIFY.md.
+#
+#   https://APP_DOMAIN            → web (connexion centrale, inscription)
+#   https://<espace>.APP_DOMAIN   → web (un sous-domaine par espace, ADR-009)
+#   https://admin.APP_DOMAIN      → api (back-office Filament)
+#   web transmet /api, /sanctum et /storage à api (même origine : cookies Sanctum).
+#
+# Le routage est fait ici par des labels Traefik (sous-domaines en joker) : NE RIEN mettre
+# dans les champs « Domains » des services dans Coolify. Prérequis : certificat joker
+# par défi DNS configuré sur le proxy de Coolify (voir le guide).
+#
+# Variables à saisir dans Coolify : APP_DOMAIN, APP_KEY, DB_PASSWORD, MAIL_FROM_ADDRESS (obligatoires),
+# puis MAIL_* pour l'envoi des e-mails (mot de passe oublié).
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gstock
+      POSTGRES_USER: gstock
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?}
+    volumes:
+      - gstock-pgsql:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "gstock", "-d", "gstock"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: ./Gstock-plateform
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      CONTAINER_ROLE: app
+      APP_NAME: GStock
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: ${APP_KEY:?}
+      APP_URL: https://${APP_DOMAIN:?}
+      APP_LOCALE: fr
+      APP_FALLBACK_LOCALE: fr
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: ${LOG_LEVEL:-warning}
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_DATABASE: gstock
+      DB_USERNAME: gstock
+      DB_PASSWORD: ${DB_PASSWORD:?}
+      SESSION_DRIVER: database
+      SESSION_SECURE_COOKIE: "true"
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      TENANCY_CENTRAL_DOMAINS: ${APP_DOMAIN},www.${APP_DOMAIN}
+      SANCTUM_STATEFUL_DOMAINS: ${APP_DOMAIN},*.${APP_DOMAIN}
+      FRONTEND_URL: https://{tenant}.${APP_DOMAIN}
+      ADMIN_DOMAIN: admin.${APP_DOMAIN}
+      MAIL_MAILER: ${MAIL_MAILER:-log}
+      MAIL_SCHEME: ${MAIL_SCHEME:-}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:?}
+      MAIL_FROM_NAME: GStock
+      GENIUSPAY_PLATFORM_DRIVER: ${GENIUSPAY_PLATFORM_DRIVER:-simulation}
+      GENIUSPAY_PLATFORM_API_KEY: ${GENIUSPAY_PLATFORM_API_KEY:-}
+      GENIUSPAY_PLATFORM_API_SECRET: ${GENIUSPAY_PLATFORM_API_SECRET:-}
+      GENIUSPAY_PLATFORM_WEBHOOK_SECRET: ${GENIUSPAY_PLATFORM_WEBHOOK_SECRET:-}
+    volumes:
+      # Photos des produits et des profils.
+      - gstock-storage:/app/storage/app/public
+    labels:
+      - traefik.enable=true
+      - traefik.http.middlewares.gstock-https.redirectscheme.scheme=https
+      - traefik.http.routers.gstock-admin-http.rule=Host(`admin.${APP_DOMAIN}`)
+      - traefik.http.routers.gstock-admin-http.entrypoints=http
+      - traefik.http.routers.gstock-admin-http.middlewares=gstock-https
+      - traefik.http.routers.gstock-admin-http.priority=100
+      - traefik.http.routers.gstock-admin-http.service=gstock-api
+      - traefik.http.routers.gstock-admin.rule=Host(`admin.${APP_DOMAIN}`)
+      - traefik.http.routers.gstock-admin.entrypoints=https
+      - traefik.http.routers.gstock-admin.tls=true
+      - traefik.http.routers.gstock-admin.tls.certresolver=letsencrypt
+      - traefik.http.routers.gstock-admin.priority=100
+      - traefik.http.routers.gstock-admin.service=gstock-api
+      - traefik.http.services.gstock-api.loadbalancer.server.port=8080
+
+  worker:
+    # File d'attente (e-mails de mot de passe oublié, relances). Même image que api.
+    build:
+      context: ./Gstock-plateform
+    restart: unless-stopped
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600"]
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    environment:
+      CONTAINER_ROLE: worker
+      APP_NAME: GStock
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_KEY: ${APP_KEY:?}
+      APP_URL: https://${APP_DOMAIN:?}
+      APP_LOCALE: fr
+      APP_FALLBACK_LOCALE: fr
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: ${LOG_LEVEL:-warning}
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_DATABASE: gstock
+      DB_USERNAME: gstock
+      DB_PASSWORD: ${DB_PASSWORD:?}
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      TENANCY_CENTRAL_DOMAINS: ${APP_DOMAIN},www.${APP_DOMAIN}
+      SANCTUM_STATEFUL_DOMAINS: ${APP_DOMAIN},*.${APP_DOMAIN}
+      FRONTEND_URL: https://{tenant}.${APP_DOMAIN}
+      ADMIN_DOMAIN: admin.${APP_DOMAIN}
+      MAIL_MAILER: ${MAIL_MAILER:-log}
+      MAIL_SCHEME: ${MAIL_SCHEME:-}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:?}
+      MAIL_FROM_NAME: GStock
+
+  web:
+    build:
+      context: ./Gstock-frontend
+      args:
+        VITE_CENTRAL_DOMAIN: ${APP_DOMAIN:?}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    labels:
+      - traefik.enable=true
+      - traefik.http.middlewares.gstock-web-https.redirectscheme.scheme=https
+      - traefik.http.routers.gstock-web-http.rule=Host(`${APP_DOMAIN}`) || HostRegexp(`^[a-z0-9-]+\.${APP_DOMAIN}`)
+      - traefik.http.routers.gstock-web-http.entrypoints=http
+      - traefik.http.routers.gstock-web-http.middlewares=gstock-web-https
+      - traefik.http.routers.gstock-web-http.priority=10
+      - traefik.http.routers.gstock-web-http.service=gstock-web
+      - traefik.http.routers.gstock-web.rule=Host(`${APP_DOMAIN}`) || HostRegexp(`^[a-z0-9-]+\.${APP_DOMAIN}`)
+      - traefik.http.routers.gstock-web.entrypoints=https
+      - traefik.http.routers.gstock-web.priority=10
+      - traefik.http.routers.gstock-web.tls=true
+      - traefik.http.routers.gstock-web.tls.certresolver=letsencrypt
+      - traefik.http.routers.gstock-web.tls.domains[0].main=${APP_DOMAIN}
+      - traefik.http.routers.gstock-web.tls.domains[0].sans=*.${APP_DOMAIN}
+      - traefik.http.routers.gstock-web.service=gstock-web
+      - traefik.http.services.gstock-web.loadbalancer.server.port=80
+
+  backup:
+    build:
+      context: ./Gstock-plateform/docker/backup
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: gstock
+      PGPASSWORD: ${DB_PASSWORD:?}
+      PGDATABASE: gstock
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - gstock-backups:/backups
+
+volumes:
+  gstock-pgsql:
+  gstock-storage:
+  gstock-backups:
