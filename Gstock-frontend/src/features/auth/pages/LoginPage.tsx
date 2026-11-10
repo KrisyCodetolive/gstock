@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronRight, CircleAlert, Eye, EyeOff, LogIn, Store } from 'lucide-react'
-import { lazy, Suspense, useState } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router'
@@ -13,13 +13,6 @@ import { isCentralHost } from '@/lib/tenant-host'
 import type { CentralSpace } from '@/types/auth'
 import { useCentralLogin, useLogin, useMe } from '../hooks'
 import { loginSchema, type LoginForm } from '../schemas'
-
-// Comptes de test des seeders : chargés en développement seulement,
-// pour que le build de production n'en contienne aucun.
-const DemoAccounts =
-  import.meta.env.DEV
-    ? lazy(() => import('../components/DemoAccounts').then((m) => ({ default: m.DemoAccounts })))
-    : null
 
 export function LoginPage() {
   const { t } = useTranslation()
@@ -174,18 +167,6 @@ export function LoginPage() {
         <Link to="/inscription" className="pressable flex min-h-12 items-center justify-center rounded-md bg-tint-yellow px-4 text-center font-bold">
           {t('register.cta_from_login')}
         </Link>
-
-        {DemoAccounts && (
-          <Suspense>
-            <DemoAccounts
-              disabled={login.isPending}
-              onPick={(account) => {
-                form.reset(account)
-                void submit()
-              }}
-            />
-          </Suspense>
-        )}
       </div>
     </div>
   )

@@ -44,12 +44,6 @@ export function ForgotPasswordPage() {
           {result.message}
         </p>
         <p className="text-sm text-muted-foreground">{t('auth.forgot.no_email_hint')}</p>
-        {/* Données simulées : aucun e-mail n'est envoyé, on montre le lien qu'il aurait contenu. */}
-        {result.demo_reset_url && (
-          <Button asChild variant="outline">
-            <Link to={result.demo_reset_url}>{t('auth.forgot.demo_link')}</Link>
-          </Button>
-        )}
       </PublicCard>
     )
   }
