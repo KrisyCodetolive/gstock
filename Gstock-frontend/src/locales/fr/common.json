@@ -145,6 +145,27 @@
     "installments_upcoming_one": "{{count}} échéance dans les 7 jours",
     "installments_upcoming_other": "{{count}} échéances dans les 7 jours",
     "installments_none": "Aucune échéance en retard ni à venir.",
+    "trend": {
+      "days_one": "Dernier jour",
+      "days_other": "{{count}} derniers jours",
+      "best": "Meilleur : {{amount}} FCFA le {{date}}",
+      "summary_one": "Ventes du dernier jour : {{today}} FCFA.",
+      "summary_other": "Ventes des {{count}} derniers jours : meilleure journée {{best}} FCFA le {{date}}, aujourd'hui {{today}} FCFA.",
+      "empty_one": "Aucune vente le dernier jour.",
+      "empty_other": "Aucune vente ces {{count}} derniers jours."
+    },
+    "restock": {
+      "title_one": "À racheter dans le jour",
+      "title_other": "À racheter dans les {{count}} jours",
+      "none_one": "Aucun produit ne risque de manquer demain.",
+      "none_other": "Aucun produit ne risque de manquer dans les {{count}} jours, au rythme des ventes.",
+      "count_one": "{{count}} produit va bientôt manquer, au rythme des 30 derniers jours",
+      "count_other": "{{count}} produits vont bientôt manquer, au rythme des 30 derniers jours",
+      "stock": "Reste {{value}}",
+      "see_all_one": "Voir le détail",
+      "see_all_other": "Voir les {{count}}",
+      "buy_from": "Racheter chez {{name}}"
+    },
     "recent": "Activité récente",
     "recent_empty": "Aucune opération pour l'instant.",
     "activity": {

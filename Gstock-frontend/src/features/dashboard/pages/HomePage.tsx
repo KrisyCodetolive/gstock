@@ -35,6 +35,8 @@ import type { ActivityItem, Dashboard, DashboardPeriod } from '@/types/dashboard
 import { useDashboard } from '../hooks'
 import { OnboardingCard } from '@/features/onboarding/components/OnboardingCard'
 import { TransfersToReceive } from '@/features/stock/components/TransfersToReceive'
+import { RestockSoon } from '../components/RestockSoon'
+import { SalesSparkline } from '../components/SalesSparkline'
 
 const PERIODS: DashboardPeriod[] = ['today', 'week', 'month']
 
@@ -132,6 +134,8 @@ function DashboardView() {
         <div className={cn('grid gap-6', dashboard.isFetching && 'opacity-70')}>
           <Cards data={dashboard.data} period={period} />
           <QuickActions />
+          {/* Une réponse plus ancienne, gardée hors ligne, peut ne pas avoir le rappel. */}
+          {dashboard.data.restock && <RestockSoon restock={dashboard.data.restock} canBuy={!all} />}
           <Installments data={dashboard.data} />
           <Recent items={dashboard.data.recent} linkable={!all} />
         </div>
@@ -187,6 +191,7 @@ function Cards({ data, period }: { data: Dashboard; period: DashboardPeriod }) {
               {t(period === 'today' ? 'home.cards.vs_yesterday' : 'home.cards.vs_previous', { sign: pct >= 0 ? '+' : '−', value: Math.abs(pct) })}
             </span>
           )}
+          {data.trend && <SalesSparkline trend={data.trend} />}
         </StatCard>
       )}
       {has('sales.view') && (

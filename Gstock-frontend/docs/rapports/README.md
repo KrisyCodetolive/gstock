@@ -1,6 +1,6 @@
 # GStock — État du projet
 
-> Mis à jour le 9 novembre 2026 : produits par fournisseur et « Racheter chez ce fournisseur » ; rubrique « Rapports » (ventes, produits, à racheter, dormants, clients et crédits) ; péremption toujours visible dans Mon stock ; catégories, marques et catégories de dépenses créées sur place ; produit créé sur place depuis l'approvisionnement et l'entrée en stock ; fournisseur d'un approvisionnement (raccourci « Nouveau fournisseur », attribution après coup) ; photos conservées à la reconstruction de l'API.
+> Mis à jour le 10 novembre 2026 : accueil avec mini-courbe des ventes et rappel « à racheter dans les 7 jours » ; produits par fournisseur et « Racheter chez ce fournisseur » ; rubrique « Rapports » (ventes, produits, à racheter, dormants, clients et crédits) ; péremption toujours visible dans Mon stock ; catégories, marques et catégories de dépenses créées sur place ; produit créé sur place depuis l'approvisionnement et l'entrée en stock ; fournisseur d'un approvisionnement (raccourci « Nouveau fournisseur », attribution après coup) ; photos conservées à la reconstruction de l'API.
 > Ce dossier est l'inventaire de ce qui a été **fait**. Il s'adresse à la personne (ou à l'agent) qui reprend le projet : ce fichier donne la vue d'ensemble et ce qui est commun à toutes les phases ; **chaque phase terminée a son rapport** (tableau ci-dessous) : ce qui a été livré, où se trouve le code, les règles appliquées, les vérifications faites et les limites.
 
 ## En bref
@@ -38,7 +38,7 @@
 | B9 — Synchronisation hors ligne du backend (références définitives, idempotence, écarts « à vérifier », refus motivés) | [B9-hors-ligne-api.md](B9-hors-ligne-api.md) | `api-hors-ligne` |
 | B10 — Back-office de Genius Groups (Filament : tableau de bord, espaces, boutiques, utilisateurs, mode support, formules, factures, journal) | [B10-back-office.md](B10-back-office.md) | `back-office` |
 
-Hors phase : [produits-fournisseur.md](produits-fournisseur.md) (produits d'un fournisseur, fournisseurs d'un produit, racheter chez un fournisseur).
+Hors phase : [produits-fournisseur.md](produits-fournisseur.md) (produits d'un fournisseur, fournisseurs d'un produit, racheter chez un fournisseur) ; [accueil-courbe-rachat.md](accueil-courbe-rachat.md) (mini-courbe des ventes et rappel « à racheter dans les 7 jours » sur l'accueil).
 
 Hors phase également : [rapports-statistiques.md](rapports-statistiques.md) (rubrique « Rapports », première partie : ventes jour par jour, meilleurs produits, produits à perte, à racheter, dormants).
 
@@ -141,6 +141,7 @@ Ces décisions complètent ou précisent le cahier. Celles marquées **[cahier]*
 | Transferts entre boutiques (§7.12) | Envoi puis réception, stock en route compté nulle part, manques en pertes, annulation avant réception ; permission `stock.transfer` au propriétaire. Voir [transferts.md](transferts.md). |
 | Données simulées (ADR-004) | Retirées le 5 novembre 2026 : le frontend parle toujours au backend ; comptes de test issus des seeders. Voir [fin-donnees-simulees.md](fin-donnees-simulees.md). |
 | Dates de péremption (§7.11) | Arrivages par entrée de marchandise pour les produits suivis, sortie de la date la plus proche, approvisionnement entamé non annulable, pertes à part du résultat. Voir [peremption.md](peremption.md). |
+| Rappel « à racheter » de l'accueil (M13) | Même calcul que « À racheter bientôt » des rapports (rythme des 30 derniers jours), horizon de 7 jours au lieu de 14 ; état de la boutique, toutes ventes comprises, alors que la courbe suit « ses propres opérations ». Voir [accueil-courbe-rachat.md](accueil-courbe-rachat.md). |
 | Connexion centrale (ADR-009) | Sur le domaine principal, `POST /auth/central-login` trouve les espaces du compte (seulement avec le bon mot de passe) et y renvoie par un lien à usage unique ; choix si plusieurs. Les sous-domaines restent. Voir [connexion-centrale.md](connexion-centrale.md). |
 | Déconnexion | Mène toujours à l'accueil de la personne suivante (pas à la dernière page de la précédente). Nécessite `RouterProvider` importé de `react-router/dom` (voir « Pièges déjà rencontrés »). |
 
@@ -166,6 +167,7 @@ Le backend devra reproduire ce que font les handlers de `src/mocks/handlers/` (u
   - Péremption : `summary.tracked` et `filter[expiry]=tracked` sur `GET /shops/{id}/stock` ([peremption-visible.md](peremption-visible.md)) ; `GET|PUT /shops/{id}/stock/lots`, champs `track_expiry`, `expiry`, `exit_reason`, `losses`… Détail dans [peremption.md](peremption.md).
   - Fournisseur d'un approvisionnement : `PUT /shops/{id}/purchases/{id}/supplier` (seulement s'il n'en a pas). Détail dans [fournisseur-approvisionnement.md](fournisseur-approvisionnement.md).
   - Fournisseurs : `GET /suppliers/{id}/products?shop_id=`, `GET /products/{id}/suppliers`, `supplier_id` et `to_restock` sur la recherche de produits. Détail dans [produits-fournisseur.md](produits-fournisseur.md).
+  - Tableau de bord : champs `trend` (ventes jour par jour, 7 ou 30 jours) et `restock` (stock qui tient 7 jours ou moins, les 5 plus urgents). Détail dans [accueil-courbe-rachat.md](accueil-courbe-rachat.md).
   - Rapports : `GET /shops/{id}/reports/sales`, `GET /shops/{id}/reports/products`, `GET /shops/{id}/reports/customers`, et `/reports/...` pour toutes les boutiques ; permission `reports.view`. Détail dans [rapports-statistiques.md](rapports-statistiques.md).
   - Connexion centrale : `POST /auth/central-login` (domaine principal). Détail dans [connexion-centrale.md](connexion-centrale.md).
   - F10 : `PUT /me/password`, `POST|DELETE /me/avatar`, `POST|DELETE /products/{id}/image`, `PUT /shops/{id}/purchases/{id}/installments` (avec `installments` et `overdue_amount`), `purchase_unit_id` / `purchase_unit` / `units` sur le produit, `unit_id` / `unit` / `base_quantity` sur les lignes d'approvisionnement, `variants` sur le produit et `variant_id` / `variant` sur toutes les lignes (vente, approvisionnement, mouvement de stock). Détail dans [F10-complements-v1.md](F10-complements-v1.md).

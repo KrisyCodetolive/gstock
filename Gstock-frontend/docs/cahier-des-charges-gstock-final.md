@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Éditeur** | Genius Groups SAS |
-| **Version** | 3.9 — produits d'un fournisseur, fournisseurs d'un produit, racheter chez un fournisseur (M11, M15) ; 3.8 : rapports : onglet Clients (meilleurs clients, nouveaux, perdus, ancienneté des dettes, recouvrement, payeurs) (M15) ; 3.7 : rapports, première partie (M15) : ventes, produits, à racheter, dormants ; 3.6 : péremption toujours visible dans Mon stock, filtre « Produits suivis » (M07) ; 3.5 : catégories, marques et catégories de dépenses créées sur place (M05) ; 3.4 : produit créé sur place depuis l'approvisionnement et l'entrée en stock (M06) ; 3.3 : fournisseur attribuable après coup à un approvisionnement qui n'en a pas (M11) ; 3.2 : transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
+| **Version** | 3.10 — accueil : mini-courbe des ventes et rappel « à racheter dans les 7 jours » (M13) ; 3.9 : produits d'un fournisseur, fournisseurs d'un produit, racheter chez un fournisseur (M11, M15) ; 3.8 : rapports : onglet Clients (meilleurs clients, nouveaux, perdus, ancienneté des dettes, recouvrement, payeurs) (M15) ; 3.7 : rapports, première partie (M15) : ventes, produits, à racheter, dormants ; 3.6 : péremption toujours visible dans Mon stock, filtre « Produits suivis » (M07) ; 3.5 : catégories, marques et catégories de dépenses créées sur place (M05) ; 3.4 : produit créé sur place depuis l'approvisionnement et l'entrée en stock (M06) ; 3.3 : fournisseur attribuable après coup à un approvisionnement qui n'en a pas (M11) ; 3.2 : transferts de stock entre boutiques (§7.12) ; 3.1 : dates de péremption (§7.11) ; v3.0 : fusion du cahier des charges produit (v2.0) et du cahier des charges technique |
 | **Date** | 5 novembre 2026 (connexion centrale, ADR-009 ; fin des données simulées, ADR-004) |
 | **Cible** | Boutiques de quartier, épiceries, mini-markets, commerces de proximité et petits détaillants |
 | **Statut** | Définitif pour la phase 1 — évolutif pour les phases suivantes |
@@ -1093,7 +1093,7 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 
 | Carte | Contenu | Au clic |
 |---|---|---|
-| Ventes du jour | Montant, nombre de ventes, comparaison avec la veille | Ventes du jour |
+| Ventes du jour | Montant, nombre de ventes, comparaison avec la veille ; mini-courbe des ventes jour par jour (7 derniers jours, ou 30 pour la période « 30 jours »), avec la même règle « ses propres opérations » que le montant | Ventes du jour |
 | Argent reçu | Total reçu, répartition par mode de paiement | Détail des encaissements |
 | Stock faible | Nombre de produits sous le seuil | Produits à réapprovisionner |
 | Crédits clients | Reste à récupérer, nombre de clients | Mes crédits clients |
@@ -1105,9 +1105,10 @@ Convention : une **[LISTE]** propose recherche, filtres, tri et pagination serve
 - **Activité récente** : ventes, ventes à crédit, remboursements, approvisionnements, dépenses, mouvements de stock, transferts entre boutiques ; chaque élément ouvre son détail.
 - **Transferts à réceptionner** : rappel dans la boutique d'arrivée tant qu'un transfert est en route (§7.12).
 - **Échéances** en retard et à venir (7 jours).
+- **À racheter dans les 7 jours** (permission `stock.view`) : articles qui se vendent et dont le stock tient 7 jours ou moins au rythme des 30 derniers jours (même calcul que « À racheter bientôt » du M15, qui garde son horizon de 14 jours) ; nombre d'articles, les 5 plus urgents avec leurs jours restants et leur fournisseur habituel. Chaque article ouvre sa fiche ; « Racheter chez lui » ouvre un approvisionnement (`purchases.create`) ; « Tout voir » ouvre les rapports (`reports.view`). C'est l'état du stock de la boutique : toutes les ventes comptent dans le rythme.
 - Les cartes et actions affichées dépendent des permissions.
 
-**Endpoints.** `GET /shops/{shop_id}/dashboard?period=today`, `GET /dashboard?period=today` (toutes les boutiques).
+**Endpoints.** `GET /shops/{shop_id}/dashboard?period=today`, `GET /dashboard?period=today` (toutes les boutiques). La réponse contient `trend` (`[{date, total}]`) et `restock` (`{horizon_days, count, items}`).
 
 ### M14 — Journal d'audit
 

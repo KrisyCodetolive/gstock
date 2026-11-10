@@ -121,6 +121,47 @@ class DashboardTest extends TestCase
         $this->api('kone', 'GET', '/dashboard', as: $this->owner)->assertJsonPath('data.sales.total', '7000.00')->assertJsonPath('data.sales.count', 3);
     }
 
+    public function test_the_sales_trend_and_the_products_to_restock_within_seven_days(): void
+    {
+        // Il y a 3 jours : 2 riz. Aujourd'hui : 6 riz.
+        $this->travelTo(now()->subDays(3)->setTime(10, 0));
+        $this->sell('2', [['payment_method_id' => $this->cash, 'amount' => '2000']]);
+        $this->travelTo(now()->addDays(3)->setTime(12, 0));
+        $this->sell('6', [['payment_method_id' => $this->cash, 'amount' => '6000']]);
+        // Pain : 10 + 1 acheté, 9 vendus, 2 restants = 6 jours (9 en 30 jours). Sucre : 13, 9 vendus, 4 restants = 13 jours.
+        $product = fn (string $name, string $stock) => $this->api('kone', 'POST', '/products', ['name' => $name, 'price' => '100', 'cost' => '80', 'initial_quantity' => $stock, 'shop_id' => $this->shop->id], as: $this->owner)->json('data.id');
+        $bread = $product('Pain', '10');
+        $sugar = $product('Sucre', '13');
+        $supplier = $this->api('kone', 'POST', '/suppliers', ['name' => 'Boulangerie du Plateau'], as: $this->owner)->json('data.id');
+        $this->api('kone', 'POST', $this->url('/purchases'), ['supplier_id' => $supplier, 'items' => [['product_id' => $bread, 'quantity' => '1', 'cost' => '80']]], as: $this->owner)->assertCreated();
+        $this->api('kone', 'POST', $this->url('/sales'), ['items' => [['product_id' => $bread, 'quantity' => '9'], ['product_id' => $sugar, 'quantity' => '9']],
+            'payments' => [['payment_method_id' => $this->cash, 'amount' => '1800']]], as: $this->owner)->assertCreated();
+
+        $d = $this->api('kone', 'GET', $this->url('/dashboard?period=week'), as: $this->owner)->assertOk();
+        // Sept jours, aujourd'hui compris ; les jours sans vente valent 0.
+        $d->assertJsonCount(7, 'data.trend')
+            ->assertJsonPath('data.trend.0', ['date' => now()->subDays(6)->toDateString(), 'total' => '0.00'])
+            ->assertJsonPath('data.trend.3', ['date' => now()->subDays(3)->toDateString(), 'total' => '2000.00'])
+            ->assertJsonPath('data.trend.6', ['date' => now()->toDateString(), 'total' => '7800.00']);
+        $this->api('kone', 'GET', $this->url('/dashboard?period=month'), as: $this->owner)->assertJsonCount(30, 'data.trend');
+        $this->api('kone', 'GET', $this->url('/dashboard'), as: $this->owner)->assertJsonCount(7, 'data.trend');
+
+        // À racheter dans les 7 jours : le pain seulement (le sucre tient 13 jours, le riz 36).
+        $d->assertJsonPath('data.restock.horizon_days', 7)->assertJsonPath('data.restock.count', 1)
+            ->assertJsonPath('data.restock.items.0.product.id', $bread)->assertJsonPath('data.restock.items.0.days_left', 6)
+            ->assertJsonPath('data.restock.items.0.quantity', '2.000')
+            ->assertJsonPath('data.restock.items.0.supplier', ['id' => $supplier, 'name' => 'Boulangerie du Plateau']);
+        // Le rapport garde son horizon de 14 jours : le sucre y figure.
+        $report = $this->api('kone', 'GET', $this->url('/reports/products'), as: $this->owner)->assertOk();
+        $this->assertEqualsCanonicalizing([$bread, $sugar], array_column(array_column($report->json('data.restock.items'), 'product'), 'id'));
+
+        // Sans records.view_all : la courbe ne compte que ses ventes ; le rappel reste l'état de la boutique.
+        $seller = $this->createUser($this->tenant, ['dashboard.view', 'sales.create'], [$this->shop]);
+        $this->api('kone', 'POST', $this->url('/sales'), ['items' => [['product_id' => $this->rice, 'quantity' => '1']], 'payments' => [['payment_method_id' => $this->cash, 'amount' => '1000']]], as: $seller)->assertCreated();
+        $this->api('kone', 'GET', $this->url('/dashboard?period=week'), as: $seller)
+            ->assertJsonPath('data.trend.3.total', '0.00')->assertJsonPath('data.trend.6.total', '1000.00')->assertJsonPath('data.restock.count', 1);
+    }
+
     public function test_the_activity_log_can_be_searched_by_author(): void
     {
         $sale = $this->sell('1', [['payment_method_id' => $this->cash, 'amount' => '1000']]);
