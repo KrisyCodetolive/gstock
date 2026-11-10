@@ -1,6 +1,6 @@
 # GStock — État du projet
 
-> Mis à jour le 10 novembre 2026 : mots de passe à 6 caractères au moins ; comptes et données de démonstration supprimés avant la mise en production ; accueil avec mini-courbe des ventes et rappel « à racheter dans les 7 jours » ; produits par fournisseur et « Racheter chez ce fournisseur » ; rubrique « Rapports » (ventes, produits, à racheter, dormants, clients et crédits) ; péremption toujours visible dans Mon stock ; catégories, marques et catégories de dépenses créées sur place ; produit créé sur place depuis l'approvisionnement et l'entrée en stock ; fournisseur d'un approvisionnement (raccourci « Nouveau fournisseur », attribution après coup) ; photos conservées à la reconstruction de l'API.
+> Mis à jour le 10 novembre 2026 : déploiement sur Coolify préparé (compose de production, feuille de route `DEPLOIEMENT-COOLIFY.md`) ; mots de passe à 6 caractères au moins ; comptes et données de démonstration supprimés avant la mise en production ; accueil avec mini-courbe des ventes et rappel « à racheter dans les 7 jours » ; produits par fournisseur et « Racheter chez ce fournisseur » ; rubrique « Rapports » (ventes, produits, à racheter, dormants, clients et crédits) ; péremption toujours visible dans Mon stock ; catégories, marques et catégories de dépenses créées sur place ; produit créé sur place depuis l'approvisionnement et l'entrée en stock ; fournisseur d'un approvisionnement (raccourci « Nouveau fournisseur », attribution après coup) ; photos conservées à la reconstruction de l'API.
 > Ce dossier est l'inventaire de ce qui a été **fait**. Il s'adresse à la personne (ou à l'agent) qui reprend le projet : ce fichier donne la vue d'ensemble et ce qui est commun à toutes les phases ; **chaque phase terminée a son rapport** (tableau ci-dessous) : ce qui a été livré, où se trouve le code, les règles appliquées, les vérifications faites et les limites.
 
 ## En bref
@@ -37,6 +37,8 @@
 | B8 — Inscription, assistant de démarrage et abonnement du backend (lien de connexion, factures, webhook GeniusPay, paiement simulé) | [B8-inscription-abonnement-api.md](B8-inscription-abonnement-api.md) | `api-inscription` |
 | B9 — Synchronisation hors ligne du backend (références définitives, idempotence, écarts « à vérifier », refus motivés) | [B9-hors-ligne-api.md](B9-hors-ligne-api.md) | `api-hors-ligne` |
 | B10 — Back-office de Genius Groups (Filament : tableau de bord, espaces, boutiques, utilisateurs, mode support, formules, factures, journal) | [B10-back-office.md](B10-back-office.md) | `back-office` |
+
+Hors phase : [deploiement-coolify.md](deploiement-coolify.md) (déploiement sur Coolify : compose de production, image du frontend, sous-domaines en joker, sauvegardes ; feuille de route `DEPLOIEMENT-COOLIFY.md` à la racine).
 
 Hors phase : [mdp-six-caracteres.md](mdp-six-caracteres.md) (mots de passe à 6 caractères au moins) ; [retrait-comptes-test.md](retrait-comptes-test.md) (suppression des comptes et données de démonstration avant la mise en production) ; [produits-fournisseur.md](produits-fournisseur.md) (produits d'un fournisseur, fournisseurs d'un produit, racheter chez un fournisseur) ; [accueil-courbe-rachat.md](accueil-courbe-rachat.md) (mini-courbe des ventes et rappel « à racheter dans les 7 jours » sur l'accueil).
 
@@ -212,6 +214,7 @@ Recettes pour une nouvelle rubrique (c'est ainsi que F2 à F4 ont été faites) 
 - **Filament** : les arguments des fonctions sont fournis par leur nom (`$query`, `$data`, `$record`) ; `fn (Builder $q)` reçoit une requête vide. Les widgets se testent avec `Livewire::test()`.
 - **Photos et Docker** : les photos envoyées sont dans `storage/app/public` de l'API. Dans le conteneur, ce dossier est le volume `gstock-storage` (`compose.yaml`) ; sans lui, reconstruire l'image efface les fichiers alors que la base garde leur chemin (cas rencontré le 5 novembre : photos à renvoyer). Côté front, une photo introuvable affiche le repli (initiale, teinte de catégorie) grâce à `useImageOk` (`src/lib/use-image-ok.ts`) ; toute nouvelle `<img>` d'une photo envoyée doit l'utiliser.
 - **Backend, horloge** : toujours `now()` (Carbon) et jamais `time()`, sinon `travel()` dans les tests n'a pas d'effet (cas rencontré sur l'expiration des liens de reçu).
+- **Production derrière un proxy** : sans `trustProxies`, Laravel génère des liens en `http://` et voit toutes les requêtes venir du proxy (limitation des connexions partagée). Le front et l'API doivent rester sur la même origine (Caddy du service `web` transmet `/api`, `/sanctum`, `/storage`). `MAIL_FROM_ADDRESS` vide fait échouer tous les e-mails de la file.
 - **Versions récentes** : TypeScript 7, React Router 8, MSW 3, Tailwind 4, Zod 4, i18next 26. Vérifier les API dans `node_modules` plutôt que de se fier à des exemples anciens (MSW 3 : `onUnhandledFrame` au lieu de `onUnhandledRequest`).
 
 ## Tests
