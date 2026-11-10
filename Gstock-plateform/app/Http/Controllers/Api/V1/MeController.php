@@ -58,11 +58,11 @@ class MeController extends Controller
         $user = $request->user();
         $data = $request->validate([
             'current_password' => ['required', 'string'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
         ], [
             'current_password.required' => 'Saisissez votre mot de passe actuel.',
-            'password.required' => 'Le mot de passe doit contenir au moins 8 caractères.',
-            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'password.required' => 'Le mot de passe doit contenir au moins 6 caractères.',
+            'password.min' => 'Le mot de passe doit contenir au moins 6 caractères.',
             'password.confirmed' => 'Les deux mots de passe ne sont pas identiques.',
         ]);
         if (! Hash::check($data['current_password'], $user->password)) {

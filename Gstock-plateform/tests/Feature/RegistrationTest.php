@@ -34,7 +34,7 @@ class RegistrationTest extends TestCase
             ->assertJsonPath('errors.shop_city.0', 'Indiquez la ville de la boutique.')
             ->assertJsonPath('errors.phone.0', 'Saisissez un numéro à 10 chiffres, par exemple 07 00 00 00 00.')
             ->assertJsonPath('errors.email.0', 'Saisissez une adresse e-mail valide.')
-            ->assertJsonPath('errors.password.0', 'Le mot de passe doit faire au moins 8 caractères.')
+            ->assertJsonPath('errors.password.0', 'Le mot de passe doit faire au moins 6 caractères.')
             ->assertJsonPath('errors.plan_id.0', 'Choisissez une formule.');
         $this->assertSame(0, Tenant::query()->count());
 

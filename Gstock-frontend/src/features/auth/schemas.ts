@@ -16,7 +16,7 @@ export type ForgotForm = z.infer<typeof forgotSchema>
 
 /** Nouveau mot de passe saisi deux fois (réinitialisation et changement). */
 const newPassword = {
-  password: z.string().min(8, i18n.t('auth.reset.short_password')),
+  password: z.string().min(6, i18n.t('auth.reset.short_password')),
   password_confirmation: z.string(),
 }
 const sameAsPassword = (v: { password: string; password_confirmation: string }) => v.password === v.password_confirmation

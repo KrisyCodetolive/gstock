@@ -148,7 +148,7 @@ class UserController extends Controller
             'email' => ['nullable', 'email', 'required_without:phone', Rule::unique('users')->where('tenant_id', $tenantId)->ignore($current?->id)],
             'phone' => ['nullable', 'regex:/^\d{8,12}$/', Rule::unique('users')->where('tenant_id', $tenantId)->ignore($current?->id)],
             'role_id' => ['required', 'integer'],
-            'password' => [$current ? 'nullable' : 'required', 'string', 'min:8'],
+            'password' => [$current ? 'nullable' : 'required', 'string', 'min:6'],
         ], [
             'firstname.required' => 'Saisissez le prénom.',
             'lastname.required' => 'Saisissez le nom.',
@@ -158,8 +158,8 @@ class UserController extends Controller
             'phone.regex' => "Ce numéro de téléphone n'est pas valide.",
             'phone.unique' => 'Ce numéro est déjà utilisé par un autre utilisateur.',
             'role_id.required' => 'Choisissez un rôle.',
-            'password.required' => 'Le mot de passe doit contenir au moins 8 caractères.',
-            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'password.required' => 'Le mot de passe doit contenir au moins 6 caractères.',
+            'password.min' => 'Le mot de passe doit contenir au moins 6 caractères.',
         ]);
 
         $role = Role::query()->find($data['role_id']);
