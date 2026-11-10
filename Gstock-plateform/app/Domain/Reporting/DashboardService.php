@@ -27,6 +27,14 @@ final class DashboardService
 
     private const DAYS = ['today' => 1, 'week' => 7, 'month' => 30];
 
+    /** Mini-courbe de l'accueil : 7 jours pour « aujourd'hui » et « 7 jours », 30 pour « 30 jours ». */
+    private const TREND_DAYS = ['today' => 7, 'week' => 7, 'month' => 30];
+
+    /** Rappel « à racheter » : stock qui tient ce nombre de jours ou moins ; articles listés. */
+    public const RESTOCK_DAYS = 7;
+
+    private const RESTOCK_LIST = 5;
+
     private User $user;
 
     /** @var list<int> */
@@ -102,7 +110,10 @@ final class DashboardService
                 'customer_refunds' => D::format($refunds ?: '0', D::MONEY),
                 'supplier_payments' => D::format($supplierPayments ?: '0', D::MONEY),
             ],
+            'trend' => $this->trend(self::TREND_DAYS[$period]),
             'stock' => $this->stock(),
+            // État du stock, comme les alertes : toutes les ventes de la boutique comptent dans la vitesse.
+            'restock' => app(ReportService::class)->restockSoon($this->shops, self::RESTOCK_DAYS, self::RESTOCK_LIST),
             'expiry' => $this->expiry(),
             // Pertes (§7.8) : ni dépense ni sortie d'argent, et non déduites du résultat estimé.
             'losses' => $this->losses($from, $to),
@@ -117,6 +128,26 @@ final class DashboardService
             'installments' => $this->installments(),
             'recent' => $this->recent(),
         ];
+    }
+
+    /**
+     * Ventes jour par jour sur les $days derniers jours, aujourd'hui compris (jours sans vente à 0),
+     * avec la même règle « ses propres opérations » que les totaux.
+     */
+    private function trend(int $days): array
+    {
+        $start = CarbonImmutable::now(self::TIMEZONE)->startOfDay()->subDays($days - 1);
+        // Fuseau de l'espace (Africa/Abidjan) = UTC : la date enregistrée est le jour du commerçant.
+        $byDay = $this->own($this->table('sales'))->where('status', 'completed')->where('occurred_at', '>=', $start->utc())
+            ->groupByRaw('occurred_at::date')->selectRaw('occurred_at::date as day, sum(total) as total')
+            ->pluck('total', 'day');
+        $series = [];
+        for ($i = 0; $i < $days; $i++) {
+            $day = $start->addDays($i)->format('Y-m-d');
+            $series[] = ['date' => $day, 'total' => D::format((string) ($byDay[$day] ?? '0'), D::MONEY)];
+        }
+
+        return $series;
     }
 
     /** Articles en alerte ou en rupture : produits actifs, variantes actives. */

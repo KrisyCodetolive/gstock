@@ -148,9 +148,7 @@ final class ReportService
             ->selectRaw('sum(si.unit_cost * si.base_quantity) as cost, count(*) filter (where si.unit_cost is null) as missing')
             ->orderByDesc('revenue')->limit(self::MAX_ROWS)->get();
 
-        $restock = $this->restock();
-        // Fournisseur habituel : le dernier chez qui l'article a été acheté (M11).
-        $usual = app(SupplierCatalog::class)->lastSuppliers($this->shops);
+        $restock = $this->restock(self::RESTOCK_HORIZON);
         $dormant = $this->dormant($dormantDays);
         $belowCost = $this->belowCost();
         $refs = $this->articles(collect([$sold, $restock, $dormant['rows'], $belowCost])->flatten(1));
@@ -180,20 +178,7 @@ final class ReportService
             'restock' => [
                 'velocity_days' => self::VELOCITY_DAYS,
                 'horizon_days' => self::RESTOCK_HORIZON,
-                'items' => $restock->map(function ($r) use ($refs, $usual) {
-                    $perDay = D::div((string) $r->sold, (string) self::VELOCITY_DAYS, 3);
-                    $daysLeft = (float) $r->quantity <= 0 ? 0 : (int) floor((float) $r->quantity / ((float) $r->sold / self::VELOCITY_DAYS));
-
-                    return [
-                        ...$this->ref($refs, $r),
-                        'supplier' => $usual[$r->product_id.':'.($r->product_variant_id ?? '')] ?? null,
-                        'quantity' => D::format((string) $r->quantity),
-                        'sold_last_days' => D::format((string) $r->sold),
-                        'per_day' => $perDay,
-                        'days_left' => $daysLeft,
-                        'suggested_quantity' => (string) max(0, (int) ceil((float) $r->sold - (float) $r->quantity)),
-                    ];
-                })->sortBy([['days_left', 'asc'], ['name', 'asc']])->values()->all(),
+                'items' => $this->restockItems($restock, $refs),
             ],
             'dormant' => [
                 'days' => $dormantDays,
@@ -370,8 +355,49 @@ final class ReportService
         ];
     }
 
-    /** Articles qui se vendent et dont le stock tient RESTOCK_HORIZON jours ou moins (toutes boutiques demandées réunies). */
-    private function restock(): Collection
+    /**
+     * Rappel de l'accueil (M13) : articles dont le stock tient $horizon jours ou moins,
+     * les plus urgents d'abord ; le nombre total et les $limit premiers.
+     *
+     * @param  list<int>  $shopIds
+     */
+    public function restockSoon(array $shopIds, int $horizon, int $limit): array
+    {
+        $this->shops = $shopIds ?: [0];
+        $rows = $this->restock($horizon);
+        $items = $this->restockItems($rows, $this->articles($rows));
+
+        return ['horizon_days' => $horizon, 'count' => count($items), 'items' => array_slice($items, 0, $limit)];
+    }
+
+    /**
+     * Jours de stock restants, vente par jour, quantité conseillée (30 jours) et fournisseur habituel
+     * (le dernier chez qui l'article a été acheté, M11) ; les plus urgents d'abord.
+     *
+     * @param  array<int, Product>  $refs
+     */
+    private function restockItems(Collection $rows, array $refs): array
+    {
+        $usual = app(SupplierCatalog::class)->lastSuppliers($this->shops);
+
+        return $rows->map(function ($r) use ($refs, $usual) {
+            $perDay = D::div((string) $r->sold, (string) self::VELOCITY_DAYS, 3);
+            $daysLeft = (float) $r->quantity <= 0 ? 0 : (int) floor((float) $r->quantity / ((float) $r->sold / self::VELOCITY_DAYS));
+
+            return [
+                ...$this->ref($refs, $r),
+                'supplier' => $usual[$r->product_id.':'.($r->product_variant_id ?? '')] ?? null,
+                'quantity' => D::format((string) $r->quantity),
+                'sold_last_days' => D::format((string) $r->sold),
+                'per_day' => $perDay,
+                'days_left' => $daysLeft,
+                'suggested_quantity' => (string) max(0, (int) ceil((float) $r->sold - (float) $r->quantity)),
+            ];
+        })->sortBy([['days_left', 'asc'], ['name', 'asc']])->values()->all();
+    }
+
+    /** Articles qui se vendent et dont le stock tient $horizon jours ou moins (toutes boutiques demandées réunies). */
+    private function restock(int $horizon): Collection
     {
         $since = CarbonImmutable::now(DashboardService::TIMEZONE)->startOfDay()->subDays(self::VELOCITY_DAYS)->utc();
         $sold = DB::table('sale_items as si')
@@ -383,7 +409,7 @@ final class ReportService
             ->joinSub($sold, 'v', fn ($j) => $j->on('v.product_id', '=', 'ss.product_id')->whereRaw('v.product_variant_id IS NOT DISTINCT FROM ss.product_variant_id'))
             ->groupBy('ss.product_id', 'ss.product_variant_id', 'v.sold')
             ->selectRaw('ss.product_id, ss.product_variant_id, sum(ss.quantity) as quantity, v.sold')
-            ->havingRaw('v.sold > 0 AND sum(ss.quantity) * ? <= v.sold * ?', [self::VELOCITY_DAYS, self::RESTOCK_HORIZON])
+            ->havingRaw('v.sold > 0 AND sum(ss.quantity) * ? <= v.sold * ?', [self::VELOCITY_DAYS, $horizon])
             ->limit(self::MAX_ROWS)->get();
     }
 
