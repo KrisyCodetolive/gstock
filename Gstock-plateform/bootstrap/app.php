@@ -31,6 +31,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Application commerçant : session Sanctum par cookie (ADR-008).
         $middleware->statefulApi();
+        // Derrière le proxy de Coolify (Traefik, puis Caddy du frontend) : HTTPS, adresse IP
+        // du client (limitation des essais de connexion) et liens en https:// sont lus dans les
+        // en-têtes X-Forwarded-*. L'API n'est jamais exposée directement sur Internet.
+        $middleware->trustProxies(at: '*');
         // Non connecté : l'API répond 401 en JSON (jamais de redirection) ; le back-office renvoie à sa page de connexion.
         $middleware->redirectGuestsTo(fn (Request $request) => $request->is('api/*') ? null : route('filament.admin.auth.login'));
         $middleware->alias([
