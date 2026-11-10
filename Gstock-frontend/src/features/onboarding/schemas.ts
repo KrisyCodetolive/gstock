@@ -21,7 +21,7 @@ export const registerSchema = z.object({
     .trim()
     .refine((v) => /^0\d{9}$/.test(v.replace(/[\s.-]/g, '').replace(/^\+225/, '')), i18n.t('register.errors.phone')),
   email: z.email(i18n.t('register.errors.email')),
-  password: z.string().min(8, i18n.t('register.errors.password')),
+  password: z.string().min(6, i18n.t('register.errors.password')),
   plan_id: z.number({ error: i18n.t('register.errors.plan_id') }),
 })
 

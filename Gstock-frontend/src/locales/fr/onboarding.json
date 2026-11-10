@@ -28,7 +28,7 @@
     "phone_placeholder": "ex. 07 00 00 00 00",
     "email": "E-mail",
     "password": "Mot de passe",
-    "password_hint": "Au moins 8 caractères.",
+    "password_hint": "Au moins 6 caractères.",
     "plan_hint": "Vous ne payez rien aujourd'hui. Vous choisirez de payer à la fin de l'essai.",
     "trial": "{{days}} jours gratuits",
     "next": "Continuer",
@@ -46,7 +46,7 @@
       "lastname": "Saisissez votre nom.",
       "phone": "Saisissez un numéro à 10 chiffres, par exemple 07 00 00 00 00.",
       "email": "Saisissez une adresse e-mail valide.",
-      "password": "Le mot de passe doit faire au moins 8 caractères.",
+      "password": "Le mot de passe doit faire au moins 6 caractères.",
       "plan_id": "Choisissez une formule."
     }
   },

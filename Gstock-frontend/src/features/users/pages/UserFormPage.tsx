@@ -38,7 +38,7 @@ const userSchema = (creating: boolean) =>
         .refine((v) => v === '' || z.email().safeParse(v).success, i18n.t('users.form.invalid_email')),
       phone: z.string().trim(),
       password: creating
-        ? z.string().min(8, i18n.t('users.form.short_password'))
+        ? z.string().min(6, i18n.t('users.form.short_password'))
         : z.string().refine((v) => v === '' || v.length >= 8, i18n.t('users.form.short_password')),
       role_id: z.string().min(1, i18n.t('users.form.required_role')),
       shop_ids: z.array(z.number()).min(1, i18n.t('users.form.required_shops')),

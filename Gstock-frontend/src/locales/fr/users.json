@@ -37,7 +37,7 @@
       "phone": "Téléphone",
       "password": "Mot de passe",
       "new_password": "Nouveau mot de passe",
-      "password_hint": "8 caractères au moins. Communiquez-le à la personne : elle pourra le changer.",
+      "password_hint": "6 caractères au moins. Communiquez-le à la personne : elle pourra le changer.",
       "new_password_hint": "Laissez vide pour garder le mot de passe actuel.",
       "role": "Rôle",
       "role_placeholder": "Choisir un rôle",
@@ -49,7 +49,7 @@
       "required_lastname": "Saisissez le nom.",
       "required_login": "Saisissez un e-mail ou un numéro de téléphone pour la connexion.",
       "invalid_email": "Cette adresse e-mail n'est pas valide.",
-      "short_password": "Le mot de passe doit contenir au moins 8 caractères.",
+      "short_password": "Le mot de passe doit contenir au moins 6 caractères.",
       "required_role": "Choisissez un rôle.",
       "required_shops": "Cochez au moins une boutique.",
       "created": "Utilisateur ajouté. Il peut maintenant se connecter."
