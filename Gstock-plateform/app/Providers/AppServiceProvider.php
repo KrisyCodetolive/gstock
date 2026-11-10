@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Domain\Platform\Billing\GeniusPayPlatformGateway;
 use App\Domain\Platform\Billing\PlatformGateway;
 use App\Domain\Platform\Billing\SimulatedPlatformGateway;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -17,6 +18,9 @@ class AppServiceProvider extends ServiceProvider
         // Paiement des abonnements (ADR-003) : la simulation n'est jamais permise en production.
         $this->app->bind(PlatformGateway::class, function () {
             $driver = config('gstock.geniuspay.platform.driver');
+            if ($driver === 'geniuspay') {
+                return GeniusPayPlatformGateway::fromConfig();
+            }
             if ($driver === 'simulation' && ! $this->app->isProduction()) {
                 return new SimulatedPlatformGateway;
             }

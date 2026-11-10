@@ -34,5 +34,9 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="GENIUSPAY_PLATFORM_DRIVER" value="simulation"/>
+        <env name="GENIUSPAY_API_KEY" value=""/>
+        <env name="GENIUSPAY_API_SECRET" value=""/>
+        <env name="GENIUSPAY_WEBHOOK_SECRET" value="whsec_test"/>
     </php>
 </phpunit>
