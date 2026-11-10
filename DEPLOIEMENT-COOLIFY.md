@@ -342,7 +342,10 @@ Règles :
 - `APP_DOMAIN` : le domaine seul, **sans** `https://`, sans `www`, sans `/` à la fin.
 - `MAIL_FROM_ADDRESS` est **obligatoire**, même sans SMTP : vide, chaque e-mail échoue.
 - Sans SMTP pour l'instant : remplacer les 5 lignes `MAIL_MAILER` à `MAIL_PASSWORD` par `MAIL_MAILER=log`.
-- Ne mets **aucune** variable `GENIUSPAY_PLATFORM_*` (voir « Limites connues »).
+- Paiement des abonnements : ajoute `GENIUSPAY_API_KEY` et `GENIUSPAY_API_SECRET` (dashboard GeniusPay >
+  Paramètres > API ; clés `sk_live_…` pour encaisser pour de vrai, `sk_sandbox_…` pour tester), puis
+  `GENIUSPAY_WEBHOOK_SECRET` une fois le webhook déclaré (partie 12). Sans clés, le bouton « Payer »
+  de « Mon abonnement » renvoie une erreur.
 
 Variables facultatives (valeurs par défaut correctes) : `BACKUP_KEEP_DAYS=14` (durée de garde
 des sauvegardes), `LOG_LEVEL=warning`.
@@ -395,6 +398,22 @@ La commande demande un nom affiché, puis un mot de passe de **12 caractères au
 s'affiche pendant la saisie, c'est normal). Connecte-toi ensuite sur `https://admin.gstock.app`.
 
 Pour ajouter un autre administrateur, relancer la même commande avec son e-mail.
+
+### Brancher le webhook GeniusPay
+
+GeniusPay prévient GStock de chaque paiement d'abonnement par un webhook signé. Une fois les clés
+saisies (partie 9) et l'application déployée :
+
+```bash
+docker exec -it NOM_DU_CONTENEUR_API php artisan gstock:geniuspay-webhook https://gstock.app/api/v1/webhooks/geniuspay/platform
+```
+
+La commande déclare le webhook chez GeniusPay et affiche une ligne `GENIUSPAY_WEBHOOK_SECRET=whsec_…`.
+**GeniusPay ne la redonne pas** : ajoute-la tout de suite aux variables de Coolify, puis **Redeploy**.
+`php artisan gstock:geniuspay-webhook --list` affiche les webhooks déjà déclarés.
+
+Même sans webhook, un paiement est reconnu quand le commerçant revient sur « Mon abonnement »
+(l'API relit l'état du paiement chez GeniusPay) ; le webhook le reconnaît même s'il ferme la page.
 
 ---
 
@@ -485,9 +504,9 @@ Puis redémarrer l'application dans Coolify (**Restart**).
 
 ## Limites connues
 
-- **Paiement de l'abonnement** : le pilote GeniusPay réel n'est pas encore développé. Les nouveaux
-  espaces ont leurs 14 jours d'essai, mais le bouton « Payer » de « Mon abonnement » renvoie une
-  erreur. Ne pas mettre `GENIUSPAY_PLATFORM_DRIVER=simulation` en production : c'est refusé exprès.
+- **Encaissements des boutiques par GeniusPay** (clés de chaque commerçant) : pas encore branchés ;
+  seul le paiement de l'abonnement passe par GeniusPay. La page de paiement simulée est refusée en
+  production.
 - **Tâches planifiées** : il n'y en a aucune dans le code pour l'instant, donc pas de conteneur
   « scheduler ». À ajouter le jour où il y en aura (`php artisan schedule:work`).
 - **Sauvegardes** : sur le même serveur que la base. À rapatrier régulièrement (partie 13).
