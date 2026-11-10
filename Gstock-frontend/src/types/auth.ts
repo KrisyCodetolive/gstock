@@ -123,8 +123,6 @@ export interface ForgotPasswordPayload {
 export interface ForgotPasswordResult {
   /** Toujours le même message, que le compte existe ou non (pas d'énumération). */
   message: string
-  /** Données simulées uniquement : le lien qu'aurait contenu l'e-mail. Jamais renvoyé par le vrai serveur. */
-  demo_reset_url?: string
 }
 
 /** POST /auth/reset-password : jeton à usage unique, valable 60 minutes. */

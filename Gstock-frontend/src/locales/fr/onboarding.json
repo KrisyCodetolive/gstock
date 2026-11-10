@@ -180,27 +180,6 @@
     "ask_owner": "Prévenez le propriétaire de l'espace pour qu'il règle l'abonnement.",
     "text_platform": "GStock a suspendu cet espace : les ventes sont bloquées. Contactez le support GStock pour en savoir plus."
   },
-  "simulation": {
-    "title": "Paiement GeniusPay (simulation)",
-    "text": "Page de paiement simulée : sur le vrai service, le client paie ici puis revient sur GStock. L'abonnement n'est prolongé qu'à la confirmation (webhook).",
-    "invoice": "Facture {{reference}}",
-    "channel": "Moyen de paiement",
-    "pay": "Payer",
-    "fail": "Simuler un échec",
-    "cancel": "Abandonner",
-    "unknown": "Cette facture n'existe pas ou a déjà été traitée.",
-    "tools_title": "Simulation (démonstration seulement)",
-    "tools_text": "Faites avancer le temps pour voir les états de l'abonnement.",
-    "trial_end": "Essai : plus que 2 jours",
-    "past_due": "Échéance dépassée (délai de grâce)",
-    "suspend": "Délai de grâce dépassé (suspendu)",
-    "restore": "Revenir à un abonnement payé",
-    "space": "Espace simulé : {{name}}",
-    "space_url": "Adresse : {{url}}",
-    "to_demo": "Ouvrir l'espace de démonstration",
-    "other_spaces": "Autres espaces créés sur ce navigateur",
-    "open_space": "Ouvrir"
-  },
   "support": {
     "banner": "Session d'assistance GStock ouverte par {{name}}, jusqu'à {{time}}. Tout ce qui est fait ici est journalisé."
   }

@@ -1,6 +1,6 @@
 # GStock — État du projet
 
-> Mis à jour le 10 novembre 2026 : accueil avec mini-courbe des ventes et rappel « à racheter dans les 7 jours » ; produits par fournisseur et « Racheter chez ce fournisseur » ; rubrique « Rapports » (ventes, produits, à racheter, dormants, clients et crédits) ; péremption toujours visible dans Mon stock ; catégories, marques et catégories de dépenses créées sur place ; produit créé sur place depuis l'approvisionnement et l'entrée en stock ; fournisseur d'un approvisionnement (raccourci « Nouveau fournisseur », attribution après coup) ; photos conservées à la reconstruction de l'API.
+> Mis à jour le 10 novembre 2026 : comptes et données de démonstration supprimés avant la mise en production ; accueil avec mini-courbe des ventes et rappel « à racheter dans les 7 jours » ; produits par fournisseur et « Racheter chez ce fournisseur » ; rubrique « Rapports » (ventes, produits, à racheter, dormants, clients et crédits) ; péremption toujours visible dans Mon stock ; catégories, marques et catégories de dépenses créées sur place ; produit créé sur place depuis l'approvisionnement et l'entrée en stock ; fournisseur d'un approvisionnement (raccourci « Nouveau fournisseur », attribution après coup) ; photos conservées à la reconstruction de l'API.
 > Ce dossier est l'inventaire de ce qui a été **fait**. Il s'adresse à la personne (ou à l'agent) qui reprend le projet : ce fichier donne la vue d'ensemble et ce qui est commun à toutes les phases ; **chaque phase terminée a son rapport** (tableau ci-dessous) : ce qui a été livré, où se trouve le code, les règles appliquées, les vérifications faites et les limites.
 
 ## En bref
@@ -38,7 +38,7 @@
 | B9 — Synchronisation hors ligne du backend (références définitives, idempotence, écarts « à vérifier », refus motivés) | [B9-hors-ligne-api.md](B9-hors-ligne-api.md) | `api-hors-ligne` |
 | B10 — Back-office de Genius Groups (Filament : tableau de bord, espaces, boutiques, utilisateurs, mode support, formules, factures, journal) | [B10-back-office.md](B10-back-office.md) | `back-office` |
 
-Hors phase : [produits-fournisseur.md](produits-fournisseur.md) (produits d'un fournisseur, fournisseurs d'un produit, racheter chez un fournisseur) ; [accueil-courbe-rachat.md](accueil-courbe-rachat.md) (mini-courbe des ventes et rappel « à racheter dans les 7 jours » sur l'accueil).
+Hors phase : [retrait-comptes-test.md](retrait-comptes-test.md) (suppression des comptes et données de démonstration avant la mise en production) ; [produits-fournisseur.md](produits-fournisseur.md) (produits d'un fournisseur, fournisseurs d'un produit, racheter chez un fournisseur) ; [accueil-courbe-rachat.md](accueil-courbe-rachat.md) (mini-courbe des ventes et rappel « à racheter dans les 7 jours » sur l'accueil).
 
 Hors phase également : [rapports-statistiques.md](rapports-statistiques.md) (rubrique « Rapports », première partie : ventes jour par jour, meilleurs produits, produits à perte, à racheter, dormants).
 
@@ -82,25 +82,13 @@ Plus de données simulées depuis le 5 novembre 2026 ([fin-donnees-simulees.md](
 ```bash
 cd Gstock-plateform
 docker compose --profile app up -d --build   # base + API (port 8001), migrations au démarrage
-docker compose exec app php artisan migrate:fresh --seed   # première fois : espace de démonstration (efface la base)
+docker compose exec app php artisan gstock:admin vous@exemple.ci   # administrateur du back-office /admin (facultatif)
 cd ../Gstock-frontend
 npm install
 npm run dev          # http://localhost:5173 (connexion centrale), proxy vers l'API du port 8001 (GSTOCK_API_URL pour une autre)
 ```
 
-- **Comptes de test** (seeders du backend) : listés sur l'écran de connexion en développement (un toucher pour se connecter). Mot de passe commun : `demo1234`.
-
-  | Personne | Rôle | Boutiques | Sert à tester |
-  |---|---|---|---|
-  | Aminata Koné | Propriétaire (Owner) | toutes | tout, sélecteur de boutique, vue « Toutes mes boutiques » |
-  | Ibrahim Traoré | Gérant | Cocody, Yopougon | presque tout sauf utilisateurs/rôles/abonnement |
-  | Fatou Bamba | Vendeur | Cocody | une seule boutique (pas de sélecteur), lecture seule du stock, « ses propres ventes » |
-  | Koffi N'Guessan | Caissier | Yopougon | vente sans droit de mettre à crédit |
-  | Moussa Diallo | Gestionnaire de stock | Cocody, Yopougon | stock sans caisse |
-  | Paul Yao | Vendeur, **désactivé** | Cocody | refus de connexion |
-
-- **Remettre la démo à zéro** : `php artisan migrate:fresh --seed` côté backend (efface toute la base).
-- **Créer un espace** : « Créer mon espace » sur l'écran de connexion (`/inscription`) ; on y revient ensuite par la connexion centrale (`localhost:5173`) ou par son sous-domaine. Le paiement de l'abonnement passe par la page de paiement simulée du backend (pilote `simulation`).
+- **Créer un espace** (il n'y a plus de comptes de test) : « Créer mon espace » sur l'écran de connexion (`/inscription`) ; ajouter ensuite des utilisateurs et des rôles dans Paramètres pour tester les permissions ; on y revient ensuite par la connexion centrale (`localhost:5173`) ou par son sous-domaine. Le paiement de l'abonnement passe par la page de paiement simulée du backend (pilote `simulation`).
 - **Tester le hors ligne** : en dev, couper le réseau (outils du navigateur) suffit pour vendre sans réseau. Pour le rechargement sans réseau, il faut le service worker : `npm run build && npm run preview`.
 - **Vitrine des composants** : `/vitrine` (développement uniquement).
 - **Vérifications** : `npm run typecheck`, `npm run lint`, `npm run build`. Les trois passent sans erreur à la fin de F4.
@@ -139,7 +127,7 @@ Ces décisions complètent ou précisent le cahier. Celles marquées **[cahier]*
 | GeniusPay (backend) | Sans documentation ni clés, le paiement passe par l'interface `PlatformGateway` ; seul le pilote `simulation` existe (page servie par l'API, refusée en production). Format du webhook provisoire. Voir [B8](B8-inscription-abonnement-api.md). |
 | Back-office (M01) | Filament 5 sur `/admin` (ou `ADMIN_DOMAIN`), garde `platform` séparée ; suspension par GStock distincte de l'impayé (`tenants.suspended_at`) ; mode support limité dans le temps avec bandeau. Voir [B10](B10-back-office.md). |
 | Transferts entre boutiques (§7.12) | Envoi puis réception, stock en route compté nulle part, manques en pertes, annulation avant réception ; permission `stock.transfer` au propriétaire. Voir [transferts.md](transferts.md). |
-| Données simulées (ADR-004) | Retirées le 5 novembre 2026 : le frontend parle toujours au backend ; comptes de test issus des seeders. Voir [fin-donnees-simulees.md](fin-donnees-simulees.md). |
+| Données simulées (ADR-004) | Retirées le 5 novembre 2026 : le frontend parle toujours au backend. Les comptes et données de démonstration des seeders ont été supprimés à leur tour le 10 novembre 2026 ([retrait-comptes-test.md](retrait-comptes-test.md)). Voir [fin-donnees-simulees.md](fin-donnees-simulees.md). |
 | Dates de péremption (§7.11) | Arrivages par entrée de marchandise pour les produits suivis, sortie de la date la plus proche, approvisionnement entamé non annulable, pertes à part du résultat. Voir [peremption.md](peremption.md). |
 | Rappel « à racheter » de l'accueil (M13) | Même calcul que « À racheter bientôt » des rapports (rythme des 30 derniers jours), horizon de 7 jours au lieu de 14 ; état de la boutique, toutes ventes comprises, alors que la courbe suit « ses propres opérations ». Voir [accueil-courbe-rachat.md](accueil-courbe-rachat.md). |
 | Connexion centrale (ADR-009) | Sur le domaine principal, `POST /auth/central-login` trouve les espaces du compte (seulement avec le bon mot de passe) et y renvoie par un lien à usage unique ; choix si plusieurs. Les sous-domaines restent. Voir [connexion-centrale.md](connexion-centrale.md). |
