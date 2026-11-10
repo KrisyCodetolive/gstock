@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Platform\Billing\GatewayPayment;
 use App\Domain\Platform\Billing\SubscriptionService;
 use App\Domain\Platform\Models\TenantInvoice;
 use Illuminate\Http\RedirectResponse;
@@ -12,7 +13,7 @@ use Illuminate\View\View;
 /**
  * Page de paiement GeniusPay simulée (pilote `simulation`, jamais en production) :
  * le commerçant choisit un moyen, le paiement réussit ou échoue, et le serveur
- * reçoit le même message qu'au webhook de GeniusPay, puis renvoie sur « Mon abonnement ».
+ * l'applique comme une confirmation de GeniusPay, puis renvoie sur « Mon abonnement ».
  * Liens signés et temporaires : seul celui qui a lancé le paiement peut les suivre.
  */
 class GeniusPaySimulationController extends Controller
@@ -38,10 +39,11 @@ class GeniusPaySimulationController extends Controller
     public function pay(Request $request, TenantInvoice $invoice, SubscriptionService $subscriptions): RedirectResponse
     {
         $this->guard($request);
-        $subscriptions->applyWebhook([
-            'event' => $request->query('outcome') === 'success' ? 'payment.succeeded' : 'payment.failed',
-            'data' => ['reference' => $invoice->reference, 'transaction_id' => 'SIM-'.$invoice->id.'-'.now()->getTimestamp(), 'channel' => $request->query('channel')],
-        ]);
+        $subscriptions->settle($invoice, new GatewayPayment(
+            $request->query('outcome') === 'success' ? GatewayPayment::PAID : GatewayPayment::FAILED,
+            'SIM-'.$invoice->id.'-'.now()->getTimestamp(),
+            $request->query('channel'),
+        ));
 
         return redirect()->away((string) $request->query('return', '/'));
     }

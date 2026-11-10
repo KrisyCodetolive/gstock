@@ -7,14 +7,19 @@ use Illuminate\Support\Facades\URL;
 
 /**
  * Page de paiement simulée (développement, démonstration) : elle joue le rôle de
- * GeniusPay et envoie un webhook signé, comme le ferait le vrai service.
+ * GeniusPay et confirme le paiement côté serveur, comme le ferait le webhook.
  * Jamais utilisée en production (voir AppServiceProvider).
  */
 final class SimulatedPlatformGateway implements PlatformGateway
 {
-    public function checkoutUrl(TenantInvoice $invoice, string $returnUrl): string
+    public function checkout(TenantInvoice $invoice, string $returnUrl): CheckoutSession
     {
         // Lien signé et relatif : il passe par le même hôte que l'application (proxy en développement).
-        return URL::temporarySignedRoute('geniuspay.simulation', now()->addHour(), ['invoice' => $invoice->id, 'return' => $returnUrl], absolute: false);
+        return new CheckoutSession(URL::temporarySignedRoute('geniuspay.simulation', now()->addHour(), ['invoice' => $invoice->id, 'return' => $returnUrl], absolute: false));
+    }
+
+    public function find(string $transactionId): ?GatewayPayment
+    {
+        return null;
     }
 }

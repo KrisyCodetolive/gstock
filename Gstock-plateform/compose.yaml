@@ -52,6 +52,11 @@ services:
       TENANCY_CENTRAL_DOMAINS: localhost
       SANCTUM_STATEFUL_DOMAINS: "*.localhost,*.localhost:*"
       FRONTEND_URL: "http://{tenant}.localhost:5173"
+      # GeniusPay (sandbox) : repris du .env ; sans clés, la page de paiement simulée.
+      GENIUSPAY_PLATFORM_DRIVER: ${GENIUSPAY_PLATFORM_DRIVER:-}
+      GENIUSPAY_API_KEY: ${GENIUSPAY_API_KEY:-}
+      GENIUSPAY_API_SECRET: ${GENIUSPAY_API_SECRET:-}
+      GENIUSPAY_WEBHOOK_SECRET: ${GENIUSPAY_WEBHOOK_SECRET:-}
     volumes:
       # Photos des produits et des profils : gardées quand l'image est reconstruite.
       - gstock-storage:/app/storage/app/public

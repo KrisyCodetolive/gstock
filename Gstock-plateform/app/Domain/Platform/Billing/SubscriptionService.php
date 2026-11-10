@@ -12,12 +12,15 @@ use App\Domain\Shops\Models\Shop;
 use App\Support\ApiException;
 use App\Support\Decimal as D;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Abonnement d'un espace (M00) : formule, échéances, utilisation comparée aux
- * limites, factures, paiement par GeniusPay. Un paiement n'est validé qu'au
- * webhook (ADR-003) : il prolonge l'abonnement d'une période ; un échec ne change rien.
+ * limites, factures, paiement par GeniusPay. Un paiement n'est validé que sur une
+ * confirmation du serveur de GeniusPay (webhook, ou relecture de son état), jamais
+ * sur la redirection du navigateur (ADR-003) : il prolonge l'abonnement d'une période.
  */
 final class SubscriptionService
 {
@@ -86,29 +89,107 @@ final class SubscriptionService
         });
         $returnUrl = str_replace('{tenant}', $tenant->slug, config('gstock.frontend_url')).config('gstock.subscription_return_path');
 
-        return ['invoice' => self::invoice($invoice), 'checkout_url' => $this->gateway->checkoutUrl($invoice, $returnUrl)];
+        try {
+            $session = $this->gateway->checkout($invoice, $returnUrl);
+        } catch (\Throwable $e) {
+            // GeniusPay n'a rien créé : la facture ne reste pas « en attente ».
+            $invoice->update(['status' => 'failed']);
+            throw $e;
+        }
+        if ($session->transactionId) {
+            $invoice->update(['geniuspay_transaction_id' => $session->transactionId]);
+        }
+
+        return ['invoice' => self::invoice($invoice->fresh('plan')), 'checkout_url' => $session->url];
     }
 
     /**
      * Webhook GeniusPay de la plateforme, déjà authentifié par sa signature.
-     * Idempotent : une facture déjà traitée n'est pas rejouée.
+     * La facture est retrouvée par ses métadonnées (`metadata.invoice`) ou par la
+     * référence GeniusPay. Un succès est confirmé en relisant le paiement chez
+     * GeniusPay (statut et montant) avant de prolonger l'abonnement.
      *
-     * @param  array{event?: string, data?: array{reference?: string, transaction_id?: string, channel?: string}}  $payload
+     * @param  array{event?: string, environment?: string, data?: array<string, mixed>}  $payload
      */
-    public function applyWebhook(array $payload): ?TenantInvoice
+    public function handleWebhook(array $payload): ?TenantInvoice
     {
-        $data = $payload['data'] ?? [];
+        $data = (array) ($payload['data'] ?? []);
+        $outcome = GeniusPayWebhook::outcome((string) ($payload['event'] ?? ''));
+        $transactionId = filled($data['reference'] ?? null) ? (string) $data['reference'] : null;
+        $invoice = $this->findInvoice((string) data_get($data, 'metadata.invoice', ''), $transactionId);
+        if (! $invoice || $outcome === null) {
+            return $invoice;
+        }
+        // Un paiement de test ne paie jamais un abonnement réel (et inversement).
+        if (isset($payload['environment']) && $payload['environment'] !== GeniusPayPlatformGateway::environment()) {
+            Log::warning('GeniusPay : webhook d’un autre environnement ignoré.', ['invoice' => $invoice->reference, 'environment' => $payload['environment']]);
 
-        return DB::transaction(function () use ($payload, $data) {
-            $invoice = TenantInvoice::query()->where('reference', (string) ($data['reference'] ?? ''))->lockForUpdate()->first();
-            if (! $invoice || $invoice->status !== 'pending') {
+            return $invoice;
+        }
+
+        $payment = new GatewayPayment($outcome, $transactionId, GeniusPayPlatformGateway::channel($data['provider'] ?? $data['payment_method'] ?? null), isset($data['amount']) ? (string) $data['amount'] : null);
+        if ($outcome === GatewayPayment::PAID && $transactionId) {
+            // Confirmation auprès de GeniusPay : le webhook signé ne suffit pas à lui seul.
+            $confirmed = $this->gateway->find($transactionId);
+            if ($confirmed) {
+                $payment = new GatewayPayment($confirmed->outcome, $transactionId, $confirmed->channel ?? $payment->channel, $confirmed->amount ?? $payment->amount);
+            }
+        }
+
+        return $this->settle($invoice, $payment);
+    }
+
+    /**
+     * Relit chez GeniusPay le paiement en attente d'un espace (retour de la page de
+     * paiement, webhook pas encore arrivé ou injoignable en développement).
+     * C'est le serveur qui interroge GeniusPay : la redirection du navigateur ne valide rien.
+     */
+    public function refreshPending(Tenant $tenant): void
+    {
+        $invoice = TenantInvoice::query()->where('tenant_id', $tenant->id)->where('status', 'pending')->whereNotNull('geniuspay_transaction_id')->latest('id')->first();
+        // L'écran relit l'abonnement toutes les 2 s pendant l'attente : GeniusPay au plus toutes les 5 s.
+        if (! $invoice || ! Cache::add("geniuspay:refresh:{$invoice->id}", true, 5)) {
+            return;
+        }
+        try {
+            $payment = $this->gateway->find($invoice->geniuspay_transaction_id);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return;
+        }
+        if ($payment && $payment->outcome) {
+            $this->settle($invoice, $payment);
+        }
+    }
+
+    /**
+     * Applique l'issue d'un paiement à sa facture. Idempotent : une facture déjà
+     * traitée n'est pas rejouée. Payé : une période de plus ; échoué : rien ne change.
+     */
+    public function settle(TenantInvoice $invoice, GatewayPayment $payment): TenantInvoice
+    {
+        return DB::transaction(function () use ($invoice, $payment) {
+            $invoice = TenantInvoice::query()->lockForUpdate()->findOrFail($invoice->id);
+            if ($invoice->status !== 'pending' || $payment->outcome === null) {
+                // Facture abandonnée (remplacée par un nouveau paiement) mais payée quand même : à rembourser ou à créditer.
+                if ($invoice->status === 'failed' && $payment->outcome === GatewayPayment::PAID) {
+                    Log::error('GeniusPay : paiement reçu pour une facture abandonnée.', ['invoice' => $invoice->reference, 'transaction' => $payment->transactionId]);
+                }
+
+                return $invoice;
+            }
+            // Montant différent de la facture : on ne prolonge pas, à vérifier par Genius Groups.
+            if ($payment->outcome === GatewayPayment::PAID && $payment->amount !== null && D::cmp($payment->amount, (string) $invoice->amount) < 0) {
+                Log::error('GeniusPay : montant payé inférieur à la facture.', ['invoice' => $invoice->reference, 'paid' => $payment->amount, 'due' => (string) $invoice->amount]);
+
                 return $invoice;
             }
             $invoice->fill([
-                'payment_channel' => $data['channel'] ?? null,
-                'geniuspay_transaction_id' => $data['transaction_id'] ?? null,
+                'payment_channel' => $payment->channel ?? $invoice->payment_channel,
+                'geniuspay_transaction_id' => $payment->transactionId ?? $invoice->geniuspay_transaction_id,
             ]);
-            if (($payload['event'] ?? '') !== 'payment.succeeded') {
+            if ($payment->outcome !== GatewayPayment::PAID) {
                 $invoice->update(['status' => 'failed']);
 
                 return $invoice;
@@ -128,6 +209,15 @@ final class SubscriptionService
 
             return $invoice;
         });
+    }
+
+    private function findInvoice(string $reference, ?string $transactionId): ?TenantInvoice
+    {
+        if ($reference !== '' && $invoice = TenantInvoice::query()->where('reference', $reference)->first()) {
+            return $invoice;
+        }
+
+        return $transactionId ? TenantInvoice::query()->where('geniuspay_transaction_id', $transactionId)->first() : null;
     }
 
     public static function plan(Plan $p): array

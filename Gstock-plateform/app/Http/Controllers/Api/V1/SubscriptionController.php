@@ -17,6 +17,9 @@ class SubscriptionController extends Controller
 
     public function show(): JsonResponse
     {
+        // Retour de la page de paiement : l'état est relu chez GeniusPay si le webhook n'est pas encore arrivé.
+        $this->subscriptions->refreshPending(CurrentTenant::get());
+
         return response()->json(['data' => $this->subscriptions->resource(CurrentTenant::get())]);
     }
 
