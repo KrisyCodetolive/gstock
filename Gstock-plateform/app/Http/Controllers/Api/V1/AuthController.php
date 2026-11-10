@@ -104,11 +104,11 @@ class AuthController extends Controller
     public function resetPassword(Request $request, PasswordResets $resets): Response
     {
         $data = $request->validate(
-            ['token' => ['required', 'string'], 'password' => ['required', 'string', 'min:8', 'confirmed']],
+            ['token' => ['required', 'string'], 'password' => ['required', 'string', 'min:6', 'confirmed']],
             [
                 'token.required' => 'Ce lien a expiré ou a déjà servi. Demandez-en un nouveau.',
-                'password.required' => 'Le mot de passe doit contenir au moins 8 caractères.',
-                'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+                'password.required' => 'Le mot de passe doit contenir au moins 6 caractères.',
+                'password.min' => 'Le mot de passe doit contenir au moins 6 caractères.',
                 'password.confirmed' => 'Les deux mots de passe ne sont pas identiques.',
             ],
         );

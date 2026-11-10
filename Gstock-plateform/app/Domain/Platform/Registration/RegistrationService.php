@@ -85,8 +85,8 @@ final class RegistrationService
         if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors['email'] = ['Saisissez une adresse e-mail valide.'];
         }
-        if (mb_strlen($password) < 8) {
-            $errors['password'] = ['Le mot de passe doit faire au moins 8 caractères.'];
+        if (mb_strlen($password) < 6) {
+            $errors['password'] = ['Le mot de passe doit faire au moins 6 caractères.'];
         }
         if (! $plan) {
             $errors['plan_id'] = ['Choisissez une formule.'];

@@ -76,17 +76,19 @@ class RolesAndUsersTest extends TestCase
         $ownerRole = $tenant->run(fn () => Role::query()->where('is_owner', true)->value('id'));
         $payload = ['firstname' => 'Fatou', 'lastname' => 'Bamba', 'email' => '', 'phone' => '07 00 00 00 03', 'role_id' => $role->id];
 
-        $this->api('kone', 'POST', '/users', $payload, as: $owner)->assertJsonPath('errors.password.0', 'Le mot de passe doit contenir au moins 8 caractères.');
+        $this->api('kone', 'POST', '/users', $payload, as: $owner)->assertJsonPath('errors.password.0', 'Le mot de passe doit contenir au moins 6 caractères.');
+        $this->api('kone', 'POST', '/users', [...$payload, 'password' => '12345'], as: $owner)->assertJsonPath('errors.password.0', 'Le mot de passe doit contenir au moins 6 caractères.');
         $this->api('kone', 'POST', '/users', [...$payload, 'password' => 'secret123', 'role_id' => $ownerRole], as: $owner)
             ->assertJsonPath('errors.role_id.0', 'Le rôle du propriétaire est réservé au créateur de l’espace.');
         $this->api('kone', 'POST', '/users', [...$payload, 'password' => 'secret123', 'phone' => '+225 07 00 00 00 01'], as: $owner)
             ->assertJsonPath('errors.phone.0', 'Ce numéro est déjà utilisé par un autre utilisateur.');
 
-        $user = $this->api('kone', 'POST', '/users', [...$payload, 'password' => 'secret123'], as: $owner)
+        // Six caractères suffisent.
+        $user = $this->api('kone', 'POST', '/users', [...$payload, 'password' => 'secret'], as: $owner)
             ->assertCreated()->assertJsonPath('data.phone', '0700000003')->assertJsonPath('data.shops', [])->assertJsonPath('data.is_active', true)->json('data');
         $this->api('kone', 'PUT', "/users/{$user['id']}/shops", ['shop_ids' => [$shop->id]], as: $owner)->assertOk()->assertJsonPath('data.shops.0.id', $shop->id);
 
-        $this->api('kone', 'POST', '/auth/login', ['login' => '0700000003', 'password' => 'secret123'])->assertOk()->assertJsonPath('data.shops.0.id', $shop->id);
+        $this->api('kone', 'POST', '/auth/login', ['login' => '0700000003', 'password' => 'secret'])->assertOk()->assertJsonPath('data.shops.0.id', $shop->id);
         $changed = AuditLog::query()->withoutGlobalScopes()->where('action', 'user.shops_changed')->first();
         $this->assertSame(['boutiques' => ['Boutique principale']], $changed->new_values);
     }
