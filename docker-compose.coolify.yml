@@ -76,8 +76,12 @@ services:
     volumes:
       # Photos des produits et des profils.
       - gstock-storage:/app/storage/app/public
+    networks:
+      - default
+      - coolify
     labels:
       - traefik.enable=true
+      - traefik.docker.network=coolify
       - traefik.http.middlewares.gstock-https.redirectscheme.scheme=https
       - traefik.http.routers.gstock-admin-http.rule=Host(`admin.${APP_DOMAIN}`)
       - traefik.http.routers.gstock-admin-http.entrypoints=http
@@ -145,8 +149,12 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    networks:
+      - default
+      - coolify
     labels:
       - traefik.enable=true
+      - traefik.docker.network=coolify
       - traefik.http.middlewares.gstock-web-https.redirectscheme.scheme=https
       - traefik.http.routers.gstock-web-http.rule=Host(`${APP_DOMAIN}`) || HostRegexp(`^[a-z0-9-]+\.${APP_DOMAIN}`)
       - traefik.http.routers.gstock-web-http.entrypoints=http
@@ -178,6 +186,12 @@ services:
       BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
     volumes:
       - gstock-backups:/backups
+
+networks:
+  # Réseau du proxy Traefik de Coolify : sans lui, le proxy ne joint pas api et web (503).
+  coolify:
+    external: true
+    name: coolify
 
 volumes:
   gstock-pgsql:
